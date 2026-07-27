@@ -15,7 +15,7 @@ O projeto se baseia em dois pilares fundamentais:
    Diferente das ferramentas de mercado que olham para o passado, o framework utiliza metadados e telemetria histórica para gerar uma estimativa de custo prévia. Antes do processamento iniciar, o sistema avalia o volume de dados e a complexidade da tarefa, cruzando essas informações com as tabelas de preços atuais das nuvens para informar o custo esperado da operação.
 
 2. **Estrutura Cross-Platform (Independência de Nuvem):** 
-   Utilizando uma arquitetura baseada em padrões universais, como Containers e SQL agnóstico, o pipeline pode ser executado em qualquer plataforma de nuvem sem necessidade de reescrita de código [5]. Isso transforma a infraestrutura em uma commodity, onde a decisão de execução é baseada na eficiência financeira (escolha do provedor mais barato no momento).
+   Utilizando uma arquitetura baseada em padrões universais, como Containers e SQL agnóstico, o pipeline pode ser executado em qualquer plataforma de nuvem sem necessidade de reescrita de código. Isso transforma a infraestrutura em uma commodity, onde a decisão de execução é baseada na eficiência financeira (escolha do provedor mais barato no momento).
 
 ## Stakeholders e Público-Alvo
 * **Engenheiros de Dados:** Recebem um feedback financeiro imediato sobre o impacto de suas transformações de dados antes de disparar os jobs.
