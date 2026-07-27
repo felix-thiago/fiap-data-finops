@@ -1,4 +1,4 @@
-# Data FinOps: Framework Cross-Platform de Data FinOps
+# Data FinOps: Framework Cross-Platform de FinOps, Predição e Liberdade em Nuvem.
 
 ## Sobre o Projeto
 O **Data FinOps** é um framework focado em resolver a ausência de previsibilidade financeira e o aprisionamento tecnológico (Vendor Lock-in) nos pipelines de engenharia de dados [1]. 
