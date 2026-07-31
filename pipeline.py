@@ -36,7 +36,7 @@ def process_data_pyspark(estimativa: dict):
         
         # Configuração leve para o Spark não estourar a memória do container
         spark = SparkSession.builder \
-            .appName("CloudSwitch-FinOps-Pipeline") \
+            .appName("Data-FinOps-Pipeline") \
             .config("spark.driver.memory", "512m") \
             .config("spark.driver.host", "127.0.0.1") \
             .getOrCreate()
