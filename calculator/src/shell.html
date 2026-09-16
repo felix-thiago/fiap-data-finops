@@ -129,6 +129,44 @@ table.cmp .src{color:var(--muted);font-size:11.5px}
 .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:#4a5165}
 .lg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
 
+/* pipeline flow */
+.flow{display:flex;align-items:stretch;gap:6px;overflow-x:auto;padding:4px 0 12px;margin-bottom:6px}
+.fl-node{flex:0 0 auto;min-width:150px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:9px 11px;display:flex;flex-direction:column;gap:2px}
+.fl-node b{font-size:13px}
+.fl-node span{font-size:11px;color:var(--muted)}
+.fl-node em{font-style:normal;font-size:11.5px;color:#3c4460}
+.fl-node i{font-style:normal;font-size:11px;color:var(--accent)}
+.fl-node u{text-decoration:none;font-size:13px;font-weight:660;margin-top:3px}
+.fl-arrow{align-self:center;color:#b9c0d2;font-size:17px;flex:0 0 auto}
+
+/* stage editor */
+.card.stage{padding:12px 14px}
+.card.stage.off{opacity:.55}
+.st-head{display:flex;align-items:center;gap:9px;margin-bottom:10px;flex-wrap:wrap}
+.st-name{font-size:14.5px;font-weight:640;border:1px solid transparent;border-radius:6px;padding:3px 6px;
+  background:transparent;color:var(--ink);min-width:170px}
+.st-name:hover{border-color:var(--line)}
+.st-name:focus{outline:2px solid #c3cdf7;border-color:var(--accent);background:#fff}
+.st-kind{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:#4257b8;background:#e6ebfb;
+  border-radius:4px;padding:2px 7px}
+.st-cost{margin-left:auto;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.st-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px}
+.st-grid .fld{margin-bottom:0}
+.st-metrics{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px;padding-top:10px;border-top:1px solid #f0f2f6}
+.stm{background:#f7f8fb;border:1px solid var(--line);border-radius:7px;padding:5px 9px;display:flex;flex-direction:column}
+.stm i{font-style:normal;font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.stm b{font-size:13px;font-variant-numeric:tabular-nums}
+
+/* misc v0.2 */
+tr.hl{background:#f4f6fd}
+.pos-t{color:var(--ok)} .neg-t{color:var(--bad)}
+.chart .ax.dim{fill:#b2b8c8}
+.mtag{font-size:10px;letter-spacing:.04em;text-transform:uppercase;border-radius:4px;padding:1px 6px}
+.m-api{background:#e4f1e9;color:#1f6a48}
+.m-curated{background:#fdf1dc;color:#8a6408}
+.m-account{background:#e6ebfb;color:#4257b8}
+
 @media (max-width:980px){
   .wrap{flex-direction:column}
   aside{width:100%;flex:none;height:auto;position:static;border-right:0;border-bottom:1px solid var(--line)}
@@ -141,7 +179,7 @@ table.cmp .src{color:var(--muted);font-size:11.5px}
 <header>
   <div class="brand">
     <h1>DataCost Architect</h1>
-    <p>FinOps Data Architecture Simulator · MVP mock v0.1</p>
+    <p>FinOps Data Architecture Simulator · MVP mock v0.2 · pipeline por estágios</p>
   </div>
   <div class="sp"></div>
   <div>
@@ -173,7 +211,9 @@ table.cmp .src{color:var(--muted);font-size:11.5px}
   </aside>
   <main>
     <nav class="tabs">
-      <div class="tab on" data-tab="result">Result</div>
+      <div class="tab on" data-tab="pipeline">Pipeline</div>
+      <div class="tab" data-tab="result">Result</div>
+      <div class="tab" data-tab="schedule">Schedule impact</div>
       <div class="tab" data-tab="compare">Compare scenarios</div>
       <div class="tab" data-tab="optimize">Optimization</div>
       <div class="tab" data-tab="sensitivity">Sensitivity &amp; break-even</div>
@@ -183,6 +223,9 @@ table.cmp .src{color:var(--muted);font-size:11.5px}
   </main>
 </div>
 
+<script>
+/*__PRICING__*/
+</script>
 <script>
 /*__ENGINE__*/
 </script>
