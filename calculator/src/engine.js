@@ -1,441 +1,526 @@
 /* =====================================================================
-   DataCost Architect — Calculation / Pricing / Recommendation Engine
+   DataCost Architect — Calculation / Recommendation / Optimization Engine
+   v0.2 — modelo por ESTÁGIOS
    ---------------------------------------------------------------------
-   Protótipo (mock) do MVP do TCC. Toda a lógica de preço fica FORA do
-   código de cálculo: a tabela PRICING é a "pricing database" (seção 38
-   do scopo.md) e o motor apenas a consulta por (provider, service, sku).
-   Cada preço carrega valid_from / source para reprodutibilidade
-   acadêmica (seção 39).
+   Mudanças em relação à v0.1:
+   · O pipeline deixou de ser uma etapa única e passou a ser uma lista de
+     estágios encadeados (Ingestion → Bronze → Silver → Gold → DW Load →
+     Serving). Cada estágio tem engine, tamanho, SCHEDULE PRÓPRIO, formato
+     de arquivo, formato de tabela e retenção.
+   · File format e table format são dimensões separadas (Iceberg/Delta/Hudi
+     sobre Parquet/ORC/Avro), com custo de metadados, snapshots e manutenção.
+   · Catálogo aberto de frameworks de ingestão (Glue, EMR/PySpark, Sqoop,
+     DMS, Databricks, Snowpipe, framework próprio parametrizável).
+   · Varredura de schedule: quanto custa passar de 1x/dia para 1h, 30min…
+   Depende de pricing.js (PRICING, price(), FX).
    ===================================================================== */
 
-/* ------------------------------------------------------------------ */
-/* 1. PRICING DATABASE                                                 */
-/* ------------------------------------------------------------------ */
-const PRICING = [
-  // --- AWS -----------------------------------------------------------
-  { provider:'AWS', service:'S3',       region:'us-east-1', sku:'standard-storage', metric:'Storage',      unit:'GB-month',   price:0.023,  currency:'USD', valid_from:'2025-01-01', source:'AWS S3 Pricing' },
-  { provider:'AWS', service:'S3',       region:'us-east-1', sku:'ia-storage',       metric:'Storage',      unit:'GB-month',   price:0.0125, currency:'USD', valid_from:'2025-01-01', source:'AWS S3 Pricing' },
-  { provider:'AWS', service:'S3',       region:'us-east-1', sku:'put-requests',     metric:'Requests',     unit:'1k requests',price:0.005,  currency:'USD', valid_from:'2025-01-01', source:'AWS S3 Pricing' },
-  { provider:'AWS', service:'S3',       region:'us-east-1', sku:'get-requests',     metric:'Requests',     unit:'1k requests',price:0.0004, currency:'USD', valid_from:'2025-01-01', source:'AWS S3 Pricing' },
-  { provider:'AWS', service:'Glue',     region:'us-east-1', sku:'etl-dpu',          metric:'Compute',      unit:'DPU-hour',   price:0.44,   currency:'USD', valid_from:'2025-01-01', source:'AWS Glue Pricing' },
-  { provider:'AWS', service:'Athena',   region:'us-east-1', sku:'data-scanned',     metric:'Query',        unit:'TB scanned', price:5.00,   currency:'USD', valid_from:'2025-01-01', source:'Amazon Athena Pricing' },
-  { provider:'AWS', service:'Network',  region:'us-east-1', sku:'cross-region-out', metric:'Transfer',     unit:'GB',         price:0.02,   currency:'USD', valid_from:'2025-01-01', source:'AWS Data Transfer Pricing' },
-  { provider:'AWS', service:'Network',  region:'us-east-1', sku:'internet-out',     metric:'Transfer',     unit:'GB',         price:0.09,   currency:'USD', valid_from:'2025-01-01', source:'AWS Data Transfer Pricing' },
-  { provider:'AWS', service:'EC2',      region:'us-east-1', sku:'m5.xlarge',        metric:'Compute',      unit:'node-hour',  price:0.192,  currency:'USD', valid_from:'2025-01-01', source:'AWS EC2 On-Demand Pricing' },
-  { provider:'AWS', service:'EC2',      region:'us-east-1', sku:'m5.2xlarge',       metric:'Compute',      unit:'node-hour',  price:0.384,  currency:'USD', valid_from:'2025-01-01', source:'AWS EC2 On-Demand Pricing' },
-  // --- Snowflake -----------------------------------------------------
-  { provider:'Snowflake', service:'Warehouse', region:'aws-us-east-1', sku:'credit-standard',   metric:'Compute', unit:'credit',   price:2.00, currency:'USD', valid_from:'2025-01-01', source:'Snowflake Credit Consumption Table' },
-  { provider:'Snowflake', service:'Warehouse', region:'aws-us-east-1', sku:'credit-enterprise', metric:'Compute', unit:'credit',   price:3.00, currency:'USD', valid_from:'2025-01-01', source:'Snowflake Credit Consumption Table' },
-  { provider:'Snowflake', service:'Storage',   region:'aws-us-east-1', sku:'capacity-storage',  metric:'Storage', unit:'TB-month', price:23.00, currency:'USD', valid_from:'2025-01-01', source:'Snowflake Storage Pricing' },
-  // --- Databricks ----------------------------------------------------
-  { provider:'Databricks', service:'Jobs Compute',  region:'aws-us-east-1', sku:'dbu-jobs-premium',    metric:'Compute', unit:'DBU', price:0.15, currency:'USD', valid_from:'2025-01-01', source:'Databricks Pricing (Jobs Compute, Premium)' },
-  { provider:'Databricks', service:'SQL Warehouse', region:'aws-us-east-1', sku:'dbu-sql-serverless',  metric:'Compute', unit:'DBU', price:0.70, currency:'USD', valid_from:'2025-01-01', source:'Databricks Pricing (SQL Serverless)' },
-];
-
-const price = (provider, service, sku) => {
-  const r = PRICING.find(p => p.provider===provider && p.service===service && p.sku===sku);
-  if (!r) throw new Error(`Preço não encontrado: ${provider}/${service}/${sku}`);
-  return r.price;
-};
-
-/* Câmbio — APENAS camada de apresentação (seção 25 do scopo.md). */
-const FX = { USD: 1, BRL: 5.40, EUR: 0.92 };
+const DAYS = 30.4;
 
 /* ------------------------------------------------------------------ */
-/* 2. CATÁLOGOS / FATORES TÉCNICOS                                     */
+/* 1. CATÁLOGO DE ENGINES                                              */
 /* ------------------------------------------------------------------ */
-// Razão de compressão: bytes gravados / bytes lidos da fonte.
-const COMPRESSION = {
-  'parquet-zstd':  { ratio:0.18, label:'Parquet + ZSTD' },
-  'parquet-snappy':{ ratio:0.25, label:'Parquet + Snappy' },
-  'avro-snappy':   { ratio:0.45, label:'Avro + Snappy' },
-  'csv-gzip':      { ratio:0.35, label:'CSV + GZIP' },
-  'json-none':     { ratio:1.00, label:'JSON (sem compressão)' },
-};
-
-// Throughput de processamento em GB de origem por worker-minuto.
+/* kind define o modelo de cobrança:
+     glue        → DPU-hora
+     ec2         → EC2 on-demand (+ uplift EMR quando emr:true)
+     dbx         → DBU (× multiplicador Photon) + EC2 do nó
+     dbx_sl      → DBU serverless, sem EC2
+     dms         → instância ligada 24×7
+     snowflake   → créditos de virtual warehouse
+     snowpipe    → créditos serverless por GB carregado
+     athena      → TB escaneados
+     dbsql       → DBU de SQL warehouse serverless
+     custom      → throughput e custo por nó-hora informados pelo usuário  */
 const ENGINES = {
-  glue:            { label:'AWS Glue (Spark)',          gbPerWorkerMin:0.45, startupMin:1.5, complexity:2 },
-  databricks:      { label:'Databricks Jobs (Spark)',   gbPerWorkerMin:0.60, startupMin:3.0, complexity:3 },
-  databricksPhoton:{ label:'Databricks Jobs (Photon)',  gbPerWorkerMin:0.95, startupMin:3.0, complexity:3 },
-};
-
-// Warehouse Snowflake: créditos/hora e throughput de carga (GB/min).
-const WH_SIZES = {
-  XS: { credits:1,  gbPerMin:1.5 },
-  S:  { credits:2,  gbPerMin:3.0 },
-  M:  { credits:4,  gbPerMin:6.0 },
-  L:  { credits:8,  gbPerMin:12.0 },
+  glue:            { label:'AWS Glue (PySpark)',            kind:'glue', gbPerNodeMin:0.45, startupMin:1.5, minBillMin:1, complexity:2, roles:['ingest','transform'] },
+  emr_spark:       { label:'PySpark em EMR',                kind:'ec2',  gbPerNodeMin:0.60, startupMin:6.0, minBillMin:1, complexity:4, emr:true, roles:['ingest','transform'] },
+  emr_sqoop:       { label:'Sqoop em EMR (JDBC paralelo)',  kind:'ec2',  gbPerNodeMin:0.28, startupMin:6.0, minBillMin:1, complexity:4, emr:true, roles:['ingest'] },
+  ec2_spark:       { label:'PySpark em EC2 (self-managed)', kind:'ec2',  gbPerNodeMin:0.58, startupMin:4.0, minBillMin:1, complexity:5, emr:false, roles:['ingest','transform'] },
+  dms:             { label:'AWS DMS (CDC contínuo)',        kind:'dms',  gbPerNodeMin:0.50, startupMin:0.0, minBillMin:0, complexity:3, roles:['ingest'] },
+  databricks:      { label:'Databricks Jobs (Spark)',       kind:'dbx',  gbPerNodeMin:0.60, startupMin:3.0, minBillMin:1, complexity:3, photon:1, roles:['ingest','transform'] },
+  databricks_photon:{label:'Databricks Jobs + Photon',      kind:'dbx',  gbPerNodeMin:0.95, startupMin:3.0, minBillMin:1, complexity:3, photon:2, roles:['ingest','transform'] },
+  databricks_sl:   { label:'Databricks Serverless Jobs',    kind:'dbx_sl',gbPerNodeMin:0.95,startupMin:0.5, minBillMin:1, complexity:2, roles:['ingest','transform'] },
+  snowflake_wh:    { label:'Snowflake Virtual Warehouse',   kind:'snowflake', startupMin:0.2, complexity:2, roles:['transform','load'] },
+  snowpipe:        { label:'Snowpipe (COPY serverless)',    kind:'snowpipe',  startupMin:0.5, complexity:1, roles:['load'] },
+  custom_fw:       { label:'Framework próprio (ex.: Talaria)', kind:'custom', startupMin:1.0, minBillMin:1, complexity:3, roles:['ingest','transform'] },
+  athena:          { label:'Amazon Athena',                 kind:'athena', complexity:1, roles:['serve'] },
+  snowflake_serve: { label:'Snowflake (BI/consumo)',        kind:'snowflake', complexity:2, roles:['serve'] },
+  dbsql:           { label:'Databricks SQL Serverless',     kind:'dbsql',  complexity:2, roles:['serve'] },
 };
 
 const WORKER_TYPES = {
-  'm5.xlarge':  { dbu:1.0, sku:'m5.xlarge',  label:'m5.xlarge (4 vCPU)' },
-  'm5.2xlarge': { dbu:2.0, sku:'m5.2xlarge', label:'m5.2xlarge (8 vCPU)' },
+  'm5.xlarge':  { label:'m5.xlarge (4 vCPU)',  dbu:1.0, ec2:'m5.xlarge',  emrUplift:'emr-uplift-m5.xlarge',  perf:1.0 },
+  'm5.2xlarge': { label:'m5.2xlarge (8 vCPU)', dbu:2.0, ec2:'m5.2xlarge', emrUplift:'emr-uplift-m5.2xlarge', perf:2.0 },
+  'r5.xlarge':  { label:'r5.xlarge (memória)', dbu:1.2, ec2:'r5.xlarge',  emrUplift:'emr-uplift-m5.xlarge',  perf:1.15 },
 };
 
-const DAYS = 30.4; // dias médios por mês
-
-/* ------------------------------------------------------------------ */
-/* 3. ARQUITETURAS COMPARÁVEIS (cenários)                              */
-/* ------------------------------------------------------------------ */
-const ARCHITECTURES = {
-  A: {
-    id:'A', name:'AWS Serverless Lakehouse',
-    stack:['AWS Glue','Amazon S3','Amazon Athena'],
-    processing:'glue', warehouse:'athena', components:3, complexity:2,
-    note:'Ingestão e transformação em Glue, consumo analítico direto no S3 via Athena.'
-  },
-  B: {
-    id:'B', name:'AWS Glue + Snowflake',
-    stack:['AWS Glue','Amazon S3','Snowflake'],
-    processing:'glue', warehouse:'snowflake', components:3, complexity:3,
-    note:'Transformação em Glue, camada curada carregada em Snowflake.'
-  },
-  C: {
-    id:'C', name:'Databricks + Snowflake',
-    stack:['Databricks','Amazon S3','Snowflake'],
-    processing:'databricksPhoton', warehouse:'snowflake', components:3, complexity:4,
-    note:'Processamento em Databricks (Photon), warehouse Snowflake para BI.'
-  },
-  D: {
-    id:'D', name:'Databricks Lakehouse',
-    stack:['Databricks','Amazon S3','Databricks SQL'],
-    processing:'databricksPhoton', warehouse:'dbsql', components:2, complexity:3,
-    note:'Plataforma única: processamento e serving em Databricks.'
-  },
+const WH_SIZES = {
+  XS:{ label:'X-Small', credits:1, gbPerMin:1.5 },
+  S: { label:'Small',   credits:2, gbPerMin:3.0 },
+  M: { label:'Medium',  credits:4, gbPerMin:6.0 },
+  L: { label:'Large',   credits:8, gbPerMin:12.0 },
 };
 
 /* ------------------------------------------------------------------ */
-/* 4. MOTOR DE CÁLCULO                                                 */
+/* 2. FORMATOS: ARQUIVO × TABELA (dimensões separadas)                 */
 /* ------------------------------------------------------------------ */
-/**
- * @param {object} i  inputs do workload (ver INPUT_DEFAULTS no app.js)
- * @param {object} arch  arquitetura de ARCHITECTURES
- * @returns {object} resultado com breakdown, unit economics, SLA e confiança
- */
-function calculate(i, arch) {
+const FILE_FORMATS = {
+  'parquet-zstd':  { label:'Parquet + ZSTD',   ratio:0.18, columnar:true },
+  'parquet-snappy':{ label:'Parquet + Snappy', ratio:0.25, columnar:true },
+  'orc-zlib':      { label:'ORC + ZLIB',       ratio:0.22, columnar:true },
+  'avro-snappy':   { label:'Avro + Snappy',    ratio:0.45, columnar:false },
+  'csv-gzip':      { label:'CSV + GZIP',       ratio:0.35, columnar:false },
+  'json-none':     { label:'JSON (raw)',       ratio:1.00, columnar:false },
+};
+
+/* metaOverhead  → metadados/manifests como fração do dado
+   snapshotMult  → multiplicador de storage por versões retidas
+   scanFactor    → fração do dado efetivamente lida numa query (pruning)
+   maintenance   → exige compaction / expire snapshots
+   writeAmp      → sobrecusto de escrita (commit protocol, arquivos extras) */
+const TABLE_FORMATS = {
+  hive:    { label:'Hive / diretórios', metaOverhead:0.000, snapshotMult:1.00, scanFactor:1.00, maintenance:false, writeAmp:1.00, complexity:1 },
+  iceberg: { label:'Apache Iceberg',    metaOverhead:0.020, snapshotMult:1.25, scanFactor:0.60, maintenance:true,  writeAmp:1.08, complexity:3 },
+  delta:   { label:'Delta Lake',        metaOverhead:0.020, snapshotMult:1.30, scanFactor:0.65, maintenance:true,  writeAmp:1.10, complexity:3 },
+  hudi:    { label:'Apache Hudi (CoW)', metaOverhead:0.040, snapshotMult:1.35, scanFactor:0.70, maintenance:true,  writeAmp:1.25, complexity:4 },
+};
+
+const FREQUENCIES = [
+  { runsPerDay:1,   label:'Diário' },
+  { runsPerDay:2,   label:'A cada 12 h' },
+  { runsPerDay:4,   label:'A cada 6 h' },
+  { runsPerDay:12,  label:'A cada 2 h' },
+  { runsPerDay:24,  label:'A cada 1 h' },
+  { runsPerDay:48,  label:'A cada 30 min' },
+  { runsPerDay:96,  label:'A cada 15 min' },
+  { runsPerDay:288, label:'A cada 5 min' },
+];
+
+/* ------------------------------------------------------------------ */
+/* 3. CUSTO DE COMPUTE POR ESTÁGIO                                     */
+/* ------------------------------------------------------------------ */
+function stageRuntimeMin(st, g, volPerRun) {
+  const e = ENGINES[st.engine];
+  if (e.kind === 'snowflake') {
+    const sz = WH_SIZES[st.whSize || 'S'];
+    return e.startupMin + volPerRun / sz.gbPerMin;
+  }
+  if (e.kind === 'snowpipe') return e.startupMin + volPerRun / 4.0;
+  if (e.kind === 'custom')   return e.startupMin + volPerRun / (g.customGbPerNodeMin * st.workers);
+  if (e.kind === 'dms')      return 0; // contínuo: latência tratada à parte
+  const wt = WORKER_TYPES[st.workerType || 'm5.xlarge'];
+  return e.startupMin + volPerRun / (e.gbPerNodeMin * wt.perf * st.workers);
+}
+
+function stageComputeCost(st, g, volPerRun, runsPerMonth, runtimeMin, retryFactor) {
+  const e = ENGINES[st.engine];
+  const billedH = Math.max(runtimeMin, e.minBillMin || 0) / 60;
+  const wt = WORKER_TYPES[st.workerType || 'm5.xlarge'];
+  const nodes = (st.workers || 1) + 1; // + driver/coordenador
+
+  switch (e.kind) {
+    case 'glue':
+      return nodes * billedH * price('AWS','Glue','etl-dpu') * runsPerMonth * retryFactor;
+    case 'ec2': {
+      const perNode = price('AWS','EC2', wt.ec2) + (e.emr ? price('AWS','EMR', wt.emrUplift) : 0);
+      return nodes * billedH * perNode * runsPerMonth * retryFactor;
+    }
+    case 'dbx': {
+      const perNode = wt.dbu * price('Databricks','Jobs Compute','dbu-jobs-premium') * (e.photon||1)
+                    + price('AWS','EC2', wt.ec2);
+      return nodes * billedH * perNode * runsPerMonth * retryFactor;
+    }
+    case 'dbx_sl':
+      return nodes * wt.dbu * billedH * price('Databricks','Jobs Compute','dbu-jobs-serverless') * runsPerMonth * retryFactor;
+    case 'dms':
+      return price('AWS','DMS','dms.c5.large') * 730; // instância 24×7
+    case 'snowflake': {
+      const sz = WH_SIZES[st.whSize || 'S'];
+      const idleH = (st.autoSuspendSec || 0)/3600 * runsPerMonth;
+      const credits = (billedH * runsPerMonth + idleH) * sz.credits;
+      return credits * price('Snowflake','Warehouse', g.snowflakeEdition==='enterprise'?'credit-enterprise':'credit-standard');
+    }
+    case 'snowpipe': {
+      // ~0,06 crédito por GB carregado (aproximação de referência)
+      return volPerRun * runsPerMonth * 0.06 * price('Snowflake','Snowpipe','snowpipe-credit');
+    }
+    case 'custom':
+      return nodes * billedH * g.customCostPerNodeHour * runsPerMonth * retryFactor;
+    default:
+      return 0;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* 4. MOTOR PRINCIPAL — pipeline por estágios                          */
+/* ------------------------------------------------------------------ */
+function calcPipeline(g, stages) {
   const assumptions = [];
-  const A = (t) => assumptions.push(t);
+  const A = t => { if (!assumptions.includes(t)) assumptions.push(t); };
+  const retryFactor = 1 + (g.failureRate/100) * g.retries;
+  if (retryFactor > 1) A(`Retries: multiplicador de ${retryFactor.toFixed(3)}× sobre compute e requests.`);
 
-  /* --- 4.1 Volume por execução ------------------------------------- */
-  const runsPerDay   = i.runsPerDay;
-  const runsPerMonth = runsPerDay * DAYS;
+  const active = stages.filter(s => s.enabled);
+  const rows = [];
+  let dailyIn = null;
 
-  let volPerRun;
-  if (i.ingestion === 'full') {
-    volPerRun = i.sourceVolumeGB;
-    A('Full load: cada execução lê o volume total da fonte.');
-  } else if (i.ingestion === 'incremental') {
-    volPerRun = i.dailyDeltaGB / runsPerDay;
-    A('Incremental: volume diário distribuído igualmente entre as execuções.');
-  } else { // cdc
-    volPerRun = (i.dailyDeltaGB * 1.30) / runsPerDay;
-    A('CDC: acréscimo de 30% sobre o delta diário para metadados de before/after image.');
+  for (const st of active) {
+    const e = ENGINES[st.engine];
+    const runsPerDay   = st.runsPerDay;
+    const runsPerMonth = runsPerDay * DAYS;
+
+    /* --- volume que ENTRA no estágio --- */
+    if (dailyIn === null) {
+      if (g.ingestion === 'full') {
+        dailyIn = g.sourceVolumeGB * runsPerDay;
+        A('Full load: cada execução do primeiro estágio lê o volume total da fonte.');
+      } else if (g.ingestion === 'cdc') {
+        dailyIn = g.dailyDeltaGB * 1.30;
+        A('CDC: +30% sobre o delta diário para before/after image e metadados.');
+      } else {
+        dailyIn = g.dailyDeltaGB;
+      }
+    }
+    const volPerRun = dailyIn / runsPerDay;
+
+    /* --- tempo e compute (o estágio de consumo é cobrado por query, adiante) --- */
+    const runtimeMin = st.kind==='serve' ? 0 : stageRuntimeMin(st, g, volPerRun);
+    const compute    = st.kind==='serve' ? 0 : stageComputeCost(st, g, volPerRun, runsPerMonth, runtimeMin, retryFactor);
+
+    /* --- volume que SAI --- */
+    const dailyOut = dailyIn * st.reduction;
+
+    /* --- storage da camada produzida --- */
+    const ff = FILE_FORMATS[st.fileFormat] || FILE_FORMATS['parquet-snappy'];
+    const tf = TABLE_FORMATS[st.tableFormat] || TABLE_FORMATS['hive'];
+    let storage = 0, requests = 0, maintenance = 0, storedGB = 0, filesPerRun = 0;
+
+    if (st.kind !== 'serve' && st.kind !== 'load') {
+      const dailyWritten = dailyOut * ff.ratio * tf.writeAmp;
+      storedGB = dailyWritten * Math.min(st.retentionDays, 3650) * tf.snapshotMult * (1 + tf.metaOverhead);
+      if (st.kind === 'ingest' && g.ingestion === 'full') storedGB += g.sourceVolumeGB * ff.ratio;
+      const sku = st.storageClass === 'ia' ? 'ia-storage' : st.storageClass === 'glacier' ? 'glacier-ir' : 'standard-storage';
+      storage = storedGB * price('AWS','S3', sku);
+
+      filesPerRun = Math.max(1, Math.ceil((dailyOut/runsPerDay * ff.ratio * 1024) / g.targetFileMB));
+      const puts = filesPerRun * runsPerMonth * retryFactor * tf.writeAmp;
+      const gets = filesPerRun * runsPerMonth * 2;
+      requests = (puts/1000)*price('AWS','S3','put-requests') + (gets/1000)*price('AWS','S3','get-requests');
+
+      if (tf.maintenance && st.maintenanceRunsPerMonth > 0) {
+        // compaction/expire processa a fatia "quente" da camada
+        const activeGB = storedGB * 0.10;
+        const mtRuntime = stageRuntimeMin({...st, engine: e.roles.includes('transform')? st.engine : 'glue'}, g, activeGB);
+        maintenance = stageComputeCost(st, g, activeGB, st.maintenanceRunsPerMonth, mtRuntime, 1);
+        A(`${tf.label}: manutenção (compaction/expire snapshots) cobrada ${st.maintenanceRunsPerMonth}×/mês na camada ${st.name}.`);
+      }
+      if (tf.snapshotMult > 1) A(`${tf.label}: storage multiplicado por ${tf.snapshotMult}× devido a snapshots retidos.`);
+    }
+
+    /* --- estágio de carga no DW: storage do warehouse --- */
+    let whStorage = 0;
+    if (st.kind === 'load' && g.dwStorage) {
+      const prevOut = dailyOut * (FILE_FORMATS[st.fileFormat]||FILE_FORMATS['parquet-snappy']).ratio;
+      storedGB = prevOut * Math.min(st.retentionDays, 3650);
+      whStorage = (storedGB/1024) * price('Snowflake','Storage', g.snowflakeStorage==='ondemand'?'ondemand-storage':'capacity-storage');
+    }
+
+    /* --- estágio de consumo --- */
+    let serveCost = 0, serveDetail = '';
+    if (st.kind === 'serve') {
+      const tfPrev = TABLE_FORMATS[st.tableFormat] || TABLE_FORMATS['hive'];
+      if (e.kind === 'athena') {
+        const scannedTB = (g.queriesPerDay * DAYS * g.scanPerQueryGB * tfPrev.scanFactor) / 1024;
+        serveCost = scannedTB * price('AWS','Athena','data-scanned');
+        serveDetail = `${scannedTB.toFixed(2)} TB escaneados/mês (scan factor ${tfPrev.scanFactor})`;
+        if (tfPrev.scanFactor < 1) A(`${tfPrev.label}: partition/file pruning reduz o volume escaneado para ${(tfPrev.scanFactor*100).toFixed(0)}%.`);
+      } else if (e.kind === 'snowflake') {
+        const sz = WH_SIZES[st.whSize || 'S'];
+        const queryH = g.queriesPerDay * DAYS * g.avgQuerySec / 3600;
+        const idleH  = (st.autoSuspendSec||0)/3600 * g.queriesPerDay * DAYS / 20; // agrupa queries em sessões
+        const credits = (queryH + idleH) * sz.credits;
+        serveCost = credits * price('Snowflake','Warehouse', g.snowflakeEdition==='enterprise'?'credit-enterprise':'credit-standard');
+        serveDetail = `${credits.toFixed(1)} créditos/mês (warehouse ${st.whSize})`;
+      } else if (e.kind === 'dbsql') {
+        const queryH = g.queriesPerDay * DAYS * g.avgQuerySec / 3600;
+        const dbu = queryH * 4;
+        serveCost = dbu * price('Databricks','SQL Warehouse','dbu-sql-serverless');
+        serveDetail = `${dbu.toFixed(1)} DBU/mês em SQL Serverless`;
+      }
+    }
+
+    rows.push({
+      stage: st, engineLabel: e.label,
+      runsPerDay, runsPerMonth, volPerRun, dailyIn, dailyOut,
+      runtimeMin, intervalMin: 1440/runsPerDay,
+      filesPerRun, storedGB,
+      cost: { compute, storage: storage + whStorage, requests, maintenance, serve: serveCost },
+      total: compute + storage + whStorage + requests + maintenance + serveCost,
+      serveDetail,
+    });
+
+    dailyIn = dailyOut;
   }
 
-  const retryFactor = 1 + (i.failureRate/100) * i.retries;
-  if (retryFactor > 1) A(`Retries: multiplicador de ${retryFactor.toFixed(3)}x sobre custos de compute e requests.`);
+  /* --- rede --- */
+  const network = g.crossRegionGB * price('AWS','Network','cross-region-out')
+                + g.internetGB    * price('AWS','Network','internet-out');
 
-  const comp = COMPRESSION[i.format];
-  const monthlyRawGB        = volPerRun * runsPerMonth;
-  const monthlyWrittenGB    = monthlyRawGB * comp.ratio;
-  const backfillGB          = i.backfillGB;
+  /* --- catálogo Glue --- */
+  const catalog = (g.catalogObjects/100000) * price('AWS','Glue','catalog-objects');
 
-  /* --- 4.2 Storage (S3) -------------------------------------------- */
-  // Estado estacionário: retenção aplicada ao volume diário gravado.
-  const dailyWrittenGB = monthlyWrittenGB / DAYS;
-  const baseGB         = i.ingestion === 'full' ? i.sourceVolumeGB * comp.ratio : i.sourceVolumeGB * comp.ratio;
-  const retainedGB     = dailyWrittenGB * Math.min(i.retentionDays, 3650);
-  const avgStorageGB   = baseGB + retainedGB;
-  A(`Storage em estado estacionário: base comprimida + ${i.retentionDays} dias de retenção.`);
-
-  const storageSku  = i.storageClass === 'ia' ? 'ia-storage' : 'standard-storage';
-  const costStorage = avgStorageGB * price('AWS','S3',storageSku);
-
-  // Requests: arquivos por execução
-  const filesPerRun = Math.max(1, Math.ceil((volPerRun * comp.ratio * 1024) / i.targetFileMB));
-  const putReqs     = filesPerRun * runsPerMonth * retryFactor;
-  const getReqs     = filesPerRun * runsPerMonth * 2; // leitura pelo processamento + pelo serving
-  const costRequests= (putReqs/1000)*price('AWS','S3','put-requests') + (getReqs/1000)*price('AWS','S3','get-requests');
-
-  /* --- 4.3 Ingestão ------------------------------------------------- */
-  // Job de extração dedicado (2 DPU em Glue) — proporcional ao volume lido.
-  // Comum às quatro arquiteturas: todas ingerem de fonte on-premises para o S3.
-  const ingestMin  = Math.max(1, volPerRun / 4.0) + 1.0;
-  const costIngest = 2 * (ingestMin/60) * price('AWS','Glue','etl-dpu') * runsPerMonth * retryFactor;
-  A('Ingestão modelada como job de extração de 2 DPU (throughput 4 GB/min), igual nas quatro arquiteturas.');
-
-  /* --- 4.4 Processamento -------------------------------------------- */
-  const eng = ENGINES[arch.processing];
-  const workers = i.autoscaling ? Math.max(2, Math.round(i.workers * 0.75)) : i.workers;
-  if (i.autoscaling) A('Autoscaling ligado: utilização média estimada em 75% dos workers máximos.');
-
-  const computeMin  = volPerRun / (eng.gbPerWorkerMin * workers);
-  const runtimeMin  = i.measuredRuntimeMin > 0 ? i.measuredRuntimeMin : eng.startupMin + computeMin;
-  if (i.measuredRuntimeMin > 0) A(`Runtime medido (${i.measuredRuntimeMin} min) sobrepõe a estimativa por throughput.`);
-  const billedHours = Math.max(runtimeMin, 1) / 60;
-
-  let costProcessing;
-  if (arch.processing === 'glue') {
-    const dpus = workers + 1; // + driver
-    costProcessing = dpus * billedHours * price('AWS','Glue','etl-dpu') * runsPerMonth * retryFactor;
-  } else {
-    const wt = WORKER_TYPES[i.workerType];
-    const nodes = workers + 1; // + driver
-    const perNodeHour = wt.dbu * price('Databricks','Jobs Compute','dbu-jobs-premium') + price('AWS','EC2',wt.sku);
-    const photon = arch.processing === 'databricksPhoton' ? 2.0 : 1.0; // Photon cobra 2x DBU
-    costProcessing = nodes * billedHours * (wt.dbu*price('Databricks','Jobs Compute','dbu-jobs-premium')*photon + price('AWS','EC2',wt.sku)) * runsPerMonth * retryFactor;
-    if (photon>1) A('Databricks Photon: DBU cobrado em 2x, compensado por throughput ~1,6x maior.');
-    void perNodeHour;
-  }
-
-  // Backfill mensal tratado como execução extra de mesmo perfil
-  if (backfillGB > 0) {
-    const bfMin = eng.startupMin + backfillGB/(eng.gbPerWorkerMin*workers);
-    const bfHours = bfMin/60;
-    costProcessing += (workers+1) * bfHours * (arch.processing==='glue'
-      ? price('AWS','Glue','etl-dpu')
-      : (WORKER_TYPES[i.workerType].dbu*price('Databricks','Jobs Compute','dbu-jobs-premium')+price('AWS','EC2',WORKER_TYPES[i.workerType].sku)));
-    A(`Backfill de ${backfillGB} GB/mês incluído como execução adicional.`);
-  }
-
-  /* --- 4.5 Warehouse / Serving --------------------------------------- */
-  let costWarehouse = 0, whLoadMin = 0, whDetail = '';
-  const curatedGB = avgStorageGB * i.curatedRatio;
-
-  if (arch.warehouse === 'snowflake') {
-    const sz = WH_SIZES[i.whSize];
-    whLoadMin = (volPerRun * comp.ratio) / sz.gbPerMin;
-    const loadHours  = (whLoadMin/60) * runsPerMonth;
-    const queryHours = (i.queriesPerDay * DAYS * i.avgQuerySec/3600);
-    const idleHours  = (runsPerMonth * i.autoSuspendSec/3600);
-    const credits    = (loadHours + queryHours + idleHours) * sz.credits;
-    const creditCost = credits * price('Snowflake','Warehouse', i.snowflakeEdition==='enterprise' ? 'credit-enterprise':'credit-standard');
-    const storeCost  = (curatedGB/1024) * price('Snowflake','Storage','capacity-storage');
-    costWarehouse = creditCost + storeCost;
-    whDetail = `${credits.toFixed(1)} créditos/mês (warehouse ${i.whSize}) + ${(curatedGB/1024).toFixed(2)} TB de storage`;
-    A(`Snowflake: idle de auto-suspend (${i.autoSuspendSec}s) cobrado a cada execução.`);
-  } else if (arch.warehouse === 'athena') {
-    const scannedTB = (i.queriesPerDay * DAYS * i.scanPerQueryGB) / 1024;
-    costWarehouse = scannedTB * price('AWS','Athena','data-scanned');
-    whLoadMin = 0;
-    whDetail = `${scannedTB.toFixed(2)} TB escaneados/mês`;
-    A('Athena: sem carga; custo proporcional ao volume escaneado por consulta.');
-  } else { // Databricks SQL Serverless
-    const dbuPerQueryHour = 4; // SQL warehouse small ≈ 4 DBU/h
-    const queryHours = (i.queriesPerDay * DAYS * i.avgQuerySec/3600);
-    costWarehouse = queryHours * dbuPerQueryHour * price('Databricks','SQL Warehouse','dbu-sql-serverless');
-    whLoadMin = 0;
-    whDetail = `${(queryHours*dbuPerQueryHour).toFixed(1)} DBU/mês em SQL Serverless`;
-    A('Databricks SQL Serverless: sem carga adicional (lê a camada curada no S3).');
-  }
-
-  /* --- 4.6 Rede ------------------------------------------------------ */
-  const costNetwork = i.crossRegionGB * price('AWS','Network','cross-region-out')
-                    + i.internetGB    * price('AWS','Network','internet-out');
-
-  /* --- 4.7 Totais e descontos ---------------------------------------- */
-  const gross = {
-    Ingestion : costIngest,
-    Storage   : costStorage + costRequests,
-    Processing: costProcessing,
-    Warehouse : costWarehouse,
-    Network   : costNetwork,
-  };
-  const disc = 1 - i.discountPct/100;
-  const breakdown = {};
-  Object.entries(gross).forEach(([k,v]) => breakdown[k] = v * disc);
+  /* --- totais --- */
+  const disc = 1 - g.discountPct/100;
+  const breakdown = { Ingestion:0, Storage:0, Processing:0, Warehouse:0, Maintenance:0, Network:network, Catalog:catalog };
+  rows.forEach(r => {
+    breakdown.Storage    += r.cost.storage + r.cost.requests;
+    breakdown.Maintenance+= r.cost.maintenance;
+    if (r.stage.kind === 'ingest')      breakdown.Ingestion  += r.cost.compute;
+    else if (r.stage.kind === 'transform') breakdown.Processing += r.cost.compute;
+    else                                breakdown.Warehouse  += r.cost.compute + r.cost.serve;
+  });
+  Object.keys(breakdown).forEach(k => breakdown[k] *= disc);
+  rows.forEach(r => r.totalDisc = r.total * disc);
   const monthly = Object.values(breakdown).reduce((a,b)=>a+b,0);
-  if (i.discountPct>0) A(`Desconto contratual de ${i.discountPct}% aplicado sobre o preço de lista.`);
+  if (g.discountPct>0) A(`Desconto contratual de ${g.discountPct}% aplicado sobre o preço de lista.`);
 
-  /* --- 4.8 SLA e freshness ------------------------------------------- */
-  const pipelineMin = ingestMin + runtimeMin + whLoadMin;
-  const intervalMin = (24*60)/runsPerDay;
-  const freshnessMin= intervalMin + pipelineMin;
+  /* --- tempo, SLA e freshness --- */
+  const batchRows = rows.filter(r => r.stage.kind !== 'serve');
+  const processingMin = batchRows.reduce((a,r)=>a + r.runtimeMin, 0);
+  const latencyMin = g.orchestration === 'independent'
+    ? batchRows.reduce((a,r)=>a + r.intervalMin + r.runtimeMin, 0)
+    : Math.max(0, ...batchRows.map(r=>r.intervalMin)) + processingMin;
+  const slaTimeOk   = processingMin <= g.slaMaxMinutes;
+  const freshnessOk = latencyMin <= g.freshnessHours*60;
+  const slaStatus = slaTimeOk && freshnessOk ? 'PASS' : (slaTimeOk||freshnessOk ? 'PARTIAL' : 'FAIL');
+  A(g.orchestration === 'independent'
+    ? 'Estágios agendados de forma independente: latência = Σ (intervalo + tempo de execução) de cada estágio.'
+    : 'Estágios encadeados numa única DAG: latência = maior intervalo de agendamento + soma dos tempos de execução.');
 
-  const slaTimeOk   = pipelineMin <= i.slaMaxMinutes;
-  const freshnessOk = freshnessMin <= i.freshnessHours*60;
-  const slaStatus = slaTimeOk && freshnessOk ? 'PASS' : (slaTimeOk || freshnessOk ? 'PARTIAL' : 'FAIL');
+  /* --- volumes agregados --- */
+  const firstRow = rows[0];
+  const monthlyRawGB = firstRow ? firstRow.dailyIn * DAYS : 0;
+  const totalStoredGB = rows.reduce((a,r)=>a+r.storedGB,0);
 
-  /* --- 4.9 Confidence score (seção 37) -------------------------------- */
-  let conf = 55;
-  const provided = i._provided || {};
-  const advancedKeys = ['retentionDays','targetFileMB','failureRate','retries','crossRegionGB','queriesPerDay','autoSuspendSec','discountPct','recordsPerDay','backfillGB','curatedRatio'];
-  const filled = advancedKeys.filter(k => provided[k]).length;
-  conf += filled * 3;                         // +3 por parâmetro avançado informado
-  if (i.autoscaling) conf -= 6;               // variabilidade
-  if (i.failureRate > 5) conf -= 5;
-  if (i.ingestion === 'streaming') conf -= 5;
-  if (i.measuredRuntimeMin > 0) conf += 8;    // runtime medido em vez de estimado
-  conf = Math.max(35, Math.min(92, conf));
+  /* --- confidence --- */
+  let conf = 50;
+  const prov = g._provided || {};
+  const advKeys = ['retentionDays','targetFileMB','failureRate','retries','crossRegionGB','queriesPerDay',
+                   'discountPct','recordsPerDay','catalogObjects','scanPerQueryGB','avgQuerySec'];
+  conf += advKeys.filter(k=>prov[k]).length * 2.5;
+  conf += Math.min(12, active.length * 2);              // pipeline detalhado por estágio
+  if (active.some(s => ENGINES[s.engine].kind==='custom')) conf -= 8;
+  if (g.failureRate > 5) conf -= 5;
+  if (g.ingestion === 'cdc') conf -= 3;
+  conf = Math.max(35, Math.min(92, Math.round(conf)));
+  const spread = (100-conf)/100 * 0.9;
 
-  const spread = (100 - conf)/100 * 0.9;      // faixa relativa
-  const range = { low: monthly*(1-spread), high: monthly*(1+spread) };
-
-  /* --- 4.10 Unit economics -------------------------------------------- */
+  /* --- unit economics --- */
   const tbProcessed = monthlyRawGB/1024;
   const unit = {
-    perMonth     : monthly,
-    perYear      : monthly*12,
-    perRun       : monthly / Math.max(runsPerMonth,1),
-    perTB        : tbProcessed>0 ? monthly/tbProcessed : 0,
+    perMonth: monthly, perYear: monthly*12,
+    perTB: tbProcessed>0 ? monthly/tbProcessed : 0,
     perGBIngested: monthlyRawGB>0 ? monthly/monthlyRawGB : 0,
-    perGBStored  : avgStorageGB>0 ? monthly/avgStorageGB : 0,
-    perMillionRec: i.recordsPerDay>0 ? monthly/((i.recordsPerDay*DAYS)/1e6) : 0,
-    perQuery     : i.queriesPerDay>0 ? monthly/(i.queriesPerDay*DAYS) : 0,
+    perGBStored: totalStoredGB>0 ? monthly/totalStoredGB : 0,
+    perMillionRec: g.recordsPerDay>0 ? monthly/((g.recordsPerDay*DAYS)/1e6) : 0,
+    perQuery: g.queriesPerDay>0 ? monthly/(g.queriesPerDay*DAYS) : 0,
+    perRunSet: monthly / Math.max(1, rows.reduce((a,r)=>a+r.runsPerMonth,0)),
   };
 
   return {
-    arch, breakdown, monthly, range, confidence: conf,
-    runsPerMonth, volPerRun, monthlyRawGB, monthlyWrittenGB, avgStorageGB,
-    filesPerRun, ingestMin, runtimeMin, whLoadMin, pipelineMin, freshnessMin,
-    slaStatus, slaTimeOk, freshnessOk, unit, whDetail, assumptions,
-    tbProcessed,
+    rows, breakdown, monthly, range:{low:monthly*(1-spread), high:monthly*(1+spread)},
+    confidence:conf, processingMin, latencyMin, slaStatus, slaTimeOk, freshnessOk,
+    monthlyRawGB, totalStoredGB, tbProcessed, unit, assumptions,
+    complexity: rows.reduce((a,r)=>a+ENGINES[r.stage.engine].complexity + (TABLE_FORMATS[r.stage.tableFormat]?.complexity||0), 0),
   };
 }
 
 /* ------------------------------------------------------------------ */
-/* 5. MOTOR DE RECOMENDAÇÃO (multicritério — seção 31/32)              */
+/* 5. VARREDURA DE SCHEDULE                                            */
 /* ------------------------------------------------------------------ */
+/** Aplica cada frequência do catálogo a todos os estágios (ou só aos
+ *  estágios marcados em `scope`) e devolve custo, latência e SLA. */
+function scheduleSweep(g, stages, scope = null) {
+  return FREQUENCIES.map(f => {
+    const st = stages.map(s => {
+      const inScope = !scope || scope.includes(s.key);
+      return inScope ? { ...s, runsPerDay: f.runsPerDay } : s;
+    });
+    const r = calcPipeline(g, st);
+    const perStage = {};
+    r.rows.forEach(row => perStage[row.stage.key] = row.totalDisc);
+    return {
+      runsPerDay:f.runsPerDay, label:f.label, monthly:r.monthly,
+      latencyMin:r.latencyMin, processingMin:r.processingMin, slaStatus:r.slaStatus,
+      perStage,
+    };
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* 6. VARIANTES DE ARQUITETURA (comparação)                            */
+/* ------------------------------------------------------------------ */
+const swapTransforms = (stages, engine) =>
+  stages.map(s => s.kind==='transform' && ENGINES[engine].roles.includes('transform') ? {...s, engine} : s);
+
+const VARIANTS = {
+  asis: {
+    id:'asis', name:'As-is (configuração atual)',
+    note:'O pipeline exatamente como está configurado na aba Pipeline.',
+    apply: (g,s) => [g, s],
+  },
+  dbx: {
+    id:'dbx', name:'Databricks Photon nas transformações',
+    note:'Bronze/Silver/Gold migrados para Databricks Jobs com Photon; ingestão e DW inalterados.',
+    apply: (g,s) => [g, swapTransforms(s,'databricks_photon')],
+  },
+  emr: {
+    id:'emr', name:'PySpark em EMR',
+    note:'Transformações em cluster EMR próprio (EC2 + uplift EMR), maior complexidade operacional.',
+    apply: (g,s) => [g, swapTransforms(s,'emr_spark')],
+  },
+  lake: {
+    id:'lake', name:'Servir do lake (Athena), sem DW',
+    note:'Remove a carga no Snowflake; o consumo passa a ler a camada Gold direto no S3 via Athena.',
+    apply: (g,s) => [g, s.filter(x=>x.kind!=='load').map(x => x.kind==='serve' ? {...x, engine:'athena'} : x)],
+  },
+  elt: {
+    id:'elt', name:'ELT dentro do Snowflake',
+    note:'Ingestão para o S3, carga bruta via Snowpipe e transformações Silver/Gold executadas em virtual warehouse.',
+    apply: (g,s) => [g, s.map(x => {
+      if (x.kind==='transform' && x.key!=='bronze') return {...x, engine:'snowflake_wh', whSize:'M'};
+      if (x.kind==='load') return {...x, engine:'snowpipe'};
+      return x;
+    })],
+  },
+};
+
 const PROFILES = {
   cost:        { label:'Cost Optimized',        w:{cost:.55, sla:.20, perf:.15, scale:.05, cx:.05} },
   balanced:    { label:'Balanced',              w:{cost:.40, sla:.25, perf:.20, scale:.10, cx:.05} },
   performance: { label:'Performance Optimized', w:{cost:.20, sla:.35, perf:.30, scale:.10, cx:.05} },
 };
 
-function score(results, weights) {
-  const costs = results.map(r=>r.monthly);
-  const times = results.map(r=>r.pipelineMin);
-  const minC = Math.min(...costs), maxC = Math.max(...costs);
-  const minT = Math.min(...times), maxT = Math.max(...times);
-  const norm = (v,mn,mx) => mx===mn ? 1 : 1 - (v-mn)/(mx-mn); // 1 = melhor
-
+function scoreVariants(results, weights) {
+  const norm = (v, mn, mx) => mx===mn ? 1 : 1-(v-mn)/(mx-mn);
+  const costs = results.map(r=>r.monthly), times = results.map(r=>r.processingMin), cxs = results.map(r=>r.complexity);
+  const [minC,maxC]=[Math.min(...costs),Math.max(...costs)];
+  const [minT,maxT]=[Math.min(...times),Math.max(...times)];
+  const [minX,maxX]=[Math.min(...cxs),Math.max(...cxs)];
   return results.map(r => {
-    const sCost = norm(r.monthly, minC, maxC);
-    const sPerf = norm(r.pipelineMin, minT, maxT);
-    const sSla  = r.slaStatus==='PASS' ? 1 : r.slaStatus==='PARTIAL' ? 0.5 : 0;
-    const sScale= r.arch.processing.startsWith('databricks') ? 1 : 0.75;
-    const sCx   = 1 - (r.arch.complexity-2)/3;
-    const total = weights.cost*sCost + weights.sla*sSla + weights.perf*sPerf
-                + weights.scale*sScale + weights.cx*Math.max(0,sCx);
-    return { ...r, score: total*100, parts:{sCost,sPerf,sSla,sScale,sCx} };
+    const sCost=norm(r.monthly,minC,maxC), sPerf=norm(r.processingMin,minT,maxT), sCx=norm(r.complexity,minX,maxX);
+    const sSla = r.slaStatus==='PASS'?1:r.slaStatus==='PARTIAL'?0.5:0;
+    const sScale = r.rows.some(x=>ENGINES[x.stage.engine].kind==='dbx'||ENGINES[x.stage.engine].kind==='dbx_sl') ? 1 : 0.8;
+    const total = weights.cost*sCost + weights.sla*sSla + weights.perf*sPerf + weights.scale*sScale + weights.cx*sCx;
+    return {...r, score: total*100};
   }).sort((a,b)=>b.score-a.score);
 }
 
 /* ------------------------------------------------------------------ */
-/* 6. MOTOR DE OTIMIZAÇÃO (seção 33)                                   */
+/* 7. OTIMIZAÇÕES                                                      */
 /* ------------------------------------------------------------------ */
 const OPT_RULES = [
-  {
-    id:'full-to-incremental',
-    title:'Migrar de Full Load para Incremental',
-    why:'O delta diário representa uma fração pequena do volume total; reprocessar a base inteira a cada execução multiplica compute e escrita.',
-    applies: i => i.ingestion==='full' && i.dailyDeltaGB < i.sourceVolumeGB*0.25,
-    patch:   i => ({...i, ingestion:'incremental'}),
-  },
-  {
-    id:'columnar-format',
-    title:'Adotar Parquet + Snappy na camada raw',
-    why:'Formato colunar comprimido reduz storage, requests e volume lido pelas engines de consulta.',
-    applies: i => i.format==='json-none' || i.format==='csv-gzip',
-    patch:   i => ({...i, format:'parquet-snappy'}),
-  },
-  {
-    id:'auto-suspend',
-    title:'Reduzir auto-suspend do warehouse para 60s',
-    why:'Warehouse suspenso não consome créditos; janelas de ociosidade longas são cobradas a cada execução.',
-    applies: i => i.autoSuspendSec > 120,
-    patch:   i => ({...i, autoSuspendSec:60}),
-  },
-  {
-    id:'file-compaction',
-    title:'Compactar arquivos para ~128 MB',
-    why:'Muitos arquivos pequenos aumentam custo de requests e o overhead de planejamento das engines.',
-    applies: i => i.targetFileMB < 64,
-    patch:   i => ({...i, targetFileMB:128}),
-  },
-  {
-    id:'reduce-frequency',
-    title:'Reduzir a frequência de execução',
-    why:'A frequência atual entrega dados muito antes do requisito de freshness; há folga para executar menos vezes.',
-    applies: (i,res) => res && res.freshnessMin < i.freshnessHours*60*0.5 && i.runsPerDay > 1,
-    patch:   i => ({...i, runsPerDay: Math.max(1, Math.round(i.runsPerDay/2))}),
-  },
-  {
-    id:'rightsize-warehouse',
-    title:'Reduzir o tamanho do virtual warehouse',
-    why:'O tempo total do pipeline está bem abaixo do SLA; um warehouse menor mantém o SLA a metade do custo de créditos.',
-    applies: (i,res) => res && res.pipelineMin < i.slaMaxMinutes*0.5 && ['M','L'].includes(i.whSize),
-    patch:   i => ({...i, whSize: i.whSize==='L' ? 'M' : 'S'}),
-  },
-  {
-    id:'lifecycle-ia',
-    title:'Mover dados frios para S3 Standard-IA',
-    why:'Retenção longa com baixa frequência de leitura é candidata a classe de armazenamento mais barata.',
-    applies: i => i.retentionDays >= 180 && i.storageClass==='standard' && i.queriesPerDay < 200,
-    patch:   i => ({...i, storageClass:'ia'}),
-  },
+  { id:'full-to-incremental', title:'Migrar de Full Load para Incremental',
+    why:'O delta diário é uma fração pequena da base; reprocessar tudo a cada execução multiplica compute, escrita e storage.',
+    applies:(g)=> g.ingestion==='full' && g.dailyDeltaGB < g.sourceVolumeGB*0.25,
+    patch:(g,s)=>[{...g, ingestion:'incremental'}, s] },
+
+  { id:'columnar-raw', title:'Adotar Parquet + ZSTD nas camadas em CSV/JSON',
+    why:'Formato colunar comprimido reduz storage, requests e o volume lido pelos estágios seguintes.',
+    applies:(g,s)=> s.some(x=>x.enabled && ['csv-gzip','json-none','avro-snappy'].includes(x.fileFormat)),
+    patch:(g,s)=>[g, s.map(x=> ['csv-gzip','json-none','avro-snappy'].includes(x.fileFormat) ? {...x, fileFormat:'parquet-zstd'} : x)] },
+
+  { id:'table-format-gold', title:'Adotar Iceberg na camada consumida',
+    why:'Partition e file pruning reduzem o volume escaneado por consulta; o custo extra de metadados costuma ser menor que a economia de scan.',
+    applies:(g,s)=> s.some(x=>x.enabled&&x.kind==='serve'&&ENGINES[x.engine].kind==='athena')
+                 && s.some(x=>x.enabled&&x.key==='gold'&&x.tableFormat==='hive'),
+    patch:(g,s)=>[g, s.map(x=> (x.key==='gold'||x.kind==='serve') ? {...x, tableFormat:'iceberg', maintenanceRunsPerMonth: x.kind==='serve'?0:30} : x)] },
+
+  { id:'raw-lifecycle', title:'Mover a camada bruta para S3 Standard-IA',
+    why:'A camada bruta com retenção longa é lida raramente depois de processada — candidata natural a classe de armazenamento mais barata.',
+    applies:(g,s)=> s.some(x=>x.enabled&&x.kind==='ingest'&&x.storageClass==='standard'&&x.retentionDays>=180),
+    patch:(g,s)=>[g, s.map(x=> x.kind==='ingest' ? {...x, storageClass:'ia'} : x)] },
+
+  { id:'raw-retention', title:'Reduzir a retenção da camada bruta para 90 dias',
+    why:'Com Silver e Gold versionadas, manter a bruta por mais de um ano raramente atende a um requisito real de negócio ou compliance.',
+    applies:(g,s)=> s.some(x=>x.enabled&&x.kind==='ingest'&&x.retentionDays>180),
+    patch:(g,s)=>[g, s.map(x=> x.kind==='ingest' ? {...x, retentionDays:90} : x)] },
+
+  { id:'file-compaction', title:'Compactar arquivos para ~128 MB',
+    why:'Muitos arquivos pequenos elevam o custo de requests e o overhead de planejamento das engines.',
+    applies:(g)=> g.targetFileMB < 64,
+    patch:(g,s)=>[{...g, targetFileMB:128}, s] },
+
+  { id:'downscale-schedule', title:'Reduzir a frequência dos estágios com folga de freshness',
+    why:'Há folga entre a latência atual e o requisito de freshness; executar menos vezes reduz startups e mínimos de cobrança.',
+    applies:(g,s,base)=> base && base.latencyMin < g.freshnessHours*60*0.45 && s.some(x=>x.enabled&&x.runsPerDay>1),
+    patch:(g,s)=>[g, s.map(x=> x.runsPerDay>1 ? {...x, runsPerDay: Math.max(1, Math.round(x.runsPerDay/2))} : x)] },
+
+  { id:'wh-autosuspend', title:'Reduzir auto-suspend do warehouse para 60 s',
+    why:'Warehouse suspenso não consome créditos; janelas de ociosidade longas são cobradas a cada execução ou sessão.',
+    applies:(g,s)=> s.some(x=>x.enabled&&ENGINES[x.engine].kind==='snowflake'&&(x.autoSuspendSec||0)>120),
+    patch:(g,s)=>[g, s.map(x=> ENGINES[x.engine].kind==='snowflake' ? {...x, autoSuspendSec:60} : x)] },
+
+  { id:'wh-rightsize', title:'Reduzir o tamanho do virtual warehouse',
+    why:'O tempo total de processamento está bem abaixo do SLA; um warehouse menor mantém o SLA a metade do custo em créditos.',
+    applies:(g,s,base)=> base && base.processingMin < g.slaMaxMinutes*0.5
+                      && s.some(x=>x.enabled&&ENGINES[x.engine].kind==='snowflake'&&['M','L'].includes(x.whSize)),
+    patch:(g,s)=>[g, s.map(x=> ENGINES[x.engine].kind==='snowflake' && ['M','L'].includes(x.whSize)
+                      ? {...x, whSize: x.whSize==='L'?'M':'S'} : x)] },
 ];
 
-function findOptimizations(inputs, arch, base) {
+function findOptimizations(g, stages, base) {
   const out = [];
   for (const rule of OPT_RULES) {
-    if (!rule.applies(inputs, base)) continue;
-    const patched = rule.patch(inputs);
-    const after = calculate(patched, arch);
+    if (!rule.applies(g, stages, base)) continue;
+    const [ng, ns] = rule.patch(g, stages);
+    const after = calcPipeline(ng, ns);
     const saving = base.monthly - after.monthly;
-    if (saving <= base.monthly*0.01) continue; // ignora ganhos < 1%
-    out.push({
-      ...rule, saving, savingPct: saving/base.monthly*100,
-      newMonthly: after.monthly,
-      slaBefore: base.slaStatus, slaAfter: after.slaStatus,
-      patched,
-    });
+    if (saving <= base.monthly*0.01) continue;
+    out.push({ ...rule, saving, savingPct: saving/base.monthly*100, newMonthly: after.monthly,
+               slaBefore: base.slaStatus, slaAfter: after.slaStatus,
+               latBefore: base.latencyMin, latAfter: after.latencyMin });
   }
   return out.sort((a,b)=>b.saving-a.saving);
 }
 
 /* ------------------------------------------------------------------ */
-/* 7. SENSIBILIDADE E BREAK-EVEN (seções 34/35)                        */
+/* 8. SENSIBILIDADE E BREAK-EVEN                                       */
 /* ------------------------------------------------------------------ */
 const SENS_MULTIPLIERS = [0.25, 0.5, 1, 2, 4, 8, 16];
+const scaleG = (g,m) => ({...g,
+  sourceVolumeGB:g.sourceVolumeGB*m, dailyDeltaGB:g.dailyDeltaGB*m,
+  recordsPerDay:g.recordsPerDay*m, scanPerQueryGB:g.scanPerQueryGB*m });
 
-function scaleInputs(i, m) {
-  return { ...i,
-    sourceVolumeGB: i.sourceVolumeGB*m,
-    dailyDeltaGB  : i.dailyDeltaGB*m,
-    recordsPerDay : i.recordsPerDay*m,
-    backfillGB    : i.backfillGB*m,
-    scanPerQueryGB: i.scanPerQueryGB*m,
-  };
-}
-
-function sensitivity(inputs, archIds) {
+function sensitivity(g, stages, variantIds) {
   return SENS_MULTIPLIERS.map(m => {
-    const scaled = scaleInputs(inputs, m);
-    const row = { multiplier:m, tb: (calculate(scaled, ARCHITECTURES[archIds[0]]).monthlyRawGB)/1024, costs:{} };
-    archIds.forEach(id => row.costs[id] = calculate(scaled, ARCHITECTURES[id]).monthly);
+    const sg = scaleG(g,m);
+    const row = { multiplier:m, tb:0, costs:{} };
+    variantIds.forEach(id => {
+      const [vg, vs] = VARIANTS[id].apply(sg, stages);
+      const r = calcPipeline(vg, vs);
+      row.costs[id] = r.monthly;
+      if (!row.tb) row.tb = r.tbProcessed;
+    });
     return row;
   });
 }
 
-/** Varre o multiplicador de volume procurando trocas de liderança. */
-function breakEven(inputs, archIds) {
-  const steps = 80, lo = Math.log10(0.1), hi = Math.log10(30);
-  let prevLeader = null; const crossings = [];
-  for (let s=0; s<=steps; s++) {
-    const m = Math.pow(10, lo + (hi-lo)*s/steps);
-    const scaled = scaleInputs(inputs, m);
-    let best=null;
-    archIds.forEach(id => {
-      const c = calculate(scaled, ARCHITECTURES[id]).monthly;
-      if (!best || c < best.cost) best = { id, cost:c };
+function breakEven(g, stages, variantIds) {
+  const steps=60, lo=Math.log10(0.1), hi=Math.log10(30);
+  let prev=null; const out=[];
+  for (let s=0;s<=steps;s++){
+    const m = Math.pow(10, lo+(hi-lo)*s/steps);
+    const sg = scaleG(g,m);
+    let best=null, tb=0;
+    variantIds.forEach(id=>{
+      const [vg,vs]=VARIANTS[id].apply(sg,stages);
+      const r=calcPipeline(vg,vs);
+      tb = r.tbProcessed;
+      if(!best||r.monthly<best.cost) best={id,cost:r.monthly};
     });
-    if (prevLeader && best.id !== prevLeader.id) {
-      const tb = calculate(scaled, ARCHITECTURES[best.id]).monthlyRawGB/1024;
-      crossings.push({ multiplier:m, tb, from:prevLeader.id, to:best.id, cost:best.cost });
-    }
-    prevLeader = best;
+    if (prev && best.id!==prev.id) out.push({multiplier:m, tb, from:prev.id, to:best.id});
+    prev=best;
   }
-  return crossings;
+  return out;
 }
