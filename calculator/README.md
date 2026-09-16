@@ -1,181 +1,287 @@
 # DataCost Architect — protótipo (mock) do MVP
 
-**Versão:** 0.1 (mock navegável) · **Status:** protótipo para validação de escopo com o orientador
+**Versão:** 0.2 — pipeline por estágios · **Status:** protótipo para validação de escopo
 
-Este arquivo documenta o que o protótipo `index.html` faz, como o cálculo é feito e —
-principalmente — **o que ficou de fora**, para manter o TCC num tamanho executável.
+Ferramenta de apoio à decisão arquitetural orientada a FinOps: modela um pipeline de
+dados estágio a estágio, estima custo e latência de cada etapa, compara variantes de
+arquitetura e mostra o impacto financeiro de mudar o schedule.
 
 ---
 
 ## 1. Como usar
 
-Abra `index.html` em qualquer navegador. Não há build, servidor, dependência externa
-nem acesso à internet: é um arquivo único, autocontido.
+Abra `index.html` em qualquer navegador. Arquivo único, sem build, sem servidor, sem
+dependência externa.
 
-- **Sidebar esquerda** — parâmetros do workload. O checkbox *Show advanced parameters*
-  revela os campos avançados (seção 26 do `scopo.md`: básico vs. avançado).
-- **Abas** — `Result`, `Compare scenarios`, `Optimization`, `Sensitivity & break-even`,
-  `Assumptions`.
-- **Decision profile** (header) — Cost Optimized / Balanced / Performance Optimized;
-  muda os pesos do score multicritério.
-- **Currency** — USD / BRL / EUR. A conversão é **camada de apresentação**; o modelo
-  interno trabalha sempre em USD.
+- **Sidebar** — parâmetros do workload (fonte, volume, SLA, consumo, confiabilidade).
+  O toggle *Show advanced parameters* revela os campos avançados.
+- **Aba Pipeline** — o editor de estágios. É aqui que você descreve a arquitetura.
+- **Demais abas** — Result, Schedule impact, Compare scenarios, Optimization,
+  Sensitivity & break-even, Assumptions.
+- **Decision profile** e **Currency** ficam no topo. A conversão cambial é camada de
+  apresentação; o modelo interno é sempre USD.
 
-Tudo recalcula a cada alteração. O estado vive em memória (nada é persistido).
+Para atualizar os preços e regerar o HTML:
+
+```bash
+pip install boto3                      # + snowflake-connector-python / databricks-sql-connector se for usar --*-account
+python tools/fetch_pricing.py          # gera pricing.json e pricing.js
+python build.py                        # regera index.html
+```
 
 ---
 
-## 2. Escopo travado deste MVP
+## 2. Novidades da v0.2
 
-### Dentro (implementado no mock)
+### 2.1 Pipeline por estágios
 
-| Item | Onde |
+O pipeline deixou de ser uma etapa única. Agora é uma cadeia de estágios, cada um com
+**engine, tamanho, schedule próprio, formato de arquivo, formato de tabela, retenção e
+classe de armazenamento**. O volume flui de um estágio para o próximo aplicando um fator
+de redução (dedup, agregação, filtro).
+
+O pipeline padrão é exatamente o cenário de referência:
+
+```
+Oracle → Ingestion/Raw (Glue) → Bronze → Silver → Gold → DW Load (Snowflake) → Serving/BI
+```
+
+Cada estágio mostra seu próprio custo, runtime, volume por execução e storage da camada.
+A aba **Result** decompõe o custo por categoria e por estágio.
+
+**Modelo de latência.** Há duas formas de orquestração, selecionáveis na sidebar:
+
+| Orquestração | Latência fim-a-fim |
 |---|---|
-| Providers: **AWS, Snowflake, Databricks** | `PRICING`, `ARCHITECTURES` |
-| Modelagem do workload (fonte, ingestão, frequência, storage, processamento, SLA) | formulário |
-| Inputs básicos + avançados separados | toggle na sidebar |
-| Pricing engine desacoplado do cálculo, com `valid_from` e `source` por preço | `PRICING` / `price()` |
-| Estimativa de custo mensal, anual, por execução, por TB, por GB, por milhão de registros, por query | `calculate()` → `unit` |
-| Breakdown por camada (Ingestion / Storage / Processing / Warehouse / Network) | aba Result |
-| Avaliação de SLA (tempo de processamento) e de freshness | `slaStatus` |
-| Comparação de até 4 arquiteturas sobre o mesmo workload | aba Compare |
-| Recomendação multicritério com pesos por perfil | `score()` / `PROFILES` |
-| Sugestões de otimização com economia estimada | `OPT_RULES` / `findOptimizations()` |
-| Sensitivity analysis (0,25× a 16× o volume) | `sensitivity()` |
-| Break-even entre arquiteturas | `breakEven()` |
-| Confidence score e estimativa como **intervalo**, não valor exato | `confidence`, `range` |
-| Registro de premissas e limitações por cálculo | aba Assumptions |
+| DAG única (encadeada) — padrão | maior intervalo de agendamento + Σ runtimes |
+| Estágios independentes | Σ (intervalo + runtime) de cada estágio |
 
-### Fora (evolução pós-MVP, seção 53 do `scopo.md`)
+Essa distinção importa: seis estágios agendados independentemente a cada 24 h acumulam
+latência de dias, enquanto a mesma cadeia numa DAG única entrega em ~29 h.
 
-Google Cloud, Azure, FOCUS como modelo interno, Pricing API dos provedores, forecast,
-anomaly detection, comparação *actual vs. estimated*, carbono, TCO, budget, cost
-allocation, multi-região, descontos contratados por SKU, autenticação e multiusuário.
+### 2.2 Schedule impact (aba nova)
 
-### Fora **neste mock** (mas dentro do MVP final)
+Responde diretamente à pergunta "hoje rodo 1×/dia — quanto custa rodar de hora em hora?".
+Varre oito frequências (diário até 5 min), mantendo a arquitetura fixa, e mostra custo
+mensal, delta versus o atual, custo anual, latência resultante e status de SLA. Um bloco
+de *drivers* indica **qual estágio** puxa o custo quando a frequência sobe.
 
-- Backend FastAPI, PostgreSQL e Docker Compose — aqui tudo roda no navegador.
-- Persistência de workloads e cenários (tabelas `workloads`, `scenarios`, `calculations`).
-- Pipeline builder visual (arrastar componentes); o mock usa arquiteturas pré-definidas.
+O escopo da varredura pode ser todos os estágios ou apenas um deles — útil para descobrir
+que adiantar só a camada Gold custa pouco, enquanto adiantar a ingestão custa caro.
 
----
+A leitura de fundo que a tela torna explícita: **custo não cresce proporcionalmente ao
+número de execuções**, porque storage e retenção independem da frequência. O que cresce é
+compute, startup de cluster e mínimos de cobrança.
 
-## 3. Arquiteturas comparadas
+### 2.3 File format × table format
 
-| # | Arquitetura | Stack |
+Duas dimensões separadas, como na prática:
+
+| File format | Ratio |
+|---|---|
+| Parquet + ZSTD | 0,18 |
+| Parquet + Snappy | 0,25 |
+| ORC + ZLIB | 0,22 |
+| Avro + Snappy | 0,45 |
+| CSV + GZIP | 0,35 |
+| JSON | 1,00 |
+
+| Table format | Metadata | Snapshot × | Scan factor | Write amp | Manutenção |
+|---|---:|---:|---:|---:|---|
+| Hive / diretórios | 0% | 1,00 | 1,00 | 1,00 | — |
+| Apache Iceberg | 2% | 1,25 | 0,60 | 1,08 | compaction + expire |
+| Delta Lake | 2% | 1,30 | 0,65 | 1,10 | compaction + vacuum |
+| Apache Hudi (CoW) | 4% | 1,35 | 0,70 | 1,25 | compaction + clean |
+
+O trade-off fica explícito no cálculo: table format moderno **aumenta** storage (snapshots,
+metadados, write amplification) e **reduz** custo de consulta (scan factor, via partition e
+file pruning). A manutenção — OPTIMIZE, compaction, expire snapshots — é um estágio de
+custo próprio, com frequência configurável, e não um detalhe esquecido.
+
+### 2.4 Catálogo de engines e frameworks de ingestão
+
+| Engine | Cobrança | Throughput base |
 |---|---|---|
-| A | AWS Serverless Lakehouse | AWS Glue → Amazon S3 → Amazon Athena |
-| B | AWS Glue + Snowflake | AWS Glue → Amazon S3 → Snowflake |
-| C | Databricks + Snowflake | Databricks (Photon) → Amazon S3 → Snowflake |
-| D | Databricks Lakehouse | Databricks (Photon) → Amazon S3 → Databricks SQL |
+| AWS Glue (PySpark) | DPU-hora | 0,45 GB/nó-min |
+| PySpark em EMR | EC2 + uplift EMR | 0,60 GB/nó-min |
+| Sqoop em EMR (JDBC paralelo) | EC2 + uplift EMR | 0,28 GB/nó-min |
+| PySpark em EC2 (self-managed) | EC2 | 0,58 GB/nó-min |
+| AWS DMS (CDC contínuo) | instância 24×7 | — |
+| Databricks Jobs | DBU + EC2 | 0,60 GB/nó-min |
+| Databricks Jobs + Photon | DBU × 2 + EC2 | 0,95 GB/nó-min |
+| Databricks Serverless Jobs | DBU serverless | 0,95 GB/nó-min |
+| Snowflake Virtual Warehouse | créditos | por tamanho do WH |
+| Snowpipe | créditos serverless | ~0,06 crédito/GB |
+| **Framework próprio (ex.: Talaria)** | throughput e custo/nó-hora informados por você | parametrizável |
 
-A ingestão (extração da fonte para o S3) é modelada igual nas quatro, porque nas quatro
-ela é um job Glue de 2 DPU. É uma simplificação deliberada e está declarada na aba
-*Assumptions*.
+A entrada "framework próprio" existe justamente para ferramentas internas: você informa
+throughput e custo por nó-hora na sidebar, e o motor trata como qualquer outra engine —
+com uma penalidade no confidence score, por serem parâmetros estimados.
+
+### 2.5 Coletor de preços
+
+`tools/fetch_pricing.py` gera `pricing.json` e `pricing.js`. Cada preço carrega
+`valid_from`, `retrieved_at`, `source` e **`method`**:
+
+| method | Significado |
+|---|---|
+| `api` | AWS Price List Query API (boto3). Payload pequeno, precisa de credencial. |
+| `curated` | Tabela pública do fornecedor transcrita. **Snowflake e Databricks não publicam API aberta de preços** — esta é a única rota sem conta. |
+| `account` | Lido da própria conta: `SNOWFLAKE.ORGANIZATION_USAGE.RATE_SHEET_DAILY` e `system.billing.list_prices` do Databricks. É o **preço efetivo**, com desconto contratual. |
+
+O `dedupe()` resolve conflitos por prioridade `account > api > curated`, então rodar com
+`--snowflake-account --databricks-account` substitui automaticamente preço de lista por
+preço efetivo. A aba *Assumptions* mostra o método de cada preço com um selo colorido —
+a banca vê de imediato o que é API, o que é tabela transcrita e o que é taxa real.
+
+```bash
+python tools/fetch_pricing.py                       # AWS via API + tabelas curadas
+python tools/fetch_pricing.py --no-aws              # offline, só tabelas curadas
+python tools/fetch_pricing.py --snowflake-account   # + taxa efetiva Snowflake
+python tools/fetch_pricing.py --databricks-account  # + preços reais Databricks
+```
+
+Credenciais vêm de variáveis de ambiente (`AWS_*`, `SNOWFLAKE_*`, `DATABRICKS_*`);
+nada é lido de arquivo nem gravado no repositório.
 
 ---
 
-## 4. Modelo de cálculo (resumo)
+## 3. Modelo de cálculo
 
 ```
-volume por execução  ─┬─ full:        volume total da fonte
-                      ├─ incremental: delta diário ÷ execuções/dia
-                      └─ CDC:         delta diário × 1,30 ÷ execuções/dia
+── por estágio ─────────────────────────────────────────────────────────
+volume que entra   = volume diário do estágio anterior
+volume/execução    = volume que entra ÷ execuções/dia do estágio
+volume que sai     = volume que entra × fator de redução
 
-execuções/mês = execuções/dia × 30,4
-retry factor  = 1 + (taxa de falha ÷ 100) × retries
+runtime            = startup + volume/execução ÷ (throughput × workers)
+retry factor       = 1 + (taxa de falha ÷ 100) × retries
 
-Storage   = (base comprimida + volume diário × retenção) × preço GB-mês
-            + requests PUT/GET
-Ingestion = 2 DPU × tempo × preço DPU-hora × execuções × retry
-Processing= (workers + driver) × tempo × preço × execuções × retry
-            Glue  → DPU-hora
-            Dbx   → DBU (×2 com Photon) + EC2 do nó
-Warehouse = Snowflake: (carga + queries + idle de auto-suspend) × créditos × preço
-            Athena:    TB escaneados × preço/TB
-            Dbx SQL:   horas de query × DBU × preço
-Network   = cross-region × 0,02 + internet × 0,09
+compute            Glue      → (workers+1) × horas × DPU-hora
+                   EMR/EC2   → (workers+1) × horas × (EC2 + uplift EMR)
+                   Databricks→ (workers+1) × horas × (DBU × Photon + EC2)
+                   Snowflake → (horas + idle de auto-suspend) × créditos
+                   Snowpipe  → GB × 0,06 crédito
+                   próprio   → (workers+1) × horas × custo/nó-hora
 
-Total = Σ camadas × (1 − desconto)
+storage da camada  = volume/dia × ratio(file) × writeAmp × retenção
+                     × snapshotMult × (1 + metaOverhead) × preço GB-mês
+requests           = arquivos/execução × execuções × (PUT + GET)
+manutenção         = custo de processar 10% da camada, N×/mês
+
+── consumo ──────────────────────────────────────────────────────────────
+Athena        → queries × GB escaneados × scanFactor ÷ 1024 × preço/TB
+Snowflake     → (horas de query + idle) × créditos × preço/crédito
+Databricks SQL→ horas de query × 4 DBU × preço/DBU
+
+── totais ───────────────────────────────────────────────────────────────
+Total = (Σ estágios + rede + catálogo) × (1 − desconto)
 ```
 
-**Tempo de processamento** é estimado por throughput (GB por worker-minuto, tabela
-`ENGINES`), e pode ser sobrescrito pelo campo avançado *Measured runtime*, que também
-eleva o confidence score.
-
-**Confidence score:** base 55, +3 por parâmetro avançado informado, +8 se o runtime é
-medido, −6 com autoscaling ligado, −5 com taxa de falha acima de 5%. Limitado a 92%.
-O intervalo da estimativa é `custo × (1 ± (100 − confiança)/100 × 0,9)`.
-
-**Score de recomendação:** custo e tempo são normalizados entre as arquiteturas
-comparadas (1 = melhor); SLA vale 1 / 0,5 / 0 para PASS / PARTIAL / FAIL. Os pesos vêm
-do perfil de decisão selecionado.
+**Confidence score:** base 50, +2,5 por parâmetro avançado informado, +2 por estágio
+modelado (teto de 12), −8 com framework próprio de throughput estimado, penalidades para
+alta taxa de falha e CDC. Limite 92%. A estimativa é apresentada como intervalo:
+`custo × (1 ± (100 − confiança)/100 × 0,9)`.
 
 ---
 
-## 5. Regras de otimização implementadas
+## 4. Variantes comparadas
 
-Cada regra recalcula o cenário inteiro com o parâmetro alterado e só aparece se a
-economia passar de 1% do custo atual.
+| Variante | O que muda |
+|---|---|
+| As-is | O pipeline exatamente como configurado |
+| Databricks Photon nas transformações | Bronze/Silver/Gold migram para Databricks Jobs + Photon |
+| PySpark em EMR | Transformações em cluster EMR próprio |
+| Servir do lake (Athena), sem DW | Remove a carga no Snowflake; BI lê Gold no S3 |
+| ELT dentro do Snowflake | Snowpipe carrega o bruto; Silver/Gold rodam em virtual warehouse |
+
+Todas são calculadas sobre o mesmo workload e o mesmo schedule, e ranqueadas por score
+multicritério (custo, SLA, performance, escalabilidade, complexidade) com pesos definidos
+pelo perfil de decisão.
+
+---
+
+## 5. Regras de otimização
 
 1. Full Load → Incremental
-2. CSV/JSON → Parquet + Snappy
-3. Auto-suspend do warehouse acima de 120s → 60s
-4. Compactação de arquivos para ~128 MB
-5. Redução de frequência quando há folga de freshness
-6. Right-sizing do virtual warehouse quando há folga de SLA
-7. Lifecycle para S3 Standard-IA em dados frios com retenção longa
+2. CSV/JSON/Avro → Parquet + ZSTD
+3. Adotar Iceberg na camada consumida (ganho de pruning > custo de metadados)
+4. Camada bruta para S3 Standard-IA
+5. Reduzir retenção da camada bruta para 90 dias
+6. Compactar arquivos para ~128 MB
+7. Reduzir frequência dos estágios com folga de freshness
+8. Auto-suspend do warehouse para 60 s
+9. Right-sizing do virtual warehouse
+
+Cada regra recalcula o pipeline inteiro e só aparece se a economia passar de 1%. Cada card
+mostra o efeito colateral em SLA e em latência — nem toda economia é gratuita.
 
 ---
 
-## 6. Preços
+## 6. Escopo travado
 
-Preço de lista, região `us-east-1` (AWS) / `aws-us-east-1` (Snowflake, Databricks),
-referência 2025. A tabela completa com `sku`, `metric`, `unit`, `valid_from` e `source`
-está visível na aba *Assumptions* e no array `PRICING`.
+### Dentro do MVP
 
-**Ação necessária antes da defesa:** revalidar cada preço na página oficial do provedor e
-atualizar `valid_from` / `source`. O modelo já está preparado para isso — nenhum preço
-está embutido nas fórmulas.
+Providers AWS, Snowflake e Databricks. Pipeline por estágios com schedule próprio.
+File format × table format. Catálogo de engines de ingestão e processamento. Estimativa
+de custo com breakdown por categoria e por estágio. Unit economics. SLA e freshness.
+Comparação de variantes com recomendação multicritério. Otimizações. Schedule impact.
+Sensitivity e break-even. Confidence score e intervalo. Registro de premissas e fontes de
+preço. Coletor de preços com três métodos de coleta.
+
+### Fora (pós-MVP)
+
+Google Cloud, Azure, FOCUS como modelo interno canônico, forecast, anomaly detection,
+comparação *actual vs. estimated*, carbono, TCO, budget, cost allocation, multi-região,
+autenticação e multiusuário.
+
+### Fora deste mock, dentro do MVP final
+
+Backend FastAPI, PostgreSQL e Docker Compose; persistência de workloads e cenários;
+pipeline builder com drag-and-drop.
 
 ---
 
 ## 7. Limitações declaradas
 
-- Preço de lista, sem Savings Plans, Reserved Capacity ou acordo empresarial.
-- Região única; preços variam por região.
-- Tempo de processamento estimado por throughput teórico, não medido.
+- Preço de lista quando o método é `api` ou `curated`; só `account` reflete desconto real.
+- Região única (us-east-1 / aws-us-east-1).
+- Tempo de execução estimado por throughput teórico, não medido.
 - Concorrência, skew de dados e fila de execução não modelados.
+- Snowpipe aproximado por crédito/GB; a cobrança real inclui componente por arquivo.
+- Manutenção de tabela estimada sobre 10% da camada ("fatia quente").
 - Custos indiretos (orquestração, observabilidade, governança, licenças) fora do MVP.
-- Snowflake cloud services layer e cobranças compostas simplificadas.
-- **A ferramenta não substitui as calculadoras oficiais dos provedores nem representa
-  uma fatura real.** O objetivo é comparar cenários arquiteturais.
+- **A ferramenta não substitui as calculadoras oficiais dos provedores nem representa uma
+  fatura real.**
 
 ---
 
 ## 8. Arquivos
 
 ```
-index.html   protótipo completo (arquivo único, autocontido) — é o que se abre
-engine.js    pricing database + motores de cálculo, score e otimização (fonte)
-app.js       formulário, abas e gráficos (fonte)
-shell.html   HTML + CSS base (fonte)
-README.md    este documento
+index.html              protótipo completo (gerado) — é o que se abre
+build.py                concatena shell + pricing + engine + app em index.html
+pricing.js              pricing database (GERADO — não editar à mão)
+pricing.json            mesma base em JSON, para o backend futuro
+engine.js               motores de cálculo, schedule sweep, score e otimização
+app.js                  sidebar, editor de estágios, abas e gráficos
+shell.html              HTML + CSS base
+tools/fetch_pricing.py  coletor de preços (AWS API, tabelas curadas, conta)
+README.md               este documento
 ```
-
-`index.html` é gerado pela concatenação de `shell.html` + `engine.js` + `app.js`. Ao
-migrar para o projeto real, `engine.js` vira o núcleo do backend em Python (FastAPI) e
-`app.js` é substituído pelo frontend React + TypeScript.
 
 ---
 
-## 9. Próximos passos sugeridos
+## 9. Próximos passos
 
-1. Validar com o orientador o recorte de escopo da seção 2.
-2. Revalidar a tabela de preços nas fontes oficiais.
-3. Portar `engine.js` para Python (`pricing_engine.py`, `calculation_engine.py`,
-   `recommendation_engine.py`) com testes unitários por camada de custo.
-4. Modelar o banco (`providers`, `services`, `pricing`, `workloads`,
-   `pipeline_components`, `scenarios`, `calculations`) e subir via Docker Compose.
-5. Executar os três workloads de validação (pequeno, médio, grande) e medir o erro de
-   estimativa contra as calculadoras oficiais — é a Métrica 1 do capítulo de resultados.
+1. Rodar `tools/fetch_pricing.py` com credencial AWS e validar os preços vindos da API
+   contra a calculadora oficial.
+2. Calibrar throughput das engines com medições reais (duas ou três execuções por engine
+   já dão uma base defensável) e registrar como `measured` no modelo.
+3. Portar `engine.js` para Python — `pricing_engine.py`, `calculation_engine.py`,
+   `recommendation_engine.py` — com testes unitários por camada de custo.
+4. Modelar o banco: `providers`, `services`, `pricing`, `workloads`, `pipeline_stages`,
+   `scenarios`, `calculations`. Note que `pipeline_components` da proposta original virou
+   `pipeline_stages`, com `runs_per_day`, `file_format`, `table_format` e `reduction`.
+5. Validar com três workloads (pequeno, médio, grande) e medir o erro de estimativa contra
+   as calculadoras oficiais — Métrica 1 do capítulo de resultados.
