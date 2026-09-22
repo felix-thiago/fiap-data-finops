@@ -1,0 +1,1780 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DataCost Architect — FinOps Data Architecture Simulator</title>
+<style>
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --ink:#14161a; --muted:#697084; --line:#e3e6ec;
+  --accent:#4f6bed; --ok:#1f8a5b; --warn:#b47708; --bad:#c23b4b;
+  --radius:10px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;}
+h1,h2,h3{margin:0;font-weight:640;letter-spacing:-0.01em}
+code{font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;background:#eef0f5;padding:1px 4px;border-radius:4px}
+
+/* header */
+header{display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+  padding:14px 22px;background:#101423;color:#fff;}
+header .brand h1{font-size:16px}
+header .brand p{margin:2px 0 0;font-size:11.5px;color:#9aa3bd;letter-spacing:.04em;text-transform:uppercase}
+header .sp{flex:1}
+header label{font-size:11.5px;color:#9aa3bd;display:block;margin-bottom:3px;letter-spacing:.03em;text-transform:uppercase}
+header select{background:#1c2236;color:#fff;border:1px solid #2c3450;border-radius:7px;padding:6px 9px;font-size:13px}
+header button{background:#2c3450;color:#fff;border:0;border-radius:7px;padding:8px 12px;font-size:13px;cursor:pointer}
+header button:hover{background:#3a4468}
+
+/* layout */
+.wrap{display:flex;align-items:flex-start;gap:0;min-height:calc(100vh - 62px)}
+aside{width:330px;flex:0 0 330px;background:var(--panel);border-right:1px solid var(--line);
+  padding:16px 16px 60px;height:calc(100vh - 62px);overflow-y:auto;position:sticky;top:0}
+main{flex:1;min-width:0;padding:18px 22px 64px}
+
+/* form */
+.advbar{display:flex;align-items:center;gap:8px;padding:9px 11px;background:#eef1f8;border:1px solid var(--line);
+  border-radius:var(--radius);margin-bottom:14px;font-size:12.5px;color:#3c4460}
+.grp{margin-bottom:18px}
+.grp h3{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+  padding-bottom:6px;border-bottom:1px solid var(--line);margin-bottom:10px}
+.fld{margin-bottom:9px}
+.fld label{display:block;font-size:12px;color:#3c4460;margin-bottom:3px}
+.fld .u{color:var(--muted);font-size:11px}
+.badge-adv{font-style:normal;font-size:9.5px;background:#e6ebfb;color:#4257b8;border-radius:3px;padding:1px 4px;margin-left:4px;letter-spacing:.04em}
+.fld input,.fld select{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:7px;
+  background:#fff;font-size:13px;color:var(--ink)}
+.fld input:focus,.fld select:focus{outline:2px solid #c3cdf7;border-color:var(--accent)}
+.chk{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;margin-bottom:7px;cursor:pointer}
+.chk input{margin-top:2px}
+.chk em{display:block;font-style:normal;font-size:11px;color:var(--muted)}
+
+/* tabs */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:18px;flex-wrap:wrap}
+.tab{padding:8px 13px;font-size:13px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;
+  border-radius:6px 6px 0 0}
+.tab:hover{background:#eef1f8}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+
+/* cards */
+.lead{margin-bottom:16px}
+.lead h2{font-size:20px;margin:4px 0 4px}
+.lead p{margin:0;color:var(--muted);max-width:70ch}
+.pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;letter-spacing:.03em}
+.pill-star{background:#fdf3d8;color:#8a6408}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:15px 16px;margin-bottom:14px}
+.card h3{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:11px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.note{font-size:12px;color:var(--muted);margin:10px 0 0}
+
+/* kpis */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px 13px;display:flex;flex-direction:column;gap:3px}
+.k-l{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.k-v{font-size:22px;font-weight:660;letter-spacing:-0.02em}
+.k-s{font-size:11.5px;color:var(--muted)}
+.sla{font-size:16px;font-weight:700}
+.sla.ok{color:var(--ok)} .sla.warn{color:var(--warn)} .sla.bad{color:var(--bad)}
+.ok-t{color:var(--ok);font-size:11.5px} .bad-t{color:var(--bad);font-size:11.5px}
+.meter{display:block;height:5px;background:#e6e9f0;border-radius:99px;overflow:hidden;margin-top:5px}
+.meter span{display:block;height:100%;background:var(--accent)}
+
+/* bars */
+.bars{display:flex;flex-direction:column;gap:7px}
+.bar{display:grid;grid-template-columns:190px 1fr 132px;align-items:center;gap:10px;font-size:13px}
+.bl{color:#3c4460}
+.bt{display:block;height:15px;background:#eef0f5;border-radius:4px;overflow:hidden}
+.bf{display:block;height:100%;border-radius:4px}
+.bv{text-align:right;font-variant-numeric:tabular-nums}
+.bv em{font-style:normal;color:var(--muted);font-size:11.5px;margin-left:4px}
+.bar.total{border-top:1px solid var(--line);padding-top:7px;font-weight:660}
+
+/* tables */
+table.kv{width:100%;border-collapse:collapse;font-size:13px}
+table.kv td{padding:5px 0;border-bottom:1px solid #f0f2f6}
+table.kv td.r{text-align:right;font-variant-numeric:tabular-nums}
+table.cmp{width:100%;border-collapse:collapse;font-size:12.5px}
+table.cmp th{text-align:left;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);
+  padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:bottom}
+table.cmp td{padding:6px 8px;border-bottom:1px solid #f0f2f6;vertical-align:top}
+table.cmp .r{text-align:right;font-variant-numeric:tabular-nums}
+table.cmp th.r{text-align:right}
+table.cmp .strong{font-weight:660}
+table.cmp .src{color:var(--muted);font-size:11.5px}
+
+/* misc */
+.wrow{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+.wchip{font-size:12px;background:#eef1f8;border:1px solid var(--line);border-radius:99px;padding:3px 10px}
+.verdict{margin:0;font-size:13.5px;line-height:1.6}
+.savebox{background:#eaf6ef;border:1px solid #c6e4d4;border-radius:var(--radius);padding:13px 15px;margin-bottom:14px}
+.savebox span{display:block;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#2a6a4b}
+.savebox b{font-size:24px;color:#186845;display:block;letter-spacing:-0.02em}
+.savebox em{font-style:normal;font-size:12px;color:#3f7a5e}
+.opt h3{color:var(--ink);text-transform:none;letter-spacing:0;font-size:14.5px}
+.why{margin:0 0 11px;color:#4a5165;font-size:13px;max-width:80ch}
+.optgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:9px}
+.ms{background:#f7f8fb;border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:2px}
+.ms-l{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.ms-v{font-size:15px;font-weight:640}
+.ms.pos .ms-v{color:var(--ok)} .ms.neg .ms-v{color:var(--bad)}
+.list{margin:0;padding-left:18px;font-size:13px;color:#3c4460}
+.list li{margin-bottom:5px}
+.be{margin:0 0 8px;font-size:13.5px}
+.chartwrap{width:100%;overflow-x:auto}
+.chart{width:100%;min-width:520px;height:300px}
+.chart .grid{stroke:#e8eaf0}
+.chart .ax{font-size:10px;fill:#8a90a3}
+.chart .ax.r{text-anchor:end} .chart .ax.c{text-anchor:middle}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:#4a5165}
+.lg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
+
+/* pipeline flow */
+.flow{display:flex;align-items:stretch;gap:6px;overflow-x:auto;padding:4px 0 12px;margin-bottom:6px}
+.fl-node{flex:0 0 auto;min-width:150px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:9px 11px;display:flex;flex-direction:column;gap:2px}
+.fl-node b{font-size:13px}
+.fl-node span{font-size:11px;color:var(--muted)}
+.fl-node em{font-style:normal;font-size:11.5px;color:#3c4460}
+.fl-node i{font-style:normal;font-size:11px;color:var(--accent)}
+.fl-node u{text-decoration:none;font-size:13px;font-weight:660;margin-top:3px}
+.fl-arrow{align-self:center;color:#b9c0d2;font-size:17px;flex:0 0 auto}
+
+/* stage editor */
+.card.stage{padding:12px 14px}
+.card.stage.off{opacity:.55}
+.st-head{display:flex;align-items:center;gap:9px;margin-bottom:10px;flex-wrap:wrap}
+.st-name{font-size:14.5px;font-weight:640;border:1px solid transparent;border-radius:6px;padding:3px 6px;
+  background:transparent;color:var(--ink);min-width:170px}
+.st-name:hover{border-color:var(--line)}
+.st-name:focus{outline:2px solid #c3cdf7;border-color:var(--accent);background:#fff}
+.st-kind{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:#4257b8;background:#e6ebfb;
+  border-radius:4px;padding:2px 7px}
+.st-cost{margin-left:auto;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.st-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px}
+.st-grid .fld{margin-bottom:0}
+.st-metrics{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px;padding-top:10px;border-top:1px solid #f0f2f6}
+.stm{background:#f7f8fb;border:1px solid var(--line);border-radius:7px;padding:5px 9px;display:flex;flex-direction:column}
+.stm i{font-style:normal;font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.stm b{font-size:13px;font-variant-numeric:tabular-nums}
+
+/* misc v0.2 */
+tr.hl{background:#f4f6fd}
+.pos-t{color:var(--ok)} .neg-t{color:var(--bad)}
+.chart .ax.dim{fill:#b2b8c8}
+.mtag{font-size:10px;letter-spacing:.04em;text-transform:uppercase;border-radius:4px;padding:1px 6px}
+.m-api{background:#e4f1e9;color:#1f6a48}
+.m-curated{background:#fdf1dc;color:#8a6408}
+.m-account{background:#e6ebfb;color:#4257b8}
+
+@media (max-width:980px){
+  .wrap{flex-direction:column}
+  aside{width:100%;flex:none;height:auto;position:static;border-right:0;border-bottom:1px solid var(--line)}
+  .two{grid-template-columns:1fr}
+  .bar{grid-template-columns:130px 1fr 104px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <h1>DataCost Architect</h1>
+    <p>FinOps Data Architecture Simulator · MVP mock v0.2 · pipeline por estágios</p>
+  </div>
+  <div class="sp"></div>
+  <div>
+    <label for="profile">Decision profile</label>
+    <select id="profile">
+      <option value="cost">Cost Optimized</option>
+      <option value="balanced" selected>Balanced</option>
+      <option value="performance">Performance Optimized</option>
+    </select>
+  </div>
+  <div>
+    <label for="currency">Currency</label>
+    <select id="currency">
+      <option value="USD" selected>USD</option>
+      <option value="BRL">BRL</option>
+      <option value="EUR">EUR</option>
+    </select>
+  </div>
+  <button id="reset" type="button">Reset scenario</button>
+</header>
+
+<div class="wrap">
+  <aside>
+    <div class="advbar">
+      <input type="checkbox" id="advToggle">
+      <label for="advToggle" style="margin:0;cursor:pointer">Show advanced parameters</label>
+    </div>
+    <div id="form"></div>
+  </aside>
+  <main>
+    <nav class="tabs">
+      <div class="tab on" data-tab="pipeline">Pipeline</div>
+      <div class="tab" data-tab="result">Result</div>
+      <div class="tab" data-tab="schedule">Schedule impact</div>
+      <div class="tab" data-tab="compare">Compare scenarios</div>
+      <div class="tab" data-tab="optimize">Optimization</div>
+      <div class="tab" data-tab="sensitivity">Sensitivity &amp; break-even</div>
+      <div class="tab" data-tab="assumptions">Assumptions</div>
+    </nav>
+    <div id="tabBody"></div>
+  </main>
+</div>
+
+<script>
+/* =====================================================================
+   DataCost Architect — PRICING DATABASE (gerado)
+   NÃO EDITAR À MÃO. Saída de tools/fetch_pricing.py.
+   method: 'api' = API pública do fornecedor | 'curated' = tabela pública
+           transcrita | 'account' = lido da própria conta.
+   ===================================================================== */
+const PRICING_META = {
+  "generated_at": "2026-09-16",
+  "generator": "tools/fetch_pricing.py v0.2",
+  "aws_region": "us-east-1",
+  "counts": {
+    "api": 0,
+    "curated": 25,
+    "account": 0
+  }
+};
+
+const PRICING = [
+  {
+    "provider": "AWS",
+    "service": "Athena",
+    "region": "us-east-1",
+    "sku": "data-scanned",
+    "metric": "Query",
+    "unit": "TB scanned",
+    "price": 5.0,
+    "currency": "USD",
+    "valid_from": "2026-09-16",
+    "retrieved_at": "2026-09-16",
+    "source": "Amazon Athena Pricing (página pública)",
+    "method": "curated"
+  },
+  {
+    "provider": "AWS",
+    "service": "DMS",
+    "region": "us-east-1",
+    "sku": "dms.c5.large",
+    "metric": "Compute",
+    "unit": "instance-hour",
+    "price": 0.154,
+    "currency": "USD",
+    "valid_from": "2026-09-16",
+    "retrieved_at": "2026-09-16",
+    "source": "AWS DMS Pricing (página pública)",
+    "method": "curated"
+  },
+  {
+    "provider": "AWS",
+    "service": "EC2",
+    "region": "us-east-1",
+    "sku": "m5.2xlarge",
+    "metric": "Compute",
+    "unit": "node-hour",
+    "price": 0.384,
+    "currency": "USD",
+    "valid_from": "2026-09-16",
+    "retrieved_at": "2026-09-16",
+    "source": "AWS EC2 On-Demand Pricing (página pública)",
+    "method": "curated"
+  },
+  {
+    "provider": "AWS",
+    "service": "EC2",
+    "region": "us-east-1",
+    "sku": "m5.xlarge",
+    "metric": "Compute",
+    "unit": "node-hour",
+    "price": 0.192,
+    "currency": "USD",
+    "valid_from": "2026-09-16",
+    "retrieved_at": "2026-09-16",
+    "source": "AWS EC2 On-Demand Pricing (página pública)",
+    "method": "curated"
+  },
+  {
+    "provider": "AWS",
+    "service": "EC2",
+    "region": "us-east-1",
+    "sku": "r5.xlarge",
+    "metric": "Compute",
+    "unit": "node-hour",
+    "price": 0.252,
+    "currency": "USD",
+    "valid_from": "2026-09-16",
+    "retrieved_at": "2026-09-16",
+    "source": "AWS EC2 On-Demand Pricing (página pública)",
+    "method": "curated"
+  },
+  {
+    "provider": "AWS",
+    "service": "EMR",
+    "region": "us-east-1",
+    "sku": "emr-uplift-m5.2xlarge",
+    "metric": "Compute",
+    "unit": "node-hour",
+    "price": 0.096,
+    "currency": "USD",
+    "valid_from": "2026-09-16",
+    "retrieved_at": "2026-09-16",
+    "source": "Amazon EMR Pricing (página pública)",
+    "method": "curated"
+  },
+  {
+    "provider": "AWS",
+    "service": "EMR",
+    "region": "us-east-1",
+    "sku": "emr-uplift-m5.xlarge",
+    "metric": "Compute",
+    "unit": "node-hour",
+    "price": 0.048,
+    "currency": "USD",
+    "valid_from": "2026-09-16",
+    "retrieved_at": "2026-09-16",
+    "source": "Amazon EMR Pricing (página pública)",
+    "method": "curated"
+  },
+  {
+    "provider": "AWS",
+    "service": "Glue",
+    "region": "us-east-1",
+    "sku": "catalog-objects",
+    "metric": "Metadata",
+    "unit": "100k objects-month",
+    "price": 1.0,
+    "currency": "USD",
+    "valid_from": "2026-09-16",
+    "retrieved_at": "2026-09-16",
+    "source": "AWS Glue Pricing (página pública)",
+    "method": "curated"
+  },
+  {
+    "provider": "AWS",
+    "service": "Glue",
+    "region": "us-east-1",
+    "sku": "crawler-dpu",
+    "metric": "Compute",
+    "unit": "DPU-hour",
+    "price": 0.44,
+    "currency": "USD",
+    "valid_from": "2026-09-16",
+    "retrieved_at": "2026-09-16",
+    "source": "AWS Glue Pricing (página pública)",
+    "method": "curated"
+  },
+  {
+    "provider": "AWS",
+    "service": "Glue",
+    "region": "us-east-1",
+    "sku": "etl-dpu",
+    "metric": "Compute",
+    "unit": "DPU-hour",
+    "price": 0.44,
+    "currency": "USD",
+    "valid_from": "2026-09-16",
+    "retrieved_at": "2026-09-16",
+    "source": "AWS Glue Pricing (página pública)",
+    "method": "curated"
+  },
+  {
+    "provider": "AWS",
+    "service": "Network",
+    "region": "us-east-1",
+    "sku": "cross-region-out",
+    "metric": "Transfer",
+    "unit": "GB",
+    "price": 0.02,
+    "currency": "USD",
+    "valid_from": "2026-09-16",
+    "retrieved_at": "2026-09-16",
+    "source": "AWS Data Transfer Pricing (página pública)",
+    "method": "curated"
+  },
+  {
+    "provider": "AWS",
+    "service": "Network",
+    "region": "us-east-1",
+    "sku": "internet-out",
+    "metric": "Transfer",
+    "unit": "GB",
+    "price": 0.09,
+    "currency": "USD",
+    "valid_from": "2026-09-16",
+    "retrieved_at": "2026-09-16",
+    "source": "AWS Data Transfer Pricing (página pública)",
+    "method": "curated"
+  },
+  {
+    "provider": "AWS",
+    "service": "S3",
+    "region": "us-east-1",
+    "sku": "get-requests",
+    "metric": "Requests",
+    "unit": "1k requests",
+    "price": 0.0004,
+    "currency": "USD",
+    "valid_from": "2026-09-16",
+    "retrieved_at": "2026-09-16",
+    "source": "AWS S3 Pricing (página pública)",
+    "method": "curated"
+  },
+  {
+    "provider": "AWS",
+    "service": "S3",
+    "region": "us-east-1",
+    "sku": "glacier-ir",
+    "metric": "Storage",
+    "unit": "GB-month",
+    "price": 0.004,
+    "currency": "USD",
+    "valid_from": "2026-09-16",
+    "retrieved_at": "2026-09-16",
+    "source": "AWS S3 Pricing (página pública)",
+    "method": "curated"
+  },
+  {
+    "provider": "AWS",
+    "service": "S3",
+    "region": "us-east-1",
+    "sku": "ia-storage",
+    "metric": "Storage",
+    "unit": "GB-month",
+    "price": 0.0125,
+    "currency": "USD",
+    "valid_from": "2026-09-16",
+    "retrieved_at": "2026-09-16",
+    "source": "AWS S3 Pricing (página pública)",
+    "method": "curated"
+  },
+  {
+    "provider": "AWS",
+    "service": "S3",
+    "region": "us-east-1",
+    "sku": "put-requests",
+    "metric": "Requests",
+    "unit": "1k requests",
+    "price": 0.005,
+    "currency": "USD",
+    "valid_from": "2026-09-16",
+    "retrieved_at": "2026-09-16",
+    "source": "AWS S3 Pricing (página pública)",
+    "method": "curated"
+  },
+  {
+    "provider": "AWS",
+    "service": "S3",
+    "region": "us-east-1",
+    "sku": "standard-storage",
+    "metric": "Storage",
+    "unit": "GB-month",
+    "price": 0.023,
+    "currency": "USD",
+    "valid_from": "2026-09-16",
+    "retrieved_at": "2026-09-16",
+    "source": "AWS S3 Pricing (página pública)",
+    "method": "curated"
+  },
+  {
+    "provider": "Snowflake",
+    "service": "Snowpipe",
+    "region": "aws-us-east-1",
+    "sku": "snowpipe-credit",
+    "metric": "Compute",
+    "unit": "credit",
+    "price": 2.0,
+    "currency": "USD",
+    "valid_from": "2026-09-16",
+    "retrieved_at": "2026-09-16",
+    "source": "Snowflake Serverless Credit Table",
+    "method": "curated"
+  },
+  {
+    "provider": "Snowflake",
+    "service": "Storage",
+    "region": "aws-us-east-1",
+    "sku": "capacity-storage",
+    "metric": "Storage",
+    "unit": "TB-month",
+    "price": 23.0,
+    "currency": "USD",
+    "valid_from": "2026-09-16",
+    "retrieved_at": "2026-09-16",
+    "source": "Snowflake Storage Pricing — capacity",
+    "method": "curated"
+  },
+  {
+    "provider": "Snowflake",
+    "service": "Storage",
+    "region": "aws-us-east-1",
+    "sku": "ondemand-storage",
+    "metric": "Storage",
+    "unit": "TB-month",
+    "price": 40.0,
+    "currency": "USD",
+    "valid_from": "2026-09-16",
+    "retrieved_at": "2026-09-16",
+    "source": "Snowflake Storage Pricing — on demand",
+    "method": "curated"
+  },
+  {
+    "provider": "Snowflake",
+    "service": "Warehouse",
+    "region": "aws-us-east-1",
+    "sku": "credit-enterprise",
+    "metric": "Compute",
+    "unit": "credit",
+    "price": 3.0,
+    "currency": "USD",
+    "valid_from": "2026-09-16",
+    "retrieved_at": "2026-09-16",
+    "source": "Snowflake Credit Consumption Table — Enterprise, AWS us-east-1",
+    "method": "curated"
+  },
+  {
+    "provider": "Snowflake",
+    "service": "Warehouse",
+    "region": "aws-us-east-1",
+    "sku": "credit-standard",
+    "metric": "Compute",
+    "unit": "credit",
+    "price": 2.0,
+    "currency": "USD",
+    "valid_from": "2026-09-16",
+    "retrieved_at": "2026-09-16",
+    "source": "Snowflake Credit Consumption Table — Standard, AWS us-east-1",
+    "method": "curated"
+  },
+  {
+    "provider": "Databricks",
+    "service": "Jobs Compute",
+    "region": "aws-us-east-1",
+    "sku": "dbu-jobs-premium",
+    "metric": "Compute",
+    "unit": "DBU",
+    "price": 0.15,
+    "currency": "USD",
+    "valid_from": "2026-09-16",
+    "retrieved_at": "2026-09-16",
+    "source": "Databricks Pricing — Jobs Compute (Premium, AWS)",
+    "method": "curated"
+  },
+  {
+    "provider": "Databricks",
+    "service": "Jobs Compute",
+    "region": "aws-us-east-1",
+    "sku": "dbu-jobs-serverless",
+    "metric": "Compute",
+    "unit": "DBU",
+    "price": 0.35,
+    "currency": "USD",
+    "valid_from": "2026-09-16",
+    "retrieved_at": "2026-09-16",
+    "source": "Databricks Pricing — Serverless Jobs (AWS)",
+    "method": "curated"
+  },
+  {
+    "provider": "Databricks",
+    "service": "SQL Warehouse",
+    "region": "aws-us-east-1",
+    "sku": "dbu-sql-serverless",
+    "metric": "Compute",
+    "unit": "DBU",
+    "price": 0.7,
+    "currency": "USD",
+    "valid_from": "2026-09-16",
+    "retrieved_at": "2026-09-16",
+    "source": "Databricks Pricing — SQL Serverless (AWS)",
+    "method": "curated"
+  }
+];
+
+const price = (provider, service, sku) => {
+  const r = PRICING.find(p => p.provider===provider && p.service===service && p.sku===sku);
+  if (!r) throw new Error(`Preço não encontrado: ${provider}/${service}/${sku}`);
+  return r.price;
+};
+
+/* Câmbio — camada de apresentação apenas (seção 25 do scopo.md). */
+const FX = { USD:1, BRL:5.40, EUR:0.92 };
+
+</script>
+<script>
+/* =====================================================================
+   DataCost Architect — Calculation / Recommendation / Optimization Engine
+   v0.2 — modelo por ESTÁGIOS
+   ---------------------------------------------------------------------
+   Mudanças em relação à v0.1:
+   · O pipeline deixou de ser uma etapa única e passou a ser uma lista de
+     estágios encadeados (Ingestion → Bronze → Silver → Gold → DW Load →
+     Serving). Cada estágio tem engine, tamanho, SCHEDULE PRÓPRIO, formato
+     de arquivo, formato de tabela e retenção.
+   · File format e table format são dimensões separadas (Iceberg/Delta/Hudi
+     sobre Parquet/ORC/Avro), com custo de metadados, snapshots e manutenção.
+   · Catálogo aberto de frameworks de ingestão (Glue, EMR/PySpark, Sqoop,
+     DMS, Databricks, Snowpipe, framework próprio parametrizável).
+   · Varredura de schedule: quanto custa passar de 1x/dia para 1h, 30min…
+   Depende de pricing.js (PRICING, price(), FX).
+   ===================================================================== */
+
+const DAYS = 30.4;
+
+/* ------------------------------------------------------------------ */
+/* 1. CATÁLOGO DE ENGINES                                              */
+/* ------------------------------------------------------------------ */
+/* kind define o modelo de cobrança:
+     glue        → DPU-hora
+     ec2         → EC2 on-demand (+ uplift EMR quando emr:true)
+     dbx         → DBU (× multiplicador Photon) + EC2 do nó
+     dbx_sl      → DBU serverless, sem EC2
+     dms         → instância ligada 24×7
+     snowflake   → créditos de virtual warehouse
+     snowpipe    → créditos serverless por GB carregado
+     athena      → TB escaneados
+     dbsql       → DBU de SQL warehouse serverless
+     custom      → throughput e custo por nó-hora informados pelo usuário  */
+const ENGINES = {
+  glue:            { label:'AWS Glue (PySpark)',            kind:'glue', gbPerNodeMin:0.45, startupMin:1.5, minBillMin:1, complexity:2, roles:['ingest','transform'] },
+  emr_spark:       { label:'PySpark em EMR',                kind:'ec2',  gbPerNodeMin:0.60, startupMin:6.0, minBillMin:1, complexity:4, emr:true, roles:['ingest','transform'] },
+  emr_sqoop:       { label:'Sqoop em EMR (JDBC paralelo)',  kind:'ec2',  gbPerNodeMin:0.28, startupMin:6.0, minBillMin:1, complexity:4, emr:true, roles:['ingest'] },
+  ec2_spark:       { label:'PySpark em EC2 (self-managed)', kind:'ec2',  gbPerNodeMin:0.58, startupMin:4.0, minBillMin:1, complexity:5, emr:false, roles:['ingest','transform'] },
+  dms:             { label:'AWS DMS (CDC contínuo)',        kind:'dms',  gbPerNodeMin:0.50, startupMin:0.0, minBillMin:0, complexity:3, roles:['ingest'] },
+  databricks:      { label:'Databricks Jobs (Spark)',       kind:'dbx',  gbPerNodeMin:0.60, startupMin:3.0, minBillMin:1, complexity:3, photon:1, roles:['ingest','transform'] },
+  databricks_photon:{label:'Databricks Jobs + Photon',      kind:'dbx',  gbPerNodeMin:0.95, startupMin:3.0, minBillMin:1, complexity:3, photon:2, roles:['ingest','transform'] },
+  databricks_sl:   { label:'Databricks Serverless Jobs',    kind:'dbx_sl',gbPerNodeMin:0.95,startupMin:0.5, minBillMin:1, complexity:2, roles:['ingest','transform'] },
+  snowflake_wh:    { label:'Snowflake Virtual Warehouse',   kind:'snowflake', startupMin:0.2, complexity:2, roles:['transform','load'] },
+  snowpipe:        { label:'Snowpipe (COPY serverless)',    kind:'snowpipe',  startupMin:0.5, complexity:1, roles:['load'] },
+  custom_fw:       { label:'Framework próprio (ex.: Talaria)', kind:'custom', startupMin:1.0, minBillMin:1, complexity:3, roles:['ingest','transform'] },
+  athena:          { label:'Amazon Athena',                 kind:'athena', complexity:1, roles:['serve'] },
+  snowflake_serve: { label:'Snowflake (BI/consumo)',        kind:'snowflake', complexity:2, roles:['serve'] },
+  dbsql:           { label:'Databricks SQL Serverless',     kind:'dbsql',  complexity:2, roles:['serve'] },
+};
+
+const WORKER_TYPES = {
+  'm5.xlarge':  { label:'m5.xlarge (4 vCPU)',  dbu:1.0, ec2:'m5.xlarge',  emrUplift:'emr-uplift-m5.xlarge',  perf:1.0 },
+  'm5.2xlarge': { label:'m5.2xlarge (8 vCPU)', dbu:2.0, ec2:'m5.2xlarge', emrUplift:'emr-uplift-m5.2xlarge', perf:2.0 },
+  'r5.xlarge':  { label:'r5.xlarge (memória)', dbu:1.2, ec2:'r5.xlarge',  emrUplift:'emr-uplift-m5.xlarge',  perf:1.15 },
+};
+
+const WH_SIZES = {
+  XS:{ label:'X-Small', credits:1, gbPerMin:1.5 },
+  S: { label:'Small',   credits:2, gbPerMin:3.0 },
+  M: { label:'Medium',  credits:4, gbPerMin:6.0 },
+  L: { label:'Large',   credits:8, gbPerMin:12.0 },
+};
+
+/* ------------------------------------------------------------------ */
+/* 2. FORMATOS: ARQUIVO × TABELA (dimensões separadas)                 */
+/* ------------------------------------------------------------------ */
+const FILE_FORMATS = {
+  'parquet-zstd':  { label:'Parquet + ZSTD',   ratio:0.18, columnar:true },
+  'parquet-snappy':{ label:'Parquet + Snappy', ratio:0.25, columnar:true },
+  'orc-zlib':      { label:'ORC + ZLIB',       ratio:0.22, columnar:true },
+  'avro-snappy':   { label:'Avro + Snappy',    ratio:0.45, columnar:false },
+  'csv-gzip':      { label:'CSV + GZIP',       ratio:0.35, columnar:false },
+  'json-none':     { label:'JSON (raw)',       ratio:1.00, columnar:false },
+};
+
+/* metaOverhead  → metadados/manifests como fração do dado
+   snapshotMult  → multiplicador de storage por versões retidas
+   scanFactor    → fração do dado efetivamente lida numa query (pruning)
+   maintenance   → exige compaction / expire snapshots
+   writeAmp      → sobrecusto de escrita (commit protocol, arquivos extras) */
+const TABLE_FORMATS = {
+  hive:    { label:'Hive / diretórios', metaOverhead:0.000, snapshotMult:1.00, scanFactor:1.00, maintenance:false, writeAmp:1.00, complexity:1 },
+  iceberg: { label:'Apache Iceberg',    metaOverhead:0.020, snapshotMult:1.25, scanFactor:0.60, maintenance:true,  writeAmp:1.08, complexity:3 },
+  delta:   { label:'Delta Lake',        metaOverhead:0.020, snapshotMult:1.30, scanFactor:0.65, maintenance:true,  writeAmp:1.10, complexity:3 },
+  hudi:    { label:'Apache Hudi (CoW)', metaOverhead:0.040, snapshotMult:1.35, scanFactor:0.70, maintenance:true,  writeAmp:1.25, complexity:4 },
+};
+
+const FREQUENCIES = [
+  { runsPerDay:1,   label:'Diário' },
+  { runsPerDay:2,   label:'A cada 12 h' },
+  { runsPerDay:4,   label:'A cada 6 h' },
+  { runsPerDay:12,  label:'A cada 2 h' },
+  { runsPerDay:24,  label:'A cada 1 h' },
+  { runsPerDay:48,  label:'A cada 30 min' },
+  { runsPerDay:96,  label:'A cada 15 min' },
+  { runsPerDay:288, label:'A cada 5 min' },
+];
+
+/* ------------------------------------------------------------------ */
+/* 3. CUSTO DE COMPUTE POR ESTÁGIO                                     */
+/* ------------------------------------------------------------------ */
+function stageRuntimeMin(st, g, volPerRun) {
+  const e = ENGINES[st.engine];
+  if (e.kind === 'snowflake') {
+    const sz = WH_SIZES[st.whSize || 'S'];
+    return e.startupMin + volPerRun / sz.gbPerMin;
+  }
+  if (e.kind === 'snowpipe') return e.startupMin + volPerRun / 4.0;
+  if (e.kind === 'custom')   return e.startupMin + volPerRun / (g.customGbPerNodeMin * st.workers);
+  if (e.kind === 'dms')      return 0; // contínuo: latência tratada à parte
+  const wt = WORKER_TYPES[st.workerType || 'm5.xlarge'];
+  return e.startupMin + volPerRun / (e.gbPerNodeMin * wt.perf * st.workers);
+}
+
+function stageComputeCost(st, g, volPerRun, runsPerMonth, runtimeMin, retryFactor) {
+  const e = ENGINES[st.engine];
+  const billedH = Math.max(runtimeMin, e.minBillMin || 0) / 60;
+  const wt = WORKER_TYPES[st.workerType || 'm5.xlarge'];
+  const nodes = (st.workers || 1) + 1; // + driver/coordenador
+
+  switch (e.kind) {
+    case 'glue':
+      return nodes * billedH * price('AWS','Glue','etl-dpu') * runsPerMonth * retryFactor;
+    case 'ec2': {
+      const perNode = price('AWS','EC2', wt.ec2) + (e.emr ? price('AWS','EMR', wt.emrUplift) : 0);
+      return nodes * billedH * perNode * runsPerMonth * retryFactor;
+    }
+    case 'dbx': {
+      const perNode = wt.dbu * price('Databricks','Jobs Compute','dbu-jobs-premium') * (e.photon||1)
+                    + price('AWS','EC2', wt.ec2);
+      return nodes * billedH * perNode * runsPerMonth * retryFactor;
+    }
+    case 'dbx_sl':
+      return nodes * wt.dbu * billedH * price('Databricks','Jobs Compute','dbu-jobs-serverless') * runsPerMonth * retryFactor;
+    case 'dms':
+      return price('AWS','DMS','dms.c5.large') * 730; // instância 24×7
+    case 'snowflake': {
+      const sz = WH_SIZES[st.whSize || 'S'];
+      const idleH = (st.autoSuspendSec || 0)/3600 * runsPerMonth;
+      const credits = (billedH * runsPerMonth + idleH) * sz.credits;
+      return credits * price('Snowflake','Warehouse', g.snowflakeEdition==='enterprise'?'credit-enterprise':'credit-standard');
+    }
+    case 'snowpipe': {
+      // ~0,06 crédito por GB carregado (aproximação de referência)
+      return volPerRun * runsPerMonth * 0.06 * price('Snowflake','Snowpipe','snowpipe-credit');
+    }
+    case 'custom':
+      return nodes * billedH * g.customCostPerNodeHour * runsPerMonth * retryFactor;
+    default:
+      return 0;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* 4. MOTOR PRINCIPAL — pipeline por estágios                          */
+/* ------------------------------------------------------------------ */
+function calcPipeline(g, stages) {
+  const assumptions = [];
+  const A = t => { if (!assumptions.includes(t)) assumptions.push(t); };
+  const retryFactor = 1 + (g.failureRate/100) * g.retries;
+  if (retryFactor > 1) A(`Retries: multiplicador de ${retryFactor.toFixed(3)}× sobre compute e requests.`);
+
+  const active = stages.filter(s => s.enabled);
+  const rows = [];
+  let dailyIn = null;
+
+  for (const st of active) {
+    const e = ENGINES[st.engine];
+    const runsPerDay   = st.runsPerDay;
+    const runsPerMonth = runsPerDay * DAYS;
+
+    /* --- volume que ENTRA no estágio --- */
+    if (dailyIn === null) {
+      if (g.ingestion === 'full') {
+        dailyIn = g.sourceVolumeGB * runsPerDay;
+        A('Full load: cada execução do primeiro estágio lê o volume total da fonte.');
+      } else if (g.ingestion === 'cdc') {
+        dailyIn = g.dailyDeltaGB * 1.30;
+        A('CDC: +30% sobre o delta diário para before/after image e metadados.');
+      } else {
+        dailyIn = g.dailyDeltaGB;
+      }
+    }
+    const volPerRun = dailyIn / runsPerDay;
+
+    /* --- tempo e compute (o estágio de consumo é cobrado por query, adiante) --- */
+    const runtimeMin = st.kind==='serve' ? 0 : stageRuntimeMin(st, g, volPerRun);
+    const compute    = st.kind==='serve' ? 0 : stageComputeCost(st, g, volPerRun, runsPerMonth, runtimeMin, retryFactor);
+
+    /* --- volume que SAI --- */
+    const dailyOut = dailyIn * st.reduction;
+
+    /* --- storage da camada produzida --- */
+    const ff = FILE_FORMATS[st.fileFormat] || FILE_FORMATS['parquet-snappy'];
+    const tf = TABLE_FORMATS[st.tableFormat] || TABLE_FORMATS['hive'];
+    let storage = 0, requests = 0, maintenance = 0, storedGB = 0, filesPerRun = 0;
+
+    if (st.kind !== 'serve' && st.kind !== 'load') {
+      const dailyWritten = dailyOut * ff.ratio * tf.writeAmp;
+      storedGB = dailyWritten * Math.min(st.retentionDays, 3650) * tf.snapshotMult * (1 + tf.metaOverhead);
+      if (st.kind === 'ingest' && g.ingestion === 'full') storedGB += g.sourceVolumeGB * ff.ratio;
+      const sku = st.storageClass === 'ia' ? 'ia-storage' : st.storageClass === 'glacier' ? 'glacier-ir' : 'standard-storage';
+      storage = storedGB * price('AWS','S3', sku);
+
+      filesPerRun = Math.max(1, Math.ceil((dailyOut/runsPerDay * ff.ratio * 1024) / g.targetFileMB));
+      const puts = filesPerRun * runsPerMonth * retryFactor * tf.writeAmp;
+      const gets = filesPerRun * runsPerMonth * 2;
+      requests = (puts/1000)*price('AWS','S3','put-requests') + (gets/1000)*price('AWS','S3','get-requests');
+
+      if (tf.maintenance && st.maintenanceRunsPerMonth > 0) {
+        // compaction/expire processa a fatia "quente" da camada
+        const activeGB = storedGB * 0.10;
+        const mtRuntime = stageRuntimeMin({...st, engine: e.roles.includes('transform')? st.engine : 'glue'}, g, activeGB);
+        maintenance = stageComputeCost(st, g, activeGB, st.maintenanceRunsPerMonth, mtRuntime, 1);
+        A(`${tf.label}: manutenção (compaction/expire snapshots) cobrada ${st.maintenanceRunsPerMonth}×/mês na camada ${st.name}.`);
+      }
+      if (tf.snapshotMult > 1) A(`${tf.label}: storage multiplicado por ${tf.snapshotMult}× devido a snapshots retidos.`);
+    }
+
+    /* --- estágio de carga no DW: storage do warehouse --- */
+    let whStorage = 0;
+    if (st.kind === 'load' && g.dwStorage) {
+      const prevOut = dailyOut * (FILE_FORMATS[st.fileFormat]||FILE_FORMATS['parquet-snappy']).ratio;
+      storedGB = prevOut * Math.min(st.retentionDays, 3650);
+      whStorage = (storedGB/1024) * price('Snowflake','Storage', g.snowflakeStorage==='ondemand'?'ondemand-storage':'capacity-storage');
+    }
+
+    /* --- estágio de consumo --- */
+    let serveCost = 0, serveDetail = '';
+    if (st.kind === 'serve') {
+      const tfPrev = TABLE_FORMATS[st.tableFormat] || TABLE_FORMATS['hive'];
+      if (e.kind === 'athena') {
+        const scannedTB = (g.queriesPerDay * DAYS * g.scanPerQueryGB * tfPrev.scanFactor) / 1024;
+        serveCost = scannedTB * price('AWS','Athena','data-scanned');
+        serveDetail = `${scannedTB.toFixed(2)} TB escaneados/mês (scan factor ${tfPrev.scanFactor})`;
+        if (tfPrev.scanFactor < 1) A(`${tfPrev.label}: partition/file pruning reduz o volume escaneado para ${(tfPrev.scanFactor*100).toFixed(0)}%.`);
+      } else if (e.kind === 'snowflake') {
+        const sz = WH_SIZES[st.whSize || 'S'];
+        const queryH = g.queriesPerDay * DAYS * g.avgQuerySec / 3600;
+        const idleH  = (st.autoSuspendSec||0)/3600 * g.queriesPerDay * DAYS / 20; // agrupa queries em sessões
+        const credits = (queryH + idleH) * sz.credits;
+        serveCost = credits * price('Snowflake','Warehouse', g.snowflakeEdition==='enterprise'?'credit-enterprise':'credit-standard');
+        serveDetail = `${credits.toFixed(1)} créditos/mês (warehouse ${st.whSize})`;
+      } else if (e.kind === 'dbsql') {
+        const queryH = g.queriesPerDay * DAYS * g.avgQuerySec / 3600;
+        const dbu = queryH * 4;
+        serveCost = dbu * price('Databricks','SQL Warehouse','dbu-sql-serverless');
+        serveDetail = `${dbu.toFixed(1)} DBU/mês em SQL Serverless`;
+      }
+    }
+
+    rows.push({
+      stage: st, engineLabel: e.label,
+      runsPerDay, runsPerMonth, volPerRun, dailyIn, dailyOut,
+      runtimeMin, intervalMin: 1440/runsPerDay,
+      filesPerRun, storedGB,
+      cost: { compute, storage: storage + whStorage, requests, maintenance, serve: serveCost },
+      total: compute + storage + whStorage + requests + maintenance + serveCost,
+      serveDetail,
+    });
+
+    dailyIn = dailyOut;
+  }
+
+  /* --- rede --- */
+  const network = g.crossRegionGB * price('AWS','Network','cross-region-out')
+                + g.internetGB    * price('AWS','Network','internet-out');
+
+  /* --- catálogo Glue --- */
+  const catalog = (g.catalogObjects/100000) * price('AWS','Glue','catalog-objects');
+
+  /* --- totais --- */
+  const disc = 1 - g.discountPct/100;
+  const breakdown = { Ingestion:0, Storage:0, Processing:0, Warehouse:0, Maintenance:0, Network:network, Catalog:catalog };
+  rows.forEach(r => {
+    breakdown.Storage    += r.cost.storage + r.cost.requests;
+    breakdown.Maintenance+= r.cost.maintenance;
+    if (r.stage.kind === 'ingest')      breakdown.Ingestion  += r.cost.compute;
+    else if (r.stage.kind === 'transform') breakdown.Processing += r.cost.compute;
+    else                                breakdown.Warehouse  += r.cost.compute + r.cost.serve;
+  });
+  Object.keys(breakdown).forEach(k => breakdown[k] *= disc);
+  rows.forEach(r => r.totalDisc = r.total * disc);
+  const monthly = Object.values(breakdown).reduce((a,b)=>a+b,0);
+  if (g.discountPct>0) A(`Desconto contratual de ${g.discountPct}% aplicado sobre o preço de lista.`);
+
+  /* --- tempo, SLA e freshness --- */
+  const batchRows = rows.filter(r => r.stage.kind !== 'serve');
+  const processingMin = batchRows.reduce((a,r)=>a + r.runtimeMin, 0);
+  const latencyMin = g.orchestration === 'independent'
+    ? batchRows.reduce((a,r)=>a + r.intervalMin + r.runtimeMin, 0)
+    : Math.max(0, ...batchRows.map(r=>r.intervalMin)) + processingMin;
+  const slaTimeOk   = processingMin <= g.slaMaxMinutes;
+  const freshnessOk = latencyMin <= g.freshnessHours*60;
+  const slaStatus = slaTimeOk && freshnessOk ? 'PASS' : (slaTimeOk||freshnessOk ? 'PARTIAL' : 'FAIL');
+  A(g.orchestration === 'independent'
+    ? 'Estágios agendados de forma independente: latência = Σ (intervalo + tempo de execução) de cada estágio.'
+    : 'Estágios encadeados numa única DAG: latência = maior intervalo de agendamento + soma dos tempos de execução.');
+
+  /* --- volumes agregados --- */
+  const firstRow = rows[0];
+  const monthlyRawGB = firstRow ? firstRow.dailyIn * DAYS : 0;
+  const totalStoredGB = rows.reduce((a,r)=>a+r.storedGB,0);
+
+  /* --- confidence --- */
+  let conf = 50;
+  const prov = g._provided || {};
+  const advKeys = ['retentionDays','targetFileMB','failureRate','retries','crossRegionGB','queriesPerDay',
+                   'discountPct','recordsPerDay','catalogObjects','scanPerQueryGB','avgQuerySec'];
+  conf += advKeys.filter(k=>prov[k]).length * 2.5;
+  conf += Math.min(12, active.length * 2);              // pipeline detalhado por estágio
+  if (active.some(s => ENGINES[s.engine].kind==='custom')) conf -= 8;
+  if (g.failureRate > 5) conf -= 5;
+  if (g.ingestion === 'cdc') conf -= 3;
+  conf = Math.max(35, Math.min(92, Math.round(conf)));
+  const spread = (100-conf)/100 * 0.9;
+
+  /* --- unit economics --- */
+  const tbProcessed = monthlyRawGB/1024;
+  const unit = {
+    perMonth: monthly, perYear: monthly*12,
+    perTB: tbProcessed>0 ? monthly/tbProcessed : 0,
+    perGBIngested: monthlyRawGB>0 ? monthly/monthlyRawGB : 0,
+    perGBStored: totalStoredGB>0 ? monthly/totalStoredGB : 0,
+    perMillionRec: g.recordsPerDay>0 ? monthly/((g.recordsPerDay*DAYS)/1e6) : 0,
+    perQuery: g.queriesPerDay>0 ? monthly/(g.queriesPerDay*DAYS) : 0,
+    perRunSet: monthly / Math.max(1, rows.reduce((a,r)=>a+r.runsPerMonth,0)),
+  };
+
+  return {
+    rows, breakdown, monthly, range:{low:monthly*(1-spread), high:monthly*(1+spread)},
+    confidence:conf, processingMin, latencyMin, slaStatus, slaTimeOk, freshnessOk,
+    monthlyRawGB, totalStoredGB, tbProcessed, unit, assumptions,
+    complexity: rows.reduce((a,r)=>a+ENGINES[r.stage.engine].complexity + (TABLE_FORMATS[r.stage.tableFormat]?.complexity||0), 0),
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* 5. VARREDURA DE SCHEDULE                                            */
+/* ------------------------------------------------------------------ */
+/** Aplica cada frequência do catálogo a todos os estágios (ou só aos
+ *  estágios marcados em `scope`) e devolve custo, latência e SLA. */
+function scheduleSweep(g, stages, scope = null) {
+  return FREQUENCIES.map(f => {
+    const st = stages.map(s => {
+      const inScope = !scope || scope.includes(s.key);
+      return inScope ? { ...s, runsPerDay: f.runsPerDay } : s;
+    });
+    const r = calcPipeline(g, st);
+    const perStage = {};
+    r.rows.forEach(row => perStage[row.stage.key] = row.totalDisc);
+    return {
+      runsPerDay:f.runsPerDay, label:f.label, monthly:r.monthly,
+      latencyMin:r.latencyMin, processingMin:r.processingMin, slaStatus:r.slaStatus,
+      perStage,
+    };
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* 6. VARIANTES DE ARQUITETURA (comparação)                            */
+/* ------------------------------------------------------------------ */
+const swapTransforms = (stages, engine) =>
+  stages.map(s => s.kind==='transform' && ENGINES[engine].roles.includes('transform') ? {...s, engine} : s);
+
+const VARIANTS = {
+  asis: {
+    id:'asis', name:'As-is (configuração atual)',
+    note:'O pipeline exatamente como está configurado na aba Pipeline.',
+    apply: (g,s) => [g, s],
+  },
+  dbx: {
+    id:'dbx', name:'Databricks Photon nas transformações',
+    note:'Bronze/Silver/Gold migrados para Databricks Jobs com Photon; ingestão e DW inalterados.',
+    apply: (g,s) => [g, swapTransforms(s,'databricks_photon')],
+  },
+  emr: {
+    id:'emr', name:'PySpark em EMR',
+    note:'Transformações em cluster EMR próprio (EC2 + uplift EMR), maior complexidade operacional.',
+    apply: (g,s) => [g, swapTransforms(s,'emr_spark')],
+  },
+  lake: {
+    id:'lake', name:'Servir do lake (Athena), sem DW',
+    note:'Remove a carga no Snowflake; o consumo passa a ler a camada Gold direto no S3 via Athena.',
+    apply: (g,s) => [g, s.filter(x=>x.kind!=='load').map(x => x.kind==='serve' ? {...x, engine:'athena'} : x)],
+  },
+  elt: {
+    id:'elt', name:'ELT dentro do Snowflake',
+    note:'Ingestão para o S3, carga bruta via Snowpipe e transformações Silver/Gold executadas em virtual warehouse.',
+    apply: (g,s) => [g, s.map(x => {
+      if (x.kind==='transform' && x.key!=='bronze') return {...x, engine:'snowflake_wh', whSize:'M'};
+      if (x.kind==='load') return {...x, engine:'snowpipe'};
+      return x;
+    })],
+  },
+};
+
+const PROFILES = {
+  cost:        { label:'Cost Optimized',        w:{cost:.55, sla:.20, perf:.15, scale:.05, cx:.05} },
+  balanced:    { label:'Balanced',              w:{cost:.40, sla:.25, perf:.20, scale:.10, cx:.05} },
+  performance: { label:'Performance Optimized', w:{cost:.20, sla:.35, perf:.30, scale:.10, cx:.05} },
+};
+
+function scoreVariants(results, weights) {
+  const norm = (v, mn, mx) => mx===mn ? 1 : 1-(v-mn)/(mx-mn);
+  const costs = results.map(r=>r.monthly), times = results.map(r=>r.processingMin), cxs = results.map(r=>r.complexity);
+  const [minC,maxC]=[Math.min(...costs),Math.max(...costs)];
+  const [minT,maxT]=[Math.min(...times),Math.max(...times)];
+  const [minX,maxX]=[Math.min(...cxs),Math.max(...cxs)];
+  return results.map(r => {
+    const sCost=norm(r.monthly,minC,maxC), sPerf=norm(r.processingMin,minT,maxT), sCx=norm(r.complexity,minX,maxX);
+    const sSla = r.slaStatus==='PASS'?1:r.slaStatus==='PARTIAL'?0.5:0;
+    const sScale = r.rows.some(x=>ENGINES[x.stage.engine].kind==='dbx'||ENGINES[x.stage.engine].kind==='dbx_sl') ? 1 : 0.8;
+    const total = weights.cost*sCost + weights.sla*sSla + weights.perf*sPerf + weights.scale*sScale + weights.cx*sCx;
+    return {...r, score: total*100};
+  }).sort((a,b)=>b.score-a.score);
+}
+
+/* ------------------------------------------------------------------ */
+/* 7. OTIMIZAÇÕES                                                      */
+/* ------------------------------------------------------------------ */
+const OPT_RULES = [
+  { id:'full-to-incremental', title:'Migrar de Full Load para Incremental',
+    why:'O delta diário é uma fração pequena da base; reprocessar tudo a cada execução multiplica compute, escrita e storage.',
+    applies:(g)=> g.ingestion==='full' && g.dailyDeltaGB < g.sourceVolumeGB*0.25,
+    patch:(g,s)=>[{...g, ingestion:'incremental'}, s] },
+
+  { id:'columnar-raw', title:'Adotar Parquet + ZSTD nas camadas em CSV/JSON',
+    why:'Formato colunar comprimido reduz storage, requests e o volume lido pelos estágios seguintes.',
+    applies:(g,s)=> s.some(x=>x.enabled && ['csv-gzip','json-none','avro-snappy'].includes(x.fileFormat)),
+    patch:(g,s)=>[g, s.map(x=> ['csv-gzip','json-none','avro-snappy'].includes(x.fileFormat) ? {...x, fileFormat:'parquet-zstd'} : x)] },
+
+  { id:'table-format-gold', title:'Adotar Iceberg na camada consumida',
+    why:'Partition e file pruning reduzem o volume escaneado por consulta; o custo extra de metadados costuma ser menor que a economia de scan.',
+    applies:(g,s)=> s.some(x=>x.enabled&&x.kind==='serve'&&ENGINES[x.engine].kind==='athena')
+                 && s.some(x=>x.enabled&&x.key==='gold'&&x.tableFormat==='hive'),
+    patch:(g,s)=>[g, s.map(x=> (x.key==='gold'||x.kind==='serve') ? {...x, tableFormat:'iceberg', maintenanceRunsPerMonth: x.kind==='serve'?0:30} : x)] },
+
+  { id:'raw-lifecycle', title:'Mover a camada bruta para S3 Standard-IA',
+    why:'A camada bruta com retenção longa é lida raramente depois de processada — candidata natural a classe de armazenamento mais barata.',
+    applies:(g,s)=> s.some(x=>x.enabled&&x.kind==='ingest'&&x.storageClass==='standard'&&x.retentionDays>=180),
+    patch:(g,s)=>[g, s.map(x=> x.kind==='ingest' ? {...x, storageClass:'ia'} : x)] },
+
+  { id:'raw-retention', title:'Reduzir a retenção da camada bruta para 90 dias',
+    why:'Com Silver e Gold versionadas, manter a bruta por mais de um ano raramente atende a um requisito real de negócio ou compliance.',
+    applies:(g,s)=> s.some(x=>x.enabled&&x.kind==='ingest'&&x.retentionDays>180),
+    patch:(g,s)=>[g, s.map(x=> x.kind==='ingest' ? {...x, retentionDays:90} : x)] },
+
+  { id:'file-compaction', title:'Compactar arquivos para ~128 MB',
+    why:'Muitos arquivos pequenos elevam o custo de requests e o overhead de planejamento das engines.',
+    applies:(g)=> g.targetFileMB < 64,
+    patch:(g,s)=>[{...g, targetFileMB:128}, s] },
+
+  { id:'downscale-schedule', title:'Reduzir a frequência dos estágios com folga de freshness',
+    why:'Há folga entre a latência atual e o requisito de freshness; executar menos vezes reduz startups e mínimos de cobrança.',
+    applies:(g,s,base)=> base && base.latencyMin < g.freshnessHours*60*0.45 && s.some(x=>x.enabled&&x.runsPerDay>1),
+    patch:(g,s)=>[g, s.map(x=> x.runsPerDay>1 ? {...x, runsPerDay: Math.max(1, Math.round(x.runsPerDay/2))} : x)] },
+
+  { id:'wh-autosuspend', title:'Reduzir auto-suspend do warehouse para 60 s',
+    why:'Warehouse suspenso não consome créditos; janelas de ociosidade longas são cobradas a cada execução ou sessão.',
+    applies:(g,s)=> s.some(x=>x.enabled&&ENGINES[x.engine].kind==='snowflake'&&(x.autoSuspendSec||0)>120),
+    patch:(g,s)=>[g, s.map(x=> ENGINES[x.engine].kind==='snowflake' ? {...x, autoSuspendSec:60} : x)] },
+
+  { id:'wh-rightsize', title:'Reduzir o tamanho do virtual warehouse',
+    why:'O tempo total de processamento está bem abaixo do SLA; um warehouse menor mantém o SLA a metade do custo em créditos.',
+    applies:(g,s,base)=> base && base.processingMin < g.slaMaxMinutes*0.5
+                      && s.some(x=>x.enabled&&ENGINES[x.engine].kind==='snowflake'&&['M','L'].includes(x.whSize)),
+    patch:(g,s)=>[g, s.map(x=> ENGINES[x.engine].kind==='snowflake' && ['M','L'].includes(x.whSize)
+                      ? {...x, whSize: x.whSize==='L'?'M':'S'} : x)] },
+];
+
+function findOptimizations(g, stages, base) {
+  const out = [];
+  for (const rule of OPT_RULES) {
+    if (!rule.applies(g, stages, base)) continue;
+    const [ng, ns] = rule.patch(g, stages);
+    const after = calcPipeline(ng, ns);
+    const saving = base.monthly - after.monthly;
+    if (saving <= base.monthly*0.01) continue;
+    out.push({ ...rule, saving, savingPct: saving/base.monthly*100, newMonthly: after.monthly,
+               slaBefore: base.slaStatus, slaAfter: after.slaStatus,
+               latBefore: base.latencyMin, latAfter: after.latencyMin });
+  }
+  return out.sort((a,b)=>b.saving-a.saving);
+}
+
+/* ------------------------------------------------------------------ */
+/* 8. SENSIBILIDADE E BREAK-EVEN                                       */
+/* ------------------------------------------------------------------ */
+const SENS_MULTIPLIERS = [0.25, 0.5, 1, 2, 4, 8, 16];
+const scaleG = (g,m) => ({...g,
+  sourceVolumeGB:g.sourceVolumeGB*m, dailyDeltaGB:g.dailyDeltaGB*m,
+  recordsPerDay:g.recordsPerDay*m, scanPerQueryGB:g.scanPerQueryGB*m });
+
+function sensitivity(g, stages, variantIds) {
+  return SENS_MULTIPLIERS.map(m => {
+    const sg = scaleG(g,m);
+    const row = { multiplier:m, tb:0, costs:{} };
+    variantIds.forEach(id => {
+      const [vg, vs] = VARIANTS[id].apply(sg, stages);
+      const r = calcPipeline(vg, vs);
+      row.costs[id] = r.monthly;
+      if (!row.tb) row.tb = r.tbProcessed;
+    });
+    return row;
+  });
+}
+
+function breakEven(g, stages, variantIds) {
+  const steps=60, lo=Math.log10(0.1), hi=Math.log10(30);
+  let prev=null; const out=[];
+  for (let s=0;s<=steps;s++){
+    const m = Math.pow(10, lo+(hi-lo)*s/steps);
+    const sg = scaleG(g,m);
+    let best=null, tb=0;
+    variantIds.forEach(id=>{
+      const [vg,vs]=VARIANTS[id].apply(sg,stages);
+      const r=calcPipeline(vg,vs);
+      tb = r.tbProcessed;
+      if(!best||r.monthly<best.cost) best={id,cost:r.monthly};
+    });
+    if (prev && best.id!==prev.id) out.push({multiplier:m, tb, from:prev.id, to:best.id});
+    prev=best;
+  }
+  return out;
+}
+
+</script>
+<script>
+/* =====================================================================
+   DataCost Architect — camada de apresentação (v0.2)
+   ===================================================================== */
+
+/* ---------- workload global ---------- */
+const G_DEFAULTS = {
+  name:'Oracle → Lakehouse → Snowflake', environment:'Production', criticality:'High',
+  sourceType:'Oracle', sourceVolumeGB:4096, dailyDeltaGB:120, recordsPerDay:60_000_000,
+  ingestion:'incremental',
+  targetFileMB:128, catalogObjects:50000,
+  queriesPerDay:300, avgQuerySec:25, scanPerQueryGB:3,
+  failureRate:2, retries:2,
+  crossRegionGB:0, internetGB:0, discountPct:0,
+  slaMaxMinutes:360, freshnessHours:30, orchestration:'chained',
+  snowflakeEdition:'standard', snowflakeStorage:'capacity', dwStorage:true,
+  customGbPerNodeMin:0.5, customCostPerNodeHour:0.30,
+  _provided:{ targetFileMB:1, failureRate:1, retries:1, queriesPerDay:1, recordsPerDay:1,
+              catalogObjects:1, scanPerQueryGB:1, avgQuerySec:1 },
+};
+
+/* ---------- pipeline padrão: o cenário do enunciado ---------- */
+const STAGE_DEFAULTS = () => ([
+  { key:'raw',    name:'Ingestion → Raw',  kind:'ingest',    enabled:true, engine:'glue',
+    workers:4, workerType:'m5.xlarge', runsPerDay:1, reduction:1.00,
+    fileFormat:'parquet-snappy', tableFormat:'hive', retentionDays:365, storageClass:'standard',
+    maintenanceRunsPerMonth:0, whSize:'S', autoSuspendSec:60 },
+  { key:'bronze', name:'Bronze',           kind:'transform', enabled:true, engine:'glue',
+    workers:4, workerType:'m5.xlarge', runsPerDay:1, reduction:1.00,
+    fileFormat:'parquet-snappy', tableFormat:'iceberg', retentionDays:365, storageClass:'standard',
+    maintenanceRunsPerMonth:4, whSize:'S', autoSuspendSec:60 },
+  { key:'silver', name:'Silver',           kind:'transform', enabled:true, engine:'glue',
+    workers:4, workerType:'m5.xlarge', runsPerDay:1, reduction:0.80,
+    fileFormat:'parquet-zstd', tableFormat:'iceberg', retentionDays:730, storageClass:'standard',
+    maintenanceRunsPerMonth:4, whSize:'S', autoSuspendSec:60 },
+  { key:'gold',   name:'Gold',             kind:'transform', enabled:true, engine:'glue',
+    workers:2, workerType:'m5.xlarge', runsPerDay:1, reduction:0.25,
+    fileFormat:'parquet-zstd', tableFormat:'iceberg', retentionDays:1095, storageClass:'standard',
+    maintenanceRunsPerMonth:4, whSize:'S', autoSuspendSec:60 },
+  { key:'dwload', name:'DW Load (Snowflake)', kind:'load',   enabled:true, engine:'snowflake_wh',
+    workers:1, workerType:'m5.xlarge', runsPerDay:1, reduction:1.00,
+    fileFormat:'parquet-zstd', tableFormat:'hive', retentionDays:1095, storageClass:'standard',
+    maintenanceRunsPerMonth:0, whSize:'S', autoSuspendSec:60 },
+  { key:'serve',  name:'Serving / BI',     kind:'serve',     enabled:true, engine:'snowflake_serve',
+    workers:1, workerType:'m5.xlarge', runsPerDay:1, reduction:1.00,
+    fileFormat:'parquet-zstd', tableFormat:'iceberg', retentionDays:0, storageClass:'standard',
+    maintenanceRunsPerMonth:0, whSize:'M', autoSuspendSec:300 },
+]);
+
+const G_FIELDS = [
+  ['name','Workload name','text',null,false],
+  ['environment','Environment','select',['Production','Staging','Development'],false],
+  ['criticality','Criticality','select',['High','Medium','Low'],false],
+  ['sourceType','Source technology','select',['Oracle','SQL Server','PostgreSQL','DB2','Kafka','REST API','SaaS export'],false],
+  ['sourceVolumeGB','Total source volume','number',null,false,'GB'],
+  ['dailyDeltaGB','Daily change volume','number',null,false,'GB/day'],
+  ['recordsPerDay','Records per day','number',null,true,'rows'],
+  ['ingestion','Ingestion strategy','select',[['full','Full load'],['incremental','Incremental'],['cdc','CDC']],false],
+  ['slaMaxMinutes','Max processing time (SLA)','number',null,false,'min'],
+  ['freshnessHours','Required freshness','number',null,false,'h'],
+  ['orchestration','Orchestration','select',[['chained','DAG única (encadeada)'],['independent','Estágios independentes']],false],
+  ['targetFileMB','Target file size','number',null,true,'MB'],
+  ['catalogObjects','Glue Catalog objects','number',null,true,'objects'],
+  ['queriesPerDay','Queries per day','number',null,true,'queries'],
+  ['avgQuerySec','Average query time','number',null,true,'s'],
+  ['scanPerQueryGB','Data scanned per query','number',null,true,'GB'],
+  ['failureRate','Failure rate','number',null,true,'%'],
+  ['retries','Retries','number',null,true,'attempts'],
+  ['snowflakeEdition','Snowflake edition','select',[['standard','Standard'],['enterprise','Enterprise']],true],
+  ['snowflakeStorage','Snowflake storage','select',[['capacity','Capacity'],['ondemand','On demand']],true],
+  ['customGbPerNodeMin','Custom framework throughput','number',null,true,'GB/node-min'],
+  ['customCostPerNodeHour','Custom framework cost','number',null,true,'USD/node-h'],
+  ['crossRegionGB','Cross-region transfer','number',null,true,'GB/month'],
+  ['internetGB','Internet egress','number',null,true,'GB/month'],
+  ['discountPct','Contractual discount','number',null,true,'%'],
+];
+
+const G_GROUPS = [
+  { title:'1 · Workload', keys:['name','environment','criticality'] },
+  { title:'2 · Source',   keys:['sourceType','sourceVolumeGB','dailyDeltaGB','recordsPerDay','ingestion'] },
+  { title:'3 · SLA & freshness', keys:['slaMaxMinutes','freshnessHours','orchestration'] },
+  { title:'4 · Files & catalog', keys:['targetFileMB','catalogObjects'] },
+  { title:'5 · Consumption', keys:['queriesPerDay','avgQuerySec','scanPerQueryGB'] },
+  { title:'6 · Reliability', keys:['failureRate','retries'] },
+  { title:'7 · Platform options', keys:['snowflakeEdition','snowflakeStorage','customGbPerNodeMin','customCostPerNodeHour'] },
+  { title:'8 · Network & commercial', keys:['crossRegionGB','internetGB','discountPct'] },
+];
+
+/* ---------- estado ---------- */
+let G = structuredClone(G_DEFAULTS);
+let STAGES = STAGE_DEFAULTS();
+let VARIANT_SEL = ['asis','dbx','emr','lake','elt'];
+let PROFILE = 'balanced';
+let CURRENCY = 'USD';
+let SHOW_ADV = false;
+let TAB = 'pipeline';
+let SWEEP_SCOPE = 'all';
+
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const el = (t,c,h) => { const e=document.createElement(t); if(c)e.className=c; if(h!=null)e.innerHTML=h; return e; };
+const fx = v => v*FX[CURRENCY];
+const sym = () => ({USD:'$',BRL:'R$',EUR:'€'})[CURRENCY];
+const money = (v,d=0) => sym()+fx(v).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const money4 = v => sym()+fx(v).toLocaleString('en-US',{minimumFractionDigits:4,maximumFractionDigits:4});
+const num = (v,d=1) => Number(v).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const mins = v => v>=120 ? num(v/60,1)+' h' : num(v,1)+' min';
+const SERIES = ['#4f6bed','#2fa8a0','#e0a32e','#c2586e','#7a6ff0','#5b8c3a','#a05a2c'];
+const slaCls = s => s==='PASS'?'ok':s==='PARTIAL'?'warn':'bad';
+
+const base = () => calcPipeline(G, STAGES);
+
+/* ==================================================================== */
+/* SIDEBAR                                                              */
+/* ==================================================================== */
+function buildSidebar() {
+  const f = $('#form'); f.innerHTML='';
+  G_GROUPS.forEach(g => {
+    const keys = g.keys.filter(k => SHOW_ADV || !G_FIELDS.find(x=>x[0]===k)[4]);
+    if (!keys.length) return;
+    const sec = el('section','grp');
+    sec.appendChild(el('h3',null,g.title));
+    keys.forEach(k => sec.appendChild(gField(G_FIELDS.find(x=>x[0]===k))));
+    f.appendChild(sec);
+  });
+}
+
+function gField(def) {
+  const [key,label,type,opts,adv,unit] = def;
+  const w = el('div','fld');
+  w.appendChild(el('label',null,label + (unit?` <span class="u">${unit}</span>`:'') + (adv?' <i class="badge-adv">adv</i>':'')));
+  if (type==='select') {
+    const s = el('select');
+    opts.forEach(o=>{ const [v,t]=Array.isArray(o)?o:[o,o]; const op=el('option',null,t); op.value=v;
+      if(String(G[key])===String(v)) op.selected=true; s.appendChild(op); });
+    s.onchange = () => { const v=s.value; G[key] = typeof G_DEFAULTS[key]==='number'? +v : v; G._provided[key]=1; render(); };
+    w.appendChild(s);
+  } else {
+    const i = el('input'); i.type=type; i.value=G[key];
+    i.oninput = () => { G[key] = type==='number' ? (+i.value||0) : i.value; G._provided[key]=1; render(false); };
+    w.appendChild(i);
+  }
+  return w;
+}
+
+/* ==================================================================== */
+/* TAB: PIPELINE (editor de estágios)                                   */
+/* ==================================================================== */
+function viewPipeline() {
+  const root = el('div');
+  root.appendChild(el('div','lead',
+    `<h2>Pipeline stages</h2><p>Cada estágio tem engine, tamanho, <b>schedule próprio</b>, formato de arquivo, formato de tabela e retenção. O volume flui de um estágio para o próximo aplicando o fator de redução.</p>`));
+
+  const r = base();
+  const flow = el('div','flow');
+  r.rows.forEach((row,idx) => {
+    flow.appendChild(el('div','fl-node',
+      `<b>${row.stage.name}</b><span>${row.engineLabel}</span>
+       <em>${num(row.dailyIn,1)} → ${num(row.dailyOut,1)} GB/dia</em>
+       <i>${FREQUENCIES.find(f=>f.runsPerDay===row.runsPerDay)?.label || row.runsPerDay+'×/dia'}</i>
+       <u>${money(row.totalDisc,0)}/mês</u>`));
+    if (idx < r.rows.length-1) flow.appendChild(el('div','fl-arrow','→'));
+  });
+  root.appendChild(flow);
+
+  STAGES.forEach((st, idx) => {
+    root.appendChild(stageCard(st, idx, r.rows.find(x => x.stage.key === st.key)));
+  });
+  return root;
+}
+
+function stageCard(st, idx, row) {
+  const c = el('div','card stage' + (st.enabled?'':' off'));
+  const head = el('div','st-head');
+  const cb = el('input'); cb.type='checkbox'; cb.checked=st.enabled;
+  cb.onchange = () => { st.enabled=cb.checked; render(); };
+  head.appendChild(cb);
+  const nm = el('input','st-name'); nm.value=st.name;
+  nm.oninput = () => { st.name=nm.value; render(false); };
+  head.appendChild(nm);
+  head.appendChild(el('span','st-kind', st.kind));
+  if (row) head.appendChild(el('span','st-cost', money(row.totalDisc,0)+'/mês · '+mins(row.runtimeMin)));
+  c.appendChild(head);
+
+  if (!st.enabled) return c;
+
+  const grid = el('div','st-grid');
+  const eng = ENGINES[st.engine];
+
+  grid.appendChild(sel('Engine / framework',
+    Object.entries(ENGINES).filter(([,e])=>e.roles.includes(st.kind)).map(([k,e])=>[k,e.label]),
+    st.engine, v => { st.engine=v; render(); }));
+
+  if (['glue','ec2','dbx','dbx_sl','custom'].includes(eng.kind)) {
+    grid.appendChild(inp('Workers','number',st.workers,'nodes', v => { st.workers=Math.max(1,+v||1); render(false); }));
+    grid.appendChild(sel('Worker type', Object.entries(WORKER_TYPES).map(([k,w])=>[k,w.label]), st.workerType, v=>{st.workerType=v;render();}));
+  }
+  if (eng.kind==='snowflake') {
+    grid.appendChild(sel('Warehouse size', Object.entries(WH_SIZES).map(([k,w])=>[k,w.label]), st.whSize, v=>{st.whSize=v;render();}));
+    grid.appendChild(inp('Auto-suspend','number',st.autoSuspendSec,'s', v=>{st.autoSuspendSec=+v||0;render(false);}));
+  }
+  if (st.kind!=='serve') {
+    grid.appendChild(sel('Schedule', FREQUENCIES.map(f=>[f.runsPerDay,f.label]), st.runsPerDay, v=>{st.runsPerDay=+v;render();}));
+    grid.appendChild(inp('Volume reduction','number',st.reduction,'out/in', v=>{st.reduction=Math.max(0.01,+v||0.01);render(false);}));
+  }
+  if (st.kind!=='serve' && st.kind!=='load') {
+    grid.appendChild(sel('File format', Object.entries(FILE_FORMATS).map(([k,f])=>[k,f.label]), st.fileFormat, v=>{st.fileFormat=v;render();}));
+    grid.appendChild(sel('Table format', Object.entries(TABLE_FORMATS).map(([k,f])=>[k,f.label]), st.tableFormat, v=>{st.tableFormat=v;render();}));
+    grid.appendChild(inp('Retention','number',st.retentionDays,'days', v=>{st.retentionDays=+v||0;render(false);}));
+    grid.appendChild(sel('Storage class', [['standard','S3 Standard'],['ia','S3 Standard-IA'],['glacier','Glacier IR']], st.storageClass, v=>{st.storageClass=v;render();}));
+    if (TABLE_FORMATS[st.tableFormat].maintenance)
+      grid.appendChild(inp('Maintenance runs','number',st.maintenanceRunsPerMonth,'per month', v=>{st.maintenanceRunsPerMonth=+v||0;render(false);}));
+  }
+  if (st.kind==='load') {
+    grid.appendChild(inp('DW retention','number',st.retentionDays,'days', v=>{st.retentionDays=+v||0;render(false);}));
+  }
+  if (st.kind==='serve') {
+    grid.appendChild(sel('Table format read', Object.entries(TABLE_FORMATS).map(([k,f])=>[k,f.label]), st.tableFormat, v=>{st.tableFormat=v;render();}));
+  }
+  c.appendChild(grid);
+
+  if (row) {
+    const d = el('div','st-metrics');
+    [['Volume/execução', num(row.volPerRun,2)+' GB'],
+     ['Runtime', mins(row.runtimeMin)],
+     ['Execuções/mês', num(row.runsPerMonth,0)],
+     ['Storage da camada', row.storedGB? num(row.storedGB/1024,2)+' TB':'—'],
+     ['Compute', money(row.cost.compute,0)],
+     ['Storage', money(row.cost.storage+row.cost.requests,0)],
+     ['Manutenção', row.cost.maintenance? money(row.cost.maintenance,0):'—'],
+     ['Consumo', row.cost.serve? money(row.cost.serve,0):'—'],
+    ].forEach(([l,v]) => d.appendChild(el('span','stm',`<i>${l}</i><b>${v}</b>`)));
+    c.appendChild(d);
+    if (row.serveDetail) c.appendChild(el('p','note',row.serveDetail));
+  }
+  return c;
+}
+
+function sel(label, options, value, onchange) {
+  const w = el('div','fld'); w.appendChild(el('label',null,label));
+  const s = el('select');
+  options.forEach(([v,t])=>{ const o=el('option',null,t); o.value=v; if(String(value)===String(v))o.selected=true; s.appendChild(o); });
+  s.onchange = () => onchange(s.value);
+  w.appendChild(s); return w;
+}
+function inp(label,type,value,unit,onchange) {
+  const w = el('div','fld'); w.appendChild(el('label',null,label+(unit?` <span class="u">${unit}</span>`:'')));
+  const i = el('input'); i.type=type; i.value=value; i.step='any';
+  i.oninput = () => onchange(i.value);
+  w.appendChild(i); return w;
+}
+
+/* ==================================================================== */
+/* TAB: RESULT                                                          */
+/* ==================================================================== */
+function viewResult() {
+  const r = base(); const root = el('div');
+  root.appendChild(el('div','lead',`<h2>${G.name}</h2><p>${r.rows.map(x=>x.stage.name).join(' → ')}</p>`));
+
+  const k = el('div','kpis');
+  k.appendChild(kpi('Monthly cost', money(r.monthly,0), `range ${money(r.range.low,0)} – ${money(r.range.high,0)}`));
+  k.appendChild(kpi('Annual cost', money(r.unit.perYear,0), 'preço de lista'));
+  k.appendChild(kpi('Cost per TB', money(r.unit.perTB,2), `${num(r.tbProcessed,2)} TB/mês`));
+  k.appendChild(kpi('Processing time', mins(r.processingMin), `SLA ${G.slaMaxMinutes} min`));
+  k.appendChild(kpi('End-to-end latency', mins(r.latencyMin), `freshness ${G.freshnessHours} h`));
+  k.appendChild(kpi('SLA', `<span class="sla ${slaCls(r.slaStatus)}">${r.slaStatus}</span>`, `${r.slaTimeOk?'tempo ok':'tempo estourado'} · ${r.freshnessOk?'freshness ok':'freshness estourada'}`));
+  k.appendChild(kpi('Confidence', r.confidence+'%', `<span class="meter"><span style="width:${r.confidence}%"></span></span>`));
+  root.appendChild(k);
+
+  const c1 = el('div','card'); c1.appendChild(el('h3',null,'Cost breakdown por categoria'));
+  c1.appendChild(barList(Object.entries(r.breakdown).filter(([,v])=>v>0), r.monthly));
+  root.appendChild(c1);
+
+  const c2 = el('div','card'); c2.appendChild(el('h3',null,'Custo por estágio'));
+  c2.appendChild(barList(r.rows.map(x=>[x.stage.name, x.totalDisc]), r.monthly));
+  root.appendChild(c2);
+
+  const c3 = el('div','card'); c3.appendChild(el('h3',null,'Detalhe por estágio'));
+  const t = el('table','cmp');
+  t.appendChild(el('tr',null,'<th>Estágio</th><th>Engine</th><th>Schedule</th><th class="r">GB/exec</th><th class="r">Runtime</th><th class="r">Compute</th><th class="r">Storage</th><th class="r">Manut.</th><th class="r">Total</th>'));
+  r.rows.forEach(x=>{
+    const tr=el('tr');
+    tr.innerHTML = `<td><b>${x.stage.name}</b></td><td>${x.engineLabel}</td>
+      <td>${x.stage.kind==='serve'?'—':(FREQUENCIES.find(f=>f.runsPerDay===x.runsPerDay)?.label||x.runsPerDay+'×/dia')}</td>
+      <td class="r">${num(x.volPerRun,2)}</td><td class="r">${mins(x.runtimeMin)}</td>
+      <td class="r">${money(x.cost.compute,0)}</td><td class="r">${money(x.cost.storage+x.cost.requests,0)}</td>
+      <td class="r">${x.cost.maintenance?money(x.cost.maintenance,0):'—'}</td>
+      <td class="r strong">${money(x.totalDisc,0)}</td>`;
+    t.appendChild(tr);
+  });
+  c3.appendChild(t); root.appendChild(c3);
+
+  const two = el('div','two');
+  const u = el('div','card'); u.appendChild(el('h3',null,'Unit economics'));
+  u.appendChild(kvTable([
+    ['Cost per GB ingested', money4(r.unit.perGBIngested)],
+    ['Cost per GB stored', money4(r.unit.perGBStored)],
+    ['Cost per million records', G.recordsPerDay? money(r.unit.perMillionRec,3):'—'],
+    ['Cost per query', G.queriesPerDay? money4(r.unit.perQuery):'—'],
+    ['Cost per stage-run', money4(r.unit.perRunSet)],
+    ['Data processed', num(r.tbProcessed,2)+' TB/mês'],
+    ['Data stored (todas as camadas)', num(r.totalStoredGB/1024,2)+' TB'],
+  ]));
+  two.appendChild(u);
+  const lat = el('div','card'); lat.appendChild(el('h3',null,'Composição da latência'));
+  lat.appendChild(kvTable(r.rows.filter(x=>x.stage.kind!=='serve').map(x =>
+    [x.stage.name, `${mins(x.intervalMin)} de espera + ${mins(x.runtimeMin)} de execução`])
+    .concat([['<b>Total fim-a-fim</b>','<b>'+mins(r.latencyMin)+'</b>'],
+             ['Requisito de freshness', G.freshnessHours+' h '+(r.freshnessOk?'<span class="ok-t">atendido</span>':'<span class="bad-t">estourado</span>')]])));
+  two.appendChild(lat);
+  root.appendChild(two);
+
+  root.appendChild(el('p','note','Estimativa em preço de lista; não representa uma fatura real. Premissas e fontes na aba <b>Assumptions</b>.'));
+  return root;
+}
+
+function barList(pairs, total) {
+  const max = Math.max(...pairs.map(p=>p[1]));
+  const box = el('div','bars');
+  pairs.forEach(([l,v],i)=>{
+    const row = el('div','bar');
+    row.appendChild(el('span','bl',l));
+    const t = el('span','bt'); const f = el('span','bf');
+    f.style.width = (max? v/max*100:0)+'%'; f.style.background = SERIES[i%SERIES.length];
+    t.appendChild(f); row.appendChild(t);
+    row.appendChild(el('span','bv', money(v,0)+` <em>${(v/total*100).toFixed(0)}%</em>`));
+    box.appendChild(row);
+  });
+  const tot = el('div','bar total');
+  tot.appendChild(el('span','bl','Total')); tot.appendChild(el('span','bt',''));
+  tot.appendChild(el('span','bv',money(total,0)));
+  box.appendChild(tot);
+  return box;
+}
+function kpi(l,v,s){ const d=el('div','kpi'); d.appendChild(el('span','k-l',l)); d.appendChild(el('span','k-v',v)); if(s)d.appendChild(el('span','k-s',s)); return d; }
+function kvTable(rows){ const t=el('table','kv'); rows.forEach(([a,b])=>{const tr=el('tr');tr.appendChild(el('td',null,a));tr.appendChild(el('td','r',b));t.appendChild(tr);}); return t; }
+
+/* ==================================================================== */
+/* TAB: SCHEDULE IMPACT                                                 */
+/* ==================================================================== */
+function viewSchedule() {
+  const root = el('div');
+  root.appendChild(el('div','lead',
+    '<h2>Schedule impact</h2><p>Mesma arquitetura, só mudando a frequência: quanto custa sair de 1×/dia para 1 h, 30 min ou 5 min — e quanto a latência melhora em troca.</p>'));
+
+  const scopeBox = el('div','card');
+  scopeBox.appendChild(el('h3',null,'Escopo da varredura'));
+  const opts = [['all','Todos os estágios']].concat(
+    STAGES.filter(s=>s.enabled&&s.kind!=='serve').map(s=>[s.key,'Somente '+s.name]));
+  scopeBox.appendChild(sel('Aplicar a nova frequência a', opts, SWEEP_SCOPE, v=>{SWEEP_SCOPE=v; render(false);}));
+  root.appendChild(scopeBox);
+
+  const scope = SWEEP_SCOPE==='all' ? null : [SWEEP_SCOPE];
+  const sweep = scheduleSweep(G, STAGES, scope);
+  const cur = base();
+  const curFreq = SWEEP_SCOPE==='all'
+    ? (STAGES.filter(s=>s.enabled&&s.kind!=='serve').every(s=>s.runsPerDay===STAGES.find(x=>x.enabled&&x.kind!=='serve').runsPerDay)
+        ? STAGES.find(s=>s.enabled&&s.kind!=='serve').runsPerDay : null)
+    : STAGES.find(s=>s.key===SWEEP_SCOPE).runsPerDay;
+
+  const c = el('div','card');
+  c.appendChild(el('h3',null,'Custo mensal por frequência'));
+  c.appendChild(freqChart(sweep, curFreq));
+  root.appendChild(c);
+
+  const t = el('table','cmp');
+  t.appendChild(el('tr',null,`<th>Frequência</th><th class="r">Execuções/dia</th><th class="r">Custo/mês</th><th class="r">Δ vs. atual</th><th class="r">Custo/ano</th><th class="r">Latência</th><th>SLA</th>`));
+  sweep.forEach(s=>{
+    const delta = s.monthly - cur.monthly;
+    const tr = el('tr'); if (s.runsPerDay===curFreq) tr.className='hl';
+    tr.innerHTML = `<td>${s.label}${s.runsPerDay===curFreq?' <i class="badge-adv">atual</i>':''}</td>
+      <td class="r">${s.runsPerDay}</td>
+      <td class="r strong">${money(s.monthly,0)}</td>
+      <td class="r ${delta>0?'neg-t':delta<0?'pos-t':''}">${delta===0?'—':(delta>0?'+':'')+money(delta,0)+' ('+(delta/cur.monthly*100).toFixed(0)+'%)'}</td>
+      <td class="r">${money(s.monthly*12,0)}</td>
+      <td class="r">${mins(s.latencyMin)}</td>
+      <td><span class="sla ${slaCls(s.slaStatus)}">${s.slaStatus}</span></td>`;
+    t.appendChild(tr);
+  });
+  const c2 = el('div','card'); c2.appendChild(el('h3',null,'Tabela de impacto')); c2.appendChild(t);
+  root.appendChild(c2);
+
+  // qual estágio puxa o custo quando a frequência sobe
+  const lo = sweep[0], hi = sweep[sweep.length-1];
+  const drivers = Object.keys(hi.perStage).map(k => ({
+    key:k, name:(STAGES.find(s=>s.key===k)||{}).name || k,
+    delta: hi.perStage[k] - lo.perStage[k],
+  })).sort((a,b)=>b.delta-a.delta).filter(d=>d.delta>0);
+  const c3 = el('div','card');
+  c3.appendChild(el('h3',null,'Quem paga a conta da frequência'));
+  c3.appendChild(el('p','note',`Comparando <b>${lo.label}</b> (${money(lo.monthly,0)}/mês) com <b>${hi.label}</b> (${money(hi.monthly,0)}/mês) — diferença de ${money(hi.monthly-lo.monthly,0)}/mês.`));
+  if (drivers.length) c3.appendChild(barList(drivers.map(d=>[d.name,d.delta]), Math.max(1,hi.monthly-lo.monthly)));
+  root.appendChild(c3);
+
+  // leitura FinOps
+  const target = sweep.find(s=>s.runsPerDay===24);
+  const daily = sweep.find(s=>s.runsPerDay===1);
+  if (target && daily) {
+    const mult = target.monthly/daily.monthly;
+    root.appendChild(el('div','card',
+      `<h3>Leitura</h3><p class="verdict">Sair de <b>${daily.label}</b> para <b>${target.label}</b> multiplica o custo por <b>${mult.toFixed(2)}×</b> (${money(daily.monthly,0)} → ${money(target.monthly,0)}/mês) e reduz a latência de ${mins(daily.latencyMin)} para ${mins(target.latencyMin)}. O custo não cresce proporcionalmente ao número de execuções porque storage e retenção são independentes da frequência — o que cresce é compute, startups e mínimos de cobrança.</p>`));
+  }
+  return root;
+}
+
+function freqChart(sweep, curFreq) {
+  const W=760,H=280,P={l:70,r:16,t:16,b:40};
+  const maxY = Math.max(...sweep.map(s=>s.monthly))*1.08;
+  const px = i => P.l + i/(sweep.length-1)*(W-P.l-P.r);
+  const py = v => H-P.b - v/maxY*(H-P.t-P.b);
+  let g = `<svg viewBox="0 0 ${W} ${H}" class="chart">`;
+  for(let k=0;k<=4;k++){ const v=maxY*k/4,y=py(v);
+    g+=`<line x1="${P.l}" x2="${W-P.r}" y1="${y}" y2="${y}" class="grid"/><text x="${P.l-8}" y="${y+4}" class="ax r">${sym()}${Math.round(fx(v)).toLocaleString('en-US')}</text>`; }
+  const bw = (W-P.l-P.r)/sweep.length*0.55;
+  sweep.forEach((s,i)=>{
+    const x=px(i), y=py(s.monthly);
+    g+=`<rect x="${x-bw/2}" y="${y}" width="${bw}" height="${H-P.b-y}" rx="3" fill="${s.runsPerDay===curFreq?'#c2586e':'#4f6bed'}"/>`;
+    g+=`<text x="${x}" y="${H-24}" class="ax c">${s.label}</text>`;
+    g+=`<text x="${x}" y="${H-10}" class="ax c dim">${mins(s.latencyMin)}</text>`;
+  });
+  g+=`</svg>`;
+  const w=el('div','chartwrap'); w.innerHTML=g; return w;
+}
+
+/* ==================================================================== */
+/* TAB: COMPARE                                                         */
+/* ==================================================================== */
+function viewCompare() {
+  const root = el('div');
+  root.appendChild(el('div','lead','<h2>Scenario comparison</h2><p>Variantes da mesma arquitetura, calculadas sobre o mesmo workload e o mesmo schedule.</p>'));
+
+  const pick = el('div','card'); pick.appendChild(el('h3',null,'Variantes comparadas'));
+  Object.values(VARIANTS).forEach(v=>{
+    const row = el('label','chk');
+    const cb = el('input'); cb.type='checkbox'; cb.checked=VARIANT_SEL.includes(v.id);
+    cb.onchange = () => { VARIANT_SEL = cb.checked? [...VARIANT_SEL,v.id] : VARIANT_SEL.filter(x=>x!==v.id);
+      if(!VARIANT_SEL.length){VARIANT_SEL=[v.id];cb.checked=true;} render(false); };
+    row.appendChild(cb); row.appendChild(el('span',null,`<b>${v.name}</b><em>${v.note}</em>`));
+    pick.appendChild(row);
+  });
+  root.appendChild(pick);
+
+  const results = VARIANT_SEL.map(id=>{
+    const [vg,vs] = VARIANTS[id].apply(G,STAGES);
+    return { ...calcPipeline(vg,vs), variant: VARIANTS[id] };
+  });
+  const ranked = scoreVariants(results, PROFILES[PROFILE].w);
+
+  const c = el('div','card'); c.appendChild(el('h3',null,'Custo mensal por variante'));
+  c.appendChild(barList(ranked.map(r=>[r.variant.name,r.monthly]), Math.max(...ranked.map(r=>r.monthly))));
+  root.appendChild(c);
+
+  const t = el('table','cmp');
+  const h = el('tr'); h.appendChild(el('th',null,'Indicador'));
+  ranked.forEach(r=>h.appendChild(el('th','r',r.variant.name)));
+  t.appendChild(h);
+  const line=(l,fn,cls='')=>{const tr=el('tr');tr.appendChild(el('td',null,l));ranked.forEach(r=>tr.appendChild(el('td','r '+cls,fn(r))));t.appendChild(tr);};
+  line('Custo mensal', r=>money(r.monthly,0),'strong');
+  line('Custo anual', r=>money(r.unit.perYear,0));
+  line('Faixa da estimativa', r=>`${money(r.range.low,0)} – ${money(r.range.high,0)}`);
+  line('Tempo de processamento', r=>mins(r.processingMin));
+  line('Latência fim-a-fim', r=>mins(r.latencyMin));
+  line('SLA', r=>`<span class="sla ${slaCls(r.slaStatus)}">${r.slaStatus}</span>`);
+  line('Custo / TB', r=>money(r.unit.perTB,2));
+  line('Storage total', r=>num(r.totalStoredGB/1024,2)+' TB');
+  line('Confidence', r=>r.confidence+'%');
+  line('Complexidade', r=>r.complexity);
+  line('Score', r=>`<b>${r.score.toFixed(1)}</b>`,'strong');
+  const c2=el('div','card'); c2.appendChild(el('h3',null,'Indicadores')); c2.appendChild(t); root.appendChild(c2);
+
+  const best = ranked[0], cheap=[...ranked].sort((a,b)=>a.monthly-b.monthly)[0];
+  const w = el('div','card'); w.appendChild(el('h3',null,`Perfil de decisão — ${PROFILES[PROFILE].label}`));
+  const wl = el('div','wrow');
+  Object.entries({cost:'Custo',sla:'SLA',perf:'Performance',scale:'Escalabilidade',cx:'Complexidade'})
+    .forEach(([k,l])=>wl.appendChild(el('span','wchip',`${l} <b>${Math.round(PROFILES[PROFILE].w[k]*100)}%</b>`)));
+  w.appendChild(wl);
+  w.appendChild(el('p','verdict', best.variant.id===cheap.variant.id
+    ? `<b>${best.variant.name}</b> lidera o score e também tem o menor custo estimado (${money(best.monthly,0)}/mês).`
+    : `<b>${cheap.variant.name}</b> é a mais barata (${money(cheap.monthly,0)}/mês), mas <b>${best.variant.name}</b> lidera o score — diferença de ${money(best.monthly-cheap.monthly,0)}/mês por ${best.slaStatus==='PASS'&&cheap.slaStatus!=='PASS'?'atender ao SLA':'melhor tempo de processamento e menor complexidade'}. O trade-off é explícito: nenhuma das duas é "a certa" sem o requisito de negócio.`));
+  root.appendChild(w);
+  return root;
+}
+
+/* ==================================================================== */
+/* TAB: OPTIMIZE                                                        */
+/* ==================================================================== */
+function viewOptimize() {
+  const root = el('div'); const b = base();
+  const opts = findOptimizations(G, STAGES, b);
+  root.appendChild(el('div','lead',`<h2>Optimization opportunities</h2><p>Avaliadas sobre o pipeline atual (${money(b.monthly,0)}/mês). Cada regra recalcula o pipeline inteiro.</p>`));
+  if (!opts.length) {
+    root.appendChild(el('div','card','<p class="note">Nenhuma oportunidade acima de 1% de economia com as regras atuais.</p>'));
+    return root;
+  }
+  const total = opts.reduce((a,o)=>a+o.saving,0);
+  root.appendChild(el('div','savebox',`<span>Economia potencial identificada</span><b>${money(total,0)}/mês</b><em>≈ ${money(total*12,0)}/ano — as otimizações não são necessariamente cumulativas</em>`));
+  opts.forEach(o=>{
+    const c=el('div','card opt');
+    c.appendChild(el('h3',null,`💡 ${o.title}`));
+    c.appendChild(el('p','why',o.why));
+    const g=el('div','optgrid');
+    [['Atual',money(b.monthly,0),''],['Depois',money(o.newMonthly,0),''],
+     ['Economia/mês',money(o.saving,0),'pos'],['Redução',o.savingPct.toFixed(1)+'%','pos'],
+     ['SLA',`${o.slaBefore} → ${o.slaAfter}`,o.slaAfter==='PASS'?'pos':o.slaAfter==='FAIL'?'neg':''],
+     ['Latência',`${mins(o.latBefore)} → ${mins(o.latAfter)}`,o.latAfter>o.latBefore?'neg':'']
+    ].forEach(([l,v,cl])=>{const d=el('div','ms '+cl);d.appendChild(el('span','ms-l',l));d.appendChild(el('span','ms-v',v));g.appendChild(d);});
+    c.appendChild(g);
+    c.appendChild(el('p','note','Estimativa, não garantia: o ganho real depende do comportamento efetivo do workload.'));
+    root.appendChild(c);
+  });
+  return root;
+}
+
+/* ==================================================================== */
+/* TAB: SENSITIVITY                                                     */
+/* ==================================================================== */
+function viewSensitivity() {
+  const root = el('div');
+  root.appendChild(el('div','lead','<h2>Sensitivity &amp; break-even</h2><p>Como cada variante reage ao crescimento do volume, mantendo o schedule fixo.</p>'));
+  const rows = sensitivity(G, STAGES, VARIANT_SEL);
+  const c = el('div','card'); c.appendChild(el('h3',null,'Custo mensal × volume processado'));
+  c.appendChild(lineChart(rows, VARIANT_SEL));
+  const leg = el('div','legend');
+  VARIANT_SEL.forEach((id,i)=>leg.appendChild(el('span','lg',`<i style="background:${SERIES[i%SERIES.length]}"></i>${VARIANTS[id].name}`)));
+  c.appendChild(leg); root.appendChild(c);
+
+  const t = el('table','cmp');
+  const h=el('tr'); h.appendChild(el('th',null,'Volume')); h.appendChild(el('th','r','TB/mês'));
+  VARIANT_SEL.forEach(id=>h.appendChild(el('th','r',VARIANTS[id].name))); t.appendChild(h);
+  rows.forEach(r=>{
+    const tr=el('tr'); if(r.multiplier===1) tr.className='hl';
+    tr.appendChild(el('td',null, r.multiplier===1?'<b>atual (1×)</b>':r.multiplier+'×'));
+    tr.appendChild(el('td','r',num(r.tb,2)));
+    const best=Math.min(...VARIANT_SEL.map(id=>r.costs[id]));
+    VARIANT_SEL.forEach(id=>tr.appendChild(el('td','r'+(r.costs[id]===best?' strong':''),money(r.costs[id],0))));
+    t.appendChild(tr);
+  });
+  const c2=el('div','card'); c2.appendChild(el('h3',null,'Tabela de sensibilidade')); c2.appendChild(t); root.appendChild(c2);
+
+  const cross = breakEven(G, STAGES, VARIANT_SEL);
+  const c3=el('div','card'); c3.appendChild(el('h3',null,'Break-even'));
+  if(!cross.length) c3.appendChild(el('p','note','Nenhuma inversão de liderança entre 0,1× e 30× do volume atual.'));
+  else cross.forEach(x=>c3.appendChild(el('p','be',
+    `Acima de <b>${num(x.tb,2)} TB/mês</b> (${num(x.multiplier,2)}× o volume atual), <b>${VARIANTS[x.to].name}</b> passa a ser mais barata que <b>${VARIANTS[x.from].name}</b>.`)));
+  root.appendChild(c3);
+  return root;
+}
+
+function lineChart(rows, ids) {
+  const W=760,H=300,P={l:70,r:16,t:16,b:38};
+  const xs = rows.map(r=>Math.log10(Math.max(r.tb,0.001)));
+  const maxY = Math.max(...rows.flatMap(r=>ids.map(id=>r.costs[id])))*1.08;
+  const minX=Math.min(...xs), maxX=Math.max(...xs);
+  const px=v=>P.l+(v-minX)/(maxX-minX||1)*(W-P.l-P.r);
+  const py=v=>H-P.b-v/maxY*(H-P.t-P.b);
+  let g=`<svg viewBox="0 0 ${W} ${H}" class="chart">`;
+  for(let k=0;k<=4;k++){const v=maxY*k/4,y=py(v);
+    g+=`<line x1="${P.l}" x2="${W-P.r}" y1="${y}" y2="${y}" class="grid"/><text x="${P.l-8}" y="${y+4}" class="ax r">${sym()}${Math.round(fx(v)).toLocaleString('en-US')}</text>`;}
+  rows.forEach((r,i)=>{ g+=`<text x="${px(xs[i])}" y="${H-14}" class="ax c">${num(r.tb,r.tb<10?1:0)} TB</text>`; });
+  ids.forEach((id,si)=>{
+    g+=`<polyline points="${rows.map((r,i)=>`${px(xs[i])},${py(r.costs[id])}`).join(' ')}" fill="none" stroke="${SERIES[si%SERIES.length]}" stroke-width="2.5"/>`;
+    rows.forEach((r,i)=>g+=`<circle cx="${px(xs[i])}" cy="${py(r.costs[id])}" r="3.5" fill="${SERIES[si%SERIES.length]}"/>`);
+  });
+  g+=`</svg>`;
+  const w=el('div','chartwrap'); w.innerHTML=g; return w;
+}
+
+/* ==================================================================== */
+/* TAB: ASSUMPTIONS                                                     */
+/* ==================================================================== */
+function viewAssumptions() {
+  const r = base(); const root=el('div');
+  root.appendChild(el('div','lead','<h2>Assumptions, pricing &amp; limitations</h2><p>Cada estimativa registra suas premissas e a versão de preço usada.</p>'));
+
+  const a=el('div','card'); a.appendChild(el('h3',null,'Premissas aplicadas'));
+  const ul=el('ul','list'); r.assumptions.forEach(t=>ul.appendChild(el('li',null,t))); a.appendChild(ul); root.appendChild(a);
+
+  const p=el('div','card');
+  p.appendChild(el('h3',null,`Pricing database — gerado em ${PRICING_META.generated_at} por ${PRICING_META.generator}`));
+  const t=el('table','cmp');
+  t.appendChild(el('tr',null,'<th>Provider</th><th>Service</th><th>SKU</th><th>Unit</th><th class="r">Price (USD)</th><th>Método</th><th>Valid from</th><th>Source</th>'));
+  PRICING.forEach(x=>{ const tr=el('tr');
+    tr.innerHTML=`<td>${x.provider}</td><td>${x.service}</td><td><code>${x.sku}</code></td><td>${x.unit}</td><td class="r">${x.price}</td><td><span class="mtag m-${x.method}">${x.method}</span></td><td>${x.valid_from}</td><td class="src">${x.source}</td>`;
+    t.appendChild(tr); });
+  p.appendChild(t);
+  p.appendChild(el('p','note',`<b>api</b> = AWS Price List bulk offer file (público, sem credencial). <b>curated</b> = tabela pública do fornecedor transcrita — Snowflake e Databricks não publicam API de preços aberta. <b>account</b> = lido da própria conta. Rode <code>tools/fetch_pricing.py</code> para regenerar. Moeda de referência USD; conversão para ${CURRENCY} é apresentação (taxa ${FX[CURRENCY]}).`));
+  root.appendChild(p);
+
+  const f=el('div','card'); f.appendChild(el('h3',null,'Formatos de tabela — parâmetros do modelo'));
+  const tf=el('table','cmp');
+  tf.appendChild(el('tr',null,'<th>Table format</th><th class="r">Metadata</th><th class="r">Snapshot ×</th><th class="r">Scan factor</th><th class="r">Write amp</th><th>Manutenção</th>'));
+  Object.entries(TABLE_FORMATS).forEach(([k,v])=>{ const tr=el('tr');
+    tr.innerHTML=`<td>${v.label}</td><td class="r">${(v.metaOverhead*100).toFixed(1)}%</td><td class="r">${v.snapshotMult}</td><td class="r">${v.scanFactor}</td><td class="r">${v.writeAmp}</td><td>${v.maintenance?'compaction + expire snapshots':'—'}</td>`;
+    tf.appendChild(tr); });
+  f.appendChild(tf);
+  f.appendChild(el('p','note','Scan factor representa o pruning de partições e arquivos via metadados — é o que faz Iceberg/Delta baratearem a consulta mesmo custando mais storage.'));
+  root.appendChild(f);
+
+  const l=el('div','card'); l.appendChild(el('h3',null,'Limitações declaradas'));
+  const ll=el('ul','list');
+  ['Preço de lista, sem Savings Plans, Reserved Capacity ou acordo empresarial.',
+   'Região única (us-east-1); preços variam por região.',
+   'Tempo de execução estimado por throughput teórico, não medido.',
+   'Concorrência, skew de dados e fila de execução não são modelados.',
+   'Snowpipe aproximado por crédito/GB; a cobrança real inclui componente por arquivo.',
+   'Manutenção de tabela estimada sobre 10% da camada ("fatia quente").',
+   'Custos indiretos (orquestração, observabilidade, governança, licenças) fora do MVP.',
+   'A ferramenta não substitui as calculadoras oficiais dos provedores nem representa uma fatura real.',
+  ].forEach(x=>ll.appendChild(el('li',null,x)));
+  l.appendChild(ll); root.appendChild(l);
+
+  const s=el('div','card'); s.appendChild(el('h3',null,'Confidence score'));
+  s.appendChild(el('p',null,`Score atual: <b>${r.confidence}%</b> — faixa ${money(r.range.low,0)} a ${money(r.range.high,0)}.`));
+  s.appendChild(el('p','note','Base 50, +2,5 por parâmetro avançado informado, +2 por estágio modelado (até 12), −8 quando há framework próprio com throughput estimado, penalidades para alta taxa de falha e CDC. Teto de 92%.'));
+  root.appendChild(s);
+  return root;
+}
+
+/* ==================================================================== */
+/* RENDER / BOOT                                                        */
+/* ==================================================================== */
+const VIEWS = { pipeline:viewPipeline, result:viewResult, schedule:viewSchedule,
+                compare:viewCompare, optimize:viewOptimize, sensitivity:viewSensitivity,
+                assumptions:viewAssumptions };
+
+function render(rebuild=true) {
+  if (rebuild) buildSidebar();
+  const body = $('#tabBody'); body.innerHTML='';
+  body.appendChild(VIEWS[TAB]());
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on', t.dataset.tab===TAB));
+}
+
+function boot() {
+  $('#profile').onchange = e => { PROFILE=e.target.value; render(false); };
+  $('#currency').onchange = e => { CURRENCY=e.target.value; render(false); };
+  $('#advToggle').onchange = e => { SHOW_ADV=e.target.checked; render(); };
+  $('#reset').onclick = () => { G=structuredClone(G_DEFAULTS); STAGES=STAGE_DEFAULTS(); render(); };
+  document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{TAB=t.dataset.tab;render(false);});
+  render();
+}
+document.addEventListener('DOMContentLoaded', boot);
+
+</script>
+</body>
+</html>
