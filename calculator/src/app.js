@@ -89,7 +89,7 @@ const G_GROUPS = [
 /* ---------- estado ---------- */
 let G = structuredClone(G_DEFAULTS);
 let STAGES = STAGE_DEFAULTS();
-let VARIANT_SEL = ['asis','dbx','emr','lake','elt'];
+let VARIANT_SEL = ['asis','glue6','dbx','emr','lake','elt','azure'];
 let PROFILE = 'balanced';
 let CURRENCY = 'USD';
 let SHOW_ADV = false;
@@ -185,6 +185,7 @@ const FIELD_HELP = {
 const OPTION_HELP = {
   engine: {
     glue: 'Spark gerenciado e serverless da AWS. Cobra por DPU-hora, startup curto e pouca operação.',
+    glue6: 'Glue 6.0 ou superior: mesmo Spark gerenciado, com DPU-hora ~30% mais barata (US$ 0,308 contra US$ 0,44).',
     emr_spark: 'Spark em cluster EMR: paga EC2 mais o adicional do EMR. Mais controle e throughput, mais operação.',
     emr_sqoop: 'Extração JDBC paralela de bancos relacionais via Sqoop em EMR. Boa para cargas iniciais grandes.',
     ec2_spark: 'Spark em EC2 autogerenciado: sem adicional do EMR, mas você opera o cluster (maior complexidade).',
@@ -433,6 +434,25 @@ function viewResult() {
     t.appendChild(tr);
   });
   c3.appendChild(t); root.appendChild(c3);
+
+  const c4 = el('div','card'); c4.appendChild(el('h3',null,'Uso físico por estágio — o que digitar nas calculadoras oficiais'));
+  const ut = el('table','cmp');
+  ut.appendChild(el('tr',null,'<th>Estágio</th><th>Compute / mês</th><th class="r">Storage</th><th class="r">Requests PUT+GET</th><th class="r">Athena</th>'));
+  r.rows.forEach(x => {
+    const u = x.usage;
+    const comp = u.dpuHours != null ? num(u.dpuHours,1)+' DPU-h'
+      : u.dbu != null && u.nodeHours != null ? `${num(u.dbu,1)} DBU + ${num(u.nodeHours,1)} node-h`
+      : u.dbu != null ? num(u.dbu,1)+' DBU'
+      : u.nodeHours != null ? num(u.nodeHours,1)+' node-h'
+      : u.credits != null ? num(u.credits,1)+' créditos' : '—';
+    const stor = x.stage.kind==='load' ? (u.dwStorageTb? num(u.dwStorageTb,2)+' TB (Snowflake)':'—') : (x.storedGB? num(x.storedGB/1024,2)+' TB (S3)':'—');
+    const tr = el('tr');
+    tr.innerHTML = `<td><b>${x.stage.name}</b></td><td>${comp}</td><td class="r">${stor}</td><td class="r">${u.puts||u.gets? num(u.puts+u.gets,0):'—'}</td><td class="r">${u.scannedTb? num(u.scannedTb,2)+' TB':'—'}</td>`;
+    ut.appendChild(tr);
+  });
+  c4.appendChild(ut);
+  c4.appendChild(el('p','note','Quantidades mensais que geram o custo estimado. Use-as para conferir a estimativa nas calculadoras da AWS, do Snowflake e do Databricks (ver validation/worksheet.md).'));
+  root.appendChild(c4);
 
   const two = el('div','two');
   const u = el('div','card'); u.appendChild(el('h3',null,'Unit economics'));

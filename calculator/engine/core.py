@@ -34,13 +34,15 @@ def stage_compute_cost(st, g, vol_per_run, runs_per_month, runtime_min, retry_fa
     nodes = (st.get("workers") or 1) + 1
 
     if kind == "glue":
-        return nodes * billed_h * price("AWS", "Glue", "etl-dpu") * runs_per_month * retry_factor
+        return nodes * wt["dbu"] * billed_h * price("AWS", "Glue", e.get("sku", "etl-dpu")) * runs_per_month * retry_factor  # 1 DPU por worker G.1X, 2 por G.2X
     if kind == "ec2":
         per_node = price("AWS", "EC2", wt["ec2"]) + (price("AWS", "EMR", wt["emr_uplift"]) if e.get("emr") else 0)
         return nodes * billed_h * per_node * runs_per_month * retry_factor
     if kind == "dbx":
-        per_node = (wt["dbu"] * price("Databricks", "Jobs Compute", "dbu-jobs-premium") * e.get("photon", 1)
-                    + price("AWS", "EC2", wt["ec2"]))
+        az = g.get("cloud") == "azure"
+        dbu_price = price("Azure", "Databricks", "dbu-jobs-premium") if az else price("Databricks", "Jobs Compute", "dbu-jobs-premium")
+        vm_price = price("Azure", "VM", wt["az_vm"]) if az else price("AWS", "EC2", wt["ec2"])
+        per_node = wt["dbu"] * dbu_price * e.get("photon", 1) + vm_price
         return nodes * billed_h * per_node * runs_per_month * retry_factor
     if kind == "dbx_sl":
         return nodes * wt["dbu"] * billed_h * price("Databricks", "Jobs Compute", "dbu-jobs-serverless") * runs_per_month * retry_factor
@@ -57,6 +59,30 @@ def stage_compute_cost(st, g, vol_per_run, runs_per_month, runtime_min, retry_fa
     if kind == "custom":
         return nodes * billed_h * g["custom_cost_per_node_hour"] * runs_per_month * retry_factor
     return 0.0
+
+
+def stage_usage(st, g, vol_per_run, runs_per_month, runtime_min, retry_factor) -> dict:
+    """Quantidades físicas do compute do estágio (as mesmas que geram o custo)."""
+    e = ENGINES[st["engine"]]
+    kind = e["kind"]
+    billed_h = max(runtime_min, e.get("min_bill_min", 0)) / 60
+    nodes = (st.get("workers") or 1) + 1
+    wt = WORKER_TYPES[st.get("worker_type") or "m5.xlarge"]
+    if kind in ("glue", "ec2", "dbx", "dbx_sl", "custom"):
+        u = {"node_hours": nodes * billed_h * runs_per_month * retry_factor}
+        if kind == "glue":
+            u["dpu_hours"] = u["node_hours"] * wt["dbu"]
+        if kind in ("dbx", "dbx_sl"):
+            u["dbu"] = u["node_hours"] * wt["dbu"] * e.get("photon", 1)
+        return u
+    if kind == "dms":
+        return {"node_hours": 730.0}
+    if kind == "snowflake":
+        idle_h = (st.get("auto_suspend_sec") or 0) / 3600 * runs_per_month
+        return {"credits": (billed_h * runs_per_month + idle_h) * WH_SIZES[st.get("wh_size") or "S"]["credits"]}
+    if kind == "snowpipe":
+        return {"credits": vol_per_run * runs_per_month * 0.06}
+    return {}
 
 
 def calc_pipeline(g: dict, stages: list[dict]) -> dict:
@@ -99,6 +125,8 @@ def calc_pipeline(g: dict, stages: list[dict]) -> dict:
         ff = FILE_FORMATS.get(st["file_format"], FILE_FORMATS["parquet-snappy"])
         tf = TABLE_FORMATS.get(st["table_format"], TABLE_FORMATS["hive"])
         storage = requests = maintenance = stored_gb = files_per_run = 0.0
+        puts = gets = 0.0
+        usage = {} if is_serve else stage_usage(st, g, vol_per_run, runs_per_month, runtime_min, retry_factor)
 
         if st["kind"] not in ("serve", "load"):
             daily_written = daily_out * ff["ratio"] * tf["write_amp"]
@@ -106,12 +134,19 @@ def calc_pipeline(g: dict, stages: list[dict]) -> dict:
             if st["kind"] == "ingest" and g["ingestion"] == "full":
                 stored_gb += g["source_volume_gb"] * ff["ratio"]
             sku = {"ia": "ia-storage", "glacier": "glacier-ir"}.get(st["storage_class"], "standard-storage")
-            storage = stored_gb * price("AWS", "S3", sku)
+            az = g.get("cloud") == "azure"
+            if az:
+                storage = stored_gb * price("Azure", "ADLS", "standard-storage" if st["storage_class"] == "standard" else "ia-storage")
+            else:
+                storage = stored_gb * price("AWS", "S3", sku)
 
             files_per_run = max(1, math.ceil((daily_out / runs_per_day * ff["ratio"] * 1024) / g["target_file_mb"]))
             puts = files_per_run * runs_per_month * retry_factor * tf["write_amp"]
             gets = files_per_run * runs_per_month * 2
-            requests = (puts / 1000) * price("AWS", "S3", "put-requests") + (gets / 1000) * price("AWS", "S3", "get-requests")
+            if az:
+                requests = (puts / 10000) * price("Azure", "ADLS", "write-ops") + (gets / 10000) * price("Azure", "ADLS", "read-ops")
+            else:
+                requests = (puts / 1000) * price("AWS", "S3", "put-requests") + (gets / 1000) * price("AWS", "S3", "get-requests")
 
             if tf["maintenance"] and st["maintenance_runs_per_month"] > 0:
                 active_gb = stored_gb * 0.10
@@ -133,6 +168,7 @@ def calc_pipeline(g: dict, stages: list[dict]) -> dict:
         if is_serve:
             if e["kind"] == "athena":
                 scanned_tb = (g["queries_per_day"] * DAYS * g["scan_per_query_gb"] * tf["scan_factor"]) / 1024
+                usage["scanned_tb"] = scanned_tb
                 serve_cost = scanned_tb * price("AWS", "Athena", "data-scanned")
                 serve_detail = f"{scanned_tb:.2f} TB escaneados/mês (scan factor {tf['scan_factor']})"
                 if tf["scan_factor"] < 1:
@@ -142,13 +178,16 @@ def calc_pipeline(g: dict, stages: list[dict]) -> dict:
                 query_h = g["queries_per_day"] * DAYS * g["avg_query_sec"] / 3600
                 idle_h = (st.get("auto_suspend_sec") or 0) / 3600 * g["queries_per_day"] * DAYS / 20
                 credits = (query_h + idle_h) * sz["credits"]
+                usage["credits"] = credits
                 sku = "credit-enterprise" if g["snowflake_edition"] == "enterprise" else "credit-standard"
                 serve_cost = credits * price("Snowflake", "Warehouse", sku)
                 serve_detail = f"{credits:.1f} créditos/mês (warehouse {st.get('wh_size')})"
             elif e["kind"] == "dbsql":
                 query_h = g["queries_per_day"] * DAYS * g["avg_query_sec"] / 3600
                 dbu = query_h * 4
-                serve_cost = dbu * price("Databricks", "SQL Warehouse", "dbu-sql-serverless")
+                usage["dbu"] = dbu
+                serve_cost = dbu * (price("Azure", "Databricks", "dbu-sql-serverless") if g.get("cloud") == "azure"
+                                    else price("Databricks", "SQL Warehouse", "dbu-sql-serverless"))
                 serve_detail = f"{dbu:.1f} DBU/mês em SQL Serverless"
 
         total = compute + storage + wh_storage + requests + maintenance + serve_cost
@@ -157,6 +196,7 @@ def calc_pipeline(g: dict, stages: list[dict]) -> dict:
             vol_per_run=vol_per_run, daily_in=daily_in, daily_out=daily_out,
             runtime_min=runtime_min, interval_min=1440 / runs_per_day,
             files_per_run=files_per_run, stored_gb=stored_gb,
+            usage={**usage, "puts": puts, "gets": gets, "dw_storage_tb": (stored_gb / 1024) if st["kind"] == "load" else 0.0},
             cost=dict(compute=compute, storage=storage + wh_storage, requests=requests,
                       maintenance=maintenance, serve=serve_cost),
             total=total, serve_detail=serve_detail))
@@ -164,7 +204,10 @@ def calc_pipeline(g: dict, stages: list[dict]) -> dict:
 
     network = g["cross_region_gb"] * price("AWS", "Network", "cross-region-out") \
         + g["internet_gb"] * price("AWS", "Network", "internet-out")
-    catalog = (g["catalog_objects"] / 100000) * price("AWS", "Glue", "catalog-objects")
+    azure = g.get("cloud") == "azure"
+    catalog = 0.0 if azure else (g["catalog_objects"] / 100000) * price("AWS", "Glue", "catalog-objects")
+    if azure:
+        A("Cloud Azure: storage ADLS Gen2 (Hot/Cool LRS), Databricks Premium (DBU) + VMs Dsv5/Esv5; sem custo de catálogo (Unity Catalog). Snowflake e transferência de dados mantêm os preços de lista da AWS como proxy.")
 
     disc = 1 - g["discount_pct"] / 100
     breakdown = dict(Ingestion=0.0, Storage=0.0, Processing=0.0, Warehouse=0.0,

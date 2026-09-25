@@ -1,0 +1,107 @@
+{
+  "small": {
+    "model_total_usd": 55.1,
+    "official_total_usd": null,
+    "lines": {
+      "glue": {
+        "model_usd": 33.54,
+        "official_usd": null
+      },
+      "s3_storage": {
+        "model_usd": 14.08,
+        "official_usd": null
+      },
+      "s3_requests": {
+        "model_usd": 0.01,
+        "official_usd": null
+      },
+      "athena": {
+        "model_usd": 7.42,
+        "official_usd": null
+      },
+      "catalog": {
+        "model_usd": 0.05,
+        "official_usd": null
+      }
+    },
+    "source_and_date": ""
+  },
+  "medium": {
+    "model_total_usd": 2725.12,
+    "official_total_usd": null,
+    "lines": {
+      "glue": {
+        "model_usd": 312.3,
+        "official_usd": null
+      },
+      "snowflake_compute": {
+        "model_usd": 829.31,
+        "official_usd": null
+      },
+      "snowflake_storage": {
+        "model_usd": 106.25,
+        "official_usd": null
+      },
+      "s3_storage": {
+        "model_usd": 1147.97,
+        "official_usd": null
+      },
+      "s3_requests": {
+        "model_usd": 0.12,
+        "official_usd": null
+      },
+      "catalog": {
+        "model_usd": 0.5,
+        "official_usd": null
+      },
+      "maintenance": {
+        "model_usd": 328.65,
+        "official_usd": null
+      }
+    },
+    "source_and_date": ""
+  },
+  "large": {
+    "model_total_usd": 41555.79,
+    "official_total_usd": null,
+    "lines": {
+      "glue": {
+        "model_usd": 1140.4,
+        "official_usd": null
+      },
+      "dbx": {
+        "model_usd": 1183.57,
+        "official_usd": null
+      },
+      "dbx_ec2": {
+        "model_usd": 757.48,
+        "official_usd": null
+      },
+      "snowflake_compute": {
+        "model_usd": 15171.36,
+        "official_usd": null
+      },
+      "snowflake_storage": {
+        "model_usd": 1770.82,
+        "official_usd": null
+      },
+      "s3_storage": {
+        "model_usd": 19132.91,
+        "official_usd": null
+      },
+      "s3_requests": {
+        "model_usd": 2.07,
+        "official_usd": null
+      },
+      "catalog": {
+        "model_usd": 5.0,
+        "official_usd": null
+      },
+      "maintenance": {
+        "model_usd": 2392.18,
+        "official_usd": null
+      }
+    },
+    "source_and_date": ""
+  }
+}

@@ -1,6 +1,6 @@
 # DataCost Architect — protótipo (mock) do MVP
 
-**Versão:** 0.2 — pipeline por estágios · **Status:** protótipo para validação de escopo
+**Versão:** 0.3 — pipeline por estágios, Go/No-Go, motor Python · **Status:** protótipo em validação (ver CHANGELOG.md)
 
 Ferramenta de apoio à decisão arquitetural orientada a FinOps: modela um pipeline de
 dados estágio a estágio, estima custo e latência de cada etapa, compara variantes de
@@ -13,10 +13,11 @@ arquitetura e mostra o impacto financeiro de mudar o schedule.
 Abra `index.html` em qualquer navegador. Arquivo único, sem build, sem servidor, sem
 dependência externa.
 
-- **Sidebar** — parâmetros do workload (fonte, volume, SLA, consumo, confiabilidade).
-  O toggle *Show advanced parameters* revela os campos avançados.
-- **Aba Pipeline** — o editor de estágios. É aqui que você descreve a arquitetura.
-- **Demais abas** — Result, Schedule impact, Compare scenarios, Optimization,
+- **Aba Workload & pipeline** — cards com os parâmetros do workload (fonte, volume, SLA,
+  orçamento, consumo, confiabilidade) e o editor de estágios. O toggle *Advanced parameters*
+  revela os campos avançados; o ícone "i" ao lado de cada campo explica o que ele faz.
+- **Barra de resumo** (fixa) — custo, SLA, Go/No-Go (orçamento editável) e confidence.
+- **Demais abas** — Result, Go / No-Go, Schedule impact, Compare scenarios, Optimization,
   Sensitivity & break-even, Assumptions.
 - **Decision profile** e **Currency** ficam no topo. A conversão cambial é camada de
   apresentação; o modelo interno é sempre USD.

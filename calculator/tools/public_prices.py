@@ -49,6 +49,9 @@ AZURE_TARGETS = [
     ("VM", "Standard_D8s_v5", "Compute", "node-hour",
      "serviceName eq 'Virtual Machines' and armSkuName eq 'Standard_D8s_v5' and type eq 'Consumption' "
      "and skuName eq 'Standard_D8s_v5'"),
+    ("VM", "Standard_E4s_v5", "Compute", "node-hour",
+     "serviceName eq 'Virtual Machines' and armSkuName eq 'Standard_E4s_v5' and type eq 'Consumption' "
+     "and productName eq 'Virtual Machines Esv5 Series' and skuName eq 'E4s v5'"),
 ]
 
 

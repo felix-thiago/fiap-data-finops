@@ -12,6 +12,7 @@ DAYS = 30.4
 # kind: glue | ec2 | dbx | dbx_sl | dms | snowflake | snowpipe | athena | dbsql | custom
 ENGINES = {
     "glue":              dict(label="AWS Glue (PySpark)", kind="glue", gb_per_node_min=0.45, startup_min=1.5, min_bill_min=1, complexity=2, roles=["ingest", "transform"]),
+    "glue6":             dict(label="AWS Glue 6.0+ (PySpark)", kind="glue", sku="etl-dpu-gen2", gb_per_node_min=0.45, startup_min=1.5, min_bill_min=1, complexity=2, roles=["ingest", "transform"]),
     "emr_spark":         dict(label="PySpark em EMR", kind="ec2", gb_per_node_min=0.60, startup_min=6.0, min_bill_min=1, complexity=4, emr=True, roles=["ingest", "transform"]),
     "emr_sqoop":         dict(label="Sqoop em EMR (JDBC paralelo)", kind="ec2", gb_per_node_min=0.28, startup_min=6.0, min_bill_min=1, complexity=4, emr=True, roles=["ingest"]),
     "ec2_spark":         dict(label="PySpark em EC2 (self-managed)", kind="ec2", gb_per_node_min=0.58, startup_min=4.0, min_bill_min=1, complexity=5, emr=False, roles=["ingest", "transform"]),
@@ -28,9 +29,9 @@ ENGINES = {
 }
 
 WORKER_TYPES = {
-    "m5.xlarge":  dict(label="m5.xlarge (4 vCPU)", dbu=1.0, ec2="m5.xlarge", emr_uplift="emr-uplift-m5.xlarge", perf=1.0),
-    "m5.2xlarge": dict(label="m5.2xlarge (8 vCPU)", dbu=2.0, ec2="m5.2xlarge", emr_uplift="emr-uplift-m5.2xlarge", perf=2.0),
-    "r5.xlarge":  dict(label="r5.xlarge (memória)", dbu=1.2, ec2="r5.xlarge", emr_uplift="emr-uplift-m5.xlarge", perf=1.15),
+    "m5.xlarge":  dict(label="m5.xlarge (4 vCPU)", dbu=1.0, ec2="m5.xlarge", az_vm="Standard_D4s_v5", emr_uplift="emr-uplift-m5.xlarge", perf=1.0),
+    "m5.2xlarge": dict(label="m5.2xlarge (8 vCPU)", dbu=2.0, ec2="m5.2xlarge", az_vm="Standard_D8s_v5", emr_uplift="emr-uplift-m5.2xlarge", perf=2.0),
+    "r5.xlarge":  dict(label="r5.xlarge (memória)", dbu=1.2, ec2="r5.xlarge", az_vm="Standard_E4s_v5", emr_uplift="emr-uplift-m5.xlarge", perf=1.15),
 }
 
 WH_SIZES = {
@@ -55,6 +56,22 @@ TABLE_FORMATS = {
     "delta":   dict(label="Delta Lake", meta_overhead=0.020, snapshot_mult=1.30, scan_factor=0.65, maintenance=True, write_amp=1.10, complexity=3),
     "hudi":    dict(label="Apache Hudi (CoW)", meta_overhead=0.040, snapshot_mult=1.35, scan_factor=0.70, maintenance=True, write_amp=1.25, complexity=4),
 }
+
+def _apply_calibration():
+    import json, pathlib
+    path = pathlib.Path(__file__).resolve().parent.parent / "calibration.json"
+    if not path.exists():
+        return
+    cal = json.loads(path.read_text(encoding="utf-8"))
+    for k, v in cal.get("engines", {}).items():
+        if k in ENGINES:
+            ENGINES[k].update(gb_per_node_min=v["gb_per_node_min"], startup_min=v["startup_min"], measured=True)
+    for k, v in cal.get("wh_sizes", {}).items():
+        if k in WH_SIZES:
+            WH_SIZES[k]["gb_per_min"] = v["gb_per_min"]
+
+
+_apply_calibration()
 
 FREQUENCIES = [
     (1, "Diário"), (2, "A cada 12 h"), (4, "A cada 6 h"), (12, "A cada 2 h"),

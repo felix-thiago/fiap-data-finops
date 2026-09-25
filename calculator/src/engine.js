@@ -33,6 +33,7 @@ const DAYS = 30.4;
      custom      → throughput e custo por nó-hora informados pelo usuário  */
 const ENGINES = {
   glue:            { label:'AWS Glue (PySpark)',            kind:'glue', gbPerNodeMin:0.45, startupMin:1.5, minBillMin:1, complexity:2, roles:['ingest','transform'] },
+  glue6:           { label:'AWS Glue 6.0+ (PySpark)',       kind:'glue', sku:'etl-dpu-gen2', gbPerNodeMin:0.45, startupMin:1.5, minBillMin:1, complexity:2, roles:['ingest','transform'] },
   emr_spark:       { label:'PySpark em EMR',                kind:'ec2',  gbPerNodeMin:0.60, startupMin:6.0, minBillMin:1, complexity:4, emr:true, roles:['ingest','transform'] },
   emr_sqoop:       { label:'Sqoop em EMR (JDBC paralelo)',  kind:'ec2',  gbPerNodeMin:0.28, startupMin:6.0, minBillMin:1, complexity:4, emr:true, roles:['ingest'] },
   ec2_spark:       { label:'PySpark em EC2 (self-managed)', kind:'ec2',  gbPerNodeMin:0.58, startupMin:4.0, minBillMin:1, complexity:5, emr:false, roles:['ingest','transform'] },
@@ -49,9 +50,9 @@ const ENGINES = {
 };
 
 const WORKER_TYPES = {
-  'm5.xlarge':  { label:'m5.xlarge (4 vCPU)',  dbu:1.0, ec2:'m5.xlarge',  emrUplift:'emr-uplift-m5.xlarge',  perf:1.0 },
-  'm5.2xlarge': { label:'m5.2xlarge (8 vCPU)', dbu:2.0, ec2:'m5.2xlarge', emrUplift:'emr-uplift-m5.2xlarge', perf:2.0 },
-  'r5.xlarge':  { label:'r5.xlarge (memória)', dbu:1.2, ec2:'r5.xlarge',  emrUplift:'emr-uplift-m5.xlarge',  perf:1.15 },
+  'm5.xlarge':  { label:'m5.xlarge (4 vCPU)',  dbu:1.0, ec2:'m5.xlarge',  azVm:'Standard_D4s_v5', emrUplift:'emr-uplift-m5.xlarge',  perf:1.0 },
+  'm5.2xlarge': { label:'m5.2xlarge (8 vCPU)', dbu:2.0, ec2:'m5.2xlarge', azVm:'Standard_D8s_v5', emrUplift:'emr-uplift-m5.2xlarge', perf:2.0 },
+  'r5.xlarge':  { label:'r5.xlarge (memória)', dbu:1.2, ec2:'r5.xlarge',  azVm:'Standard_E4s_v5', emrUplift:'emr-uplift-m5.xlarge',  perf:1.15 },
 };
 
 const WH_SIZES = {
@@ -84,6 +85,12 @@ const TABLE_FORMATS = {
   delta:   { label:'Delta Lake',        metaOverhead:0.020, snapshotMult:1.30, scanFactor:0.65, maintenance:true,  writeAmp:1.10, complexity:3 },
   hudi:    { label:'Apache Hudi (CoW)', metaOverhead:0.040, snapshotMult:1.35, scanFactor:0.70, maintenance:true,  writeAmp:1.25, complexity:4 },
 };
+
+/* Calibração com execuções medidas (tools/calibrate.py) sobrescreve as premissas do catálogo. */
+if (typeof CALIBRATION !== 'undefined') {
+  for (const [k, v] of Object.entries(CALIBRATION.engines || {})) if (ENGINES[k]) Object.assign(ENGINES[k], v, { measured: true });
+  for (const [k, v] of Object.entries(CALIBRATION.whSizes || {})) if (WH_SIZES[k]) Object.assign(WH_SIZES[k], v);
+}
 
 const FREQUENCIES = [
   { runsPerDay:1,   label:'Diário' },
@@ -120,14 +127,16 @@ function stageComputeCost(st, g, volPerRun, runsPerMonth, runtimeMin, retryFacto
 
   switch (e.kind) {
     case 'glue':
-      return nodes * billedH * price('AWS','Glue','etl-dpu') * runsPerMonth * retryFactor;
+      return nodes * wt.dbu * billedH * price('AWS','Glue', e.sku || 'etl-dpu') * runsPerMonth * retryFactor; // 1 DPU por worker G.1X, 2 por G.2X
     case 'ec2': {
       const perNode = price('AWS','EC2', wt.ec2) + (e.emr ? price('AWS','EMR', wt.emrUplift) : 0);
       return nodes * billedH * perNode * runsPerMonth * retryFactor;
     }
     case 'dbx': {
-      const perNode = wt.dbu * price('Databricks','Jobs Compute','dbu-jobs-premium') * (e.photon||1)
-                    + price('AWS','EC2', wt.ec2);
+      const az = g.cloud === 'azure';
+      const dbuPrice = az ? price('Azure','Databricks','dbu-jobs-premium') : price('Databricks','Jobs Compute','dbu-jobs-premium');
+      const vmPrice  = az ? price('Azure','VM', wt.azVm) : price('AWS','EC2', wt.ec2);
+      const perNode = wt.dbu * dbuPrice * (e.photon||1) + vmPrice;
       return nodes * billedH * perNode * runsPerMonth * retryFactor;
     }
     case 'dbx_sl':
@@ -149,6 +158,27 @@ function stageComputeCost(st, g, volPerRun, runsPerMonth, runtimeMin, retryFacto
     default:
       return 0;
   }
+}
+
+/** Quantidades físicas do compute do estágio (as mesmas que geram o custo). */
+function stageUsage(st, g, volPerRun, runsPerMonth, runtimeMin, retryFactor) {
+  const e = ENGINES[st.engine];
+  const billedH = Math.max(runtimeMin, e.minBillMin || 0) / 60;
+  const nodes = (st.workers || 1) + 1;
+  const wt = WORKER_TYPES[st.workerType || 'm5.xlarge'];
+  if (['glue','ec2','dbx','dbx_sl','custom'].includes(e.kind)) {
+    const u = { nodeHours: nodes * billedH * runsPerMonth * retryFactor };
+    if (e.kind === 'glue') u.dpuHours = u.nodeHours * wt.dbu;
+    if (e.kind === 'dbx' || e.kind === 'dbx_sl') u.dbu = u.nodeHours * wt.dbu * (e.photon || 1);
+    return u;
+  }
+  if (e.kind === 'dms') return { nodeHours: 730 };
+  if (e.kind === 'snowflake') {
+    const idleH = (st.autoSuspendSec || 0) / 3600 * runsPerMonth;
+    return { credits: (billedH * runsPerMonth + idleH) * WH_SIZES[st.whSize || 'S'].credits };
+  }
+  if (e.kind === 'snowpipe') return { credits: volPerRun * runsPerMonth * 0.06 };
+  return {};
 }
 
 /* ------------------------------------------------------------------ */
@@ -186,6 +216,8 @@ function calcPipeline(g, stages) {
     /* --- tempo e compute (o estágio de consumo é cobrado por query, adiante) --- */
     const runtimeMin = st.kind==='serve' ? 0 : stageRuntimeMin(st, g, volPerRun);
     const compute    = st.kind==='serve' ? 0 : stageComputeCost(st, g, volPerRun, runsPerMonth, runtimeMin, retryFactor);
+    const usage      = st.kind==='serve' ? {} : stageUsage(st, g, volPerRun, runsPerMonth, runtimeMin, retryFactor);
+    let putsN = 0, getsN = 0;
 
     /* --- volume que SAI --- */
     const dailyOut = dailyIn * st.reduction;
@@ -200,12 +232,16 @@ function calcPipeline(g, stages) {
       storedGB = dailyWritten * Math.min(st.retentionDays, 3650) * tf.snapshotMult * (1 + tf.metaOverhead);
       if (st.kind === 'ingest' && g.ingestion === 'full') storedGB += g.sourceVolumeGB * ff.ratio;
       const sku = st.storageClass === 'ia' ? 'ia-storage' : st.storageClass === 'glacier' ? 'glacier-ir' : 'standard-storage';
-      storage = storedGB * price('AWS','S3', sku);
+      const az = g.cloud === 'azure';
+      storage = storedGB * (az ? price('Azure','ADLS', st.storageClass === 'standard' || !st.storageClass ? 'standard-storage' : 'ia-storage')
+                               : price('AWS','S3', sku));
 
       filesPerRun = Math.max(1, Math.ceil((dailyOut/runsPerDay * ff.ratio * 1024) / g.targetFileMB));
       const puts = filesPerRun * runsPerMonth * retryFactor * tf.writeAmp;
       const gets = filesPerRun * runsPerMonth * 2;
-      requests = (puts/1000)*price('AWS','S3','put-requests') + (gets/1000)*price('AWS','S3','get-requests');
+      putsN = puts; getsN = gets;
+      requests = az ? (puts/10000)*price('Azure','ADLS','write-ops') + (gets/10000)*price('Azure','ADLS','read-ops')
+                    : (puts/1000)*price('AWS','S3','put-requests') + (gets/1000)*price('AWS','S3','get-requests');
 
       if (tf.maintenance && st.maintenanceRunsPerMonth > 0) {
         // compaction/expire processa a fatia "quente" da camada
@@ -232,6 +268,7 @@ function calcPipeline(g, stages) {
       if (e.kind === 'athena') {
         const scannedTB = (g.queriesPerDay * DAYS * g.scanPerQueryGB * tfPrev.scanFactor) / 1024;
         serveCost = scannedTB * price('AWS','Athena','data-scanned');
+        usage.scannedTb = scannedTB;
         serveDetail = `${scannedTB.toFixed(2)} TB escaneados/mês (scan factor ${tfPrev.scanFactor})`;
         if (tfPrev.scanFactor < 1) A(`${tfPrev.label}: partition/file pruning reduz o volume escaneado para ${(tfPrev.scanFactor*100).toFixed(0)}%.`);
       } else if (e.kind === 'snowflake') {
@@ -239,12 +276,14 @@ function calcPipeline(g, stages) {
         const queryH = g.queriesPerDay * DAYS * g.avgQuerySec / 3600;
         const idleH  = (st.autoSuspendSec||0)/3600 * g.queriesPerDay * DAYS / 20; // agrupa queries em sessões
         const credits = (queryH + idleH) * sz.credits;
+        usage.credits = credits;
         serveCost = credits * price('Snowflake','Warehouse', g.snowflakeEdition==='enterprise'?'credit-enterprise':'credit-standard');
         serveDetail = `${credits.toFixed(1)} créditos/mês (warehouse ${st.whSize})`;
       } else if (e.kind === 'dbsql') {
         const queryH = g.queriesPerDay * DAYS * g.avgQuerySec / 3600;
         const dbu = queryH * 4;
-        serveCost = dbu * price('Databricks','SQL Warehouse','dbu-sql-serverless');
+        usage.dbu = dbu;
+        serveCost = dbu * (g.cloud === 'azure' ? price('Azure','Databricks','dbu-sql-serverless') : price('Databricks','SQL Warehouse','dbu-sql-serverless'));
         serveDetail = `${dbu.toFixed(1)} DBU/mês em SQL Serverless`;
       }
     }
@@ -254,6 +293,7 @@ function calcPipeline(g, stages) {
       runsPerDay, runsPerMonth, volPerRun, dailyIn, dailyOut,
       runtimeMin, intervalMin: 1440/runsPerDay,
       filesPerRun, storedGB,
+      usage: { ...usage, puts: putsN, gets: getsN, dwStorageTb: st.kind==='load' ? storedGB/1024 : 0 },
       cost: { compute, storage: storage + whStorage, requests, maintenance, serve: serveCost },
       total: compute + storage + whStorage + requests + maintenance + serveCost,
       serveDetail,
@@ -267,7 +307,8 @@ function calcPipeline(g, stages) {
                 + g.internetGB    * price('AWS','Network','internet-out');
 
   /* --- catálogo Glue --- */
-  const catalog = (g.catalogObjects/100000) * price('AWS','Glue','catalog-objects');
+  const catalog = g.cloud === 'azure' ? 0 : (g.catalogObjects/100000) * price('AWS','Glue','catalog-objects');
+  if (g.cloud === 'azure') A('Cloud Azure: storage ADLS Gen2 (Hot/Cool LRS), Databricks Premium (DBU) + VMs Dsv5/Esv5; sem custo de catálogo (Unity Catalog). Snowflake e transferência de dados mantêm os preços de lista da AWS como proxy.');
 
   /* --- totais --- */
   const disc = 1 - g.discountPct/100;
@@ -374,6 +415,11 @@ const VARIANTS = {
     note:'Bronze/Silver/Gold migrados para Databricks Jobs com Photon; ingestão e DW inalterados.',
     apply: (g,s) => [g, swapTransforms(s,'databricks_photon')],
   },
+  glue6: {
+    id:'glue6', name:'AWS Glue 6.0+',
+    note:'Todos os jobs Glue migrados para Glue 6.0+ (US$ 0,308/DPU-h contra US$ 0,44); assume o mesmo throughput — validar com execução real.',
+    apply: (g,s) => [g, s.map(x => x.engine==='glue' ? {...x, engine:'glue6'} : x)],
+  },
   emr: {
     id:'emr', name:'PySpark em EMR',
     note:'Transformações em cluster EMR próprio (EC2 + uplift EMR), maior complexidade operacional.',
@@ -383,6 +429,15 @@ const VARIANTS = {
     id:'lake', name:'Servir do lake (Athena), sem DW',
     note:'Remove a carga no Snowflake; o consumo passa a ler a camada Gold direto no S3 via Athena.',
     apply: (g,s) => [g, s.filter(x=>x.kind!=='load').map(x => x.kind==='serve' ? {...x, engine:'athena'} : x)],
+  },
+  azure: {
+    id:'azure', name:'Azure: Databricks + ADLS',
+    note:'Ingestão e transformações em Databricks Jobs (Azure), storage em ADLS Gen2 e consumo em Databricks SQL; DW Snowflake mantido. Preços da Azure Retail Prices API.',
+    apply: (g,s) => [{...g, cloud:'azure'}, s.map(x => {
+      if (x.kind==='ingest' || x.kind==='transform') return {...x, engine: ENGINES[x.engine].kind==='snowflake' ? x.engine : 'databricks'};
+      if (x.kind==='serve' && x.engine==='athena') return {...x, engine:'dbsql'};
+      return x;
+    })],
   },
   elt: {
     id:'elt', name:'ELT dentro do Snowflake',
@@ -424,6 +479,11 @@ const OPT_RULES = [
     why:'O delta diário é uma fração pequena da base; reprocessar tudo a cada execução multiplica compute, escrita e storage.',
     applies:(g)=> g.ingestion==='full' && g.dailyDeltaGB < g.sourceVolumeGB*0.25,
     patch:(g,s)=>[{...g, ingestion:'incremental'}, s] },
+
+  { id:'glue-6', title:'Migrar os jobs Glue para Glue 6.0+',
+    why:'O Glue 6.0+ cobra US$ 0,308 por DPU-hora contra US$ 0,44 do Glue anterior (~30% menos). Assume o mesmo throughput; validar com uma execução real.',
+    applies:(g,s)=> s.some(x=>x.enabled && x.engine==='glue'),
+    patch:(g,s)=>[g, s.map(x=> x.engine==='glue' ? {...x, engine:'glue6'} : x)] },
 
   { id:'columnar-raw', title:'Adotar Parquet + ZSTD nas camadas em CSV/JSON',
     why:'Formato colunar comprimido reduz storage, requests e o volume lido pelos estágios seguintes.',

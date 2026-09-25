@@ -34,6 +34,16 @@ def _elt(g, s):
     return g, [f(x) for x in s]
 
 
+def _azure(g, s):
+    def f(x):
+        if x["kind"] in ("ingest", "transform"):
+            return x if ENGINES[x["engine"]]["kind"] == "snowflake" else {**x, "engine": "databricks"}
+        if x["kind"] == "serve" and x["engine"] == "athena":
+            return {**x, "engine": "dbsql"}
+        return x
+    return {**g, "cloud": "azure"}, [f(x) for x in s]
+
+
 VARIANTS = {
     "asis": dict(id="asis", name="As-is (configuração atual)",
                  note="O pipeline exatamente como está configurado na aba Pipeline.",
@@ -41,6 +51,9 @@ VARIANTS = {
     "dbx": dict(id="dbx", name="Databricks Photon nas transformações",
                 note="Bronze/Silver/Gold migrados para Databricks Jobs com Photon; ingestão e DW inalterados.",
                 apply=lambda g, s: (g, _swap_transforms(s, "databricks_photon"))),
+    "glue6": dict(id="glue6", name="AWS Glue 6.0+",
+                  note="Todos os jobs Glue migrados para Glue 6.0+ (US$ 0,308/DPU-h contra US$ 0,44); assume o mesmo throughput — validar com execução real.",
+                  apply=lambda g, s: (g, [({**x, "engine": "glue6"} if x["engine"] == "glue" else x) for x in s])),
     "emr": dict(id="emr", name="PySpark em EMR",
                 note="Transformações em cluster EMR próprio (EC2 + uplift EMR), maior complexidade operacional.",
                 apply=lambda g, s: (g, _swap_transforms(s, "emr_spark"))),
@@ -48,6 +61,9 @@ VARIANTS = {
                  note="Remove a carga no Snowflake; o consumo passa a ler a camada Gold direto no S3 via Athena.",
                  apply=lambda g, s: (g, [({**x, "engine": "athena"} if x["kind"] == "serve" else x)
                                          for x in s if x["kind"] != "load"])),
+    "azure": dict(id="azure", name="Azure: Databricks + ADLS",
+                  note="Ingestão e transformações em Databricks Jobs (Azure), storage em ADLS Gen2 e consumo em Databricks SQL; DW Snowflake mantido. Preços da Azure Retail Prices API.",
+                  apply=lambda g, s: _azure(g, s)),
     "elt": dict(id="elt", name="ELT dentro do Snowflake",
                 note="Ingestão para o S3, carga bruta via Snowpipe e transformações Silver/Gold executadas em virtual warehouse.",
                 apply=_elt),
@@ -98,6 +114,10 @@ OPT_RULES = [
          why="O delta diário é uma fração pequena da base; reprocessar tudo a cada execução multiplica compute, escrita e storage.",
          applies=lambda g, s, b: g["ingestion"] == "full" and g["daily_delta_gb"] < g["source_volume_gb"] * 0.25,
          patch=lambda g, s: ({**g, "ingestion": "incremental"}, s)),
+    dict(id="glue-6", title="Migrar os jobs Glue para Glue 6.0+",
+         why="O Glue 6.0+ cobra US$ 0,308 por DPU-hora contra US$ 0,44 do Glue anterior (~30% menos). Assume o mesmo throughput; validar com uma execução real.",
+         applies=lambda g, s, b: any(x["enabled"] and x["engine"] == "glue" for x in s),
+         patch=lambda g, s: (g, [({**x, "engine": "glue6"} if x["engine"] == "glue" else x) for x in s])),
     dict(id="columnar-raw", title="Adotar Parquet + ZSTD nas camadas em CSV/JSON",
          why="Formato colunar comprimido reduz storage, requests e o volume lido pelos estágios seguintes.",
          applies=lambda g, s, b: any(x["enabled"] and x["file_format"] in _BAD_FORMATS for x in s),
