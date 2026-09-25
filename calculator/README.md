@@ -24,8 +24,8 @@ dependência externa.
 Para atualizar os preços e regerar o HTML:
 
 ```bash
-pip install boto3                      # + snowflake-connector-python / databricks-sql-connector se for usar --*-account
-python tools/fetch_pricing.py          # gera pricing.json e pricing.js
+pip install requests ijson pyarrow duckdb pytest
+python tools/fetch_pricing.py          # AWS (bulk público) + Azure (Retail API) + curadas -> pricing.json, src/pricing.js, data/pricing.parquet
 python build.py                        # regera index.html
 ```
 

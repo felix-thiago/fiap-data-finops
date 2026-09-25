@@ -9,11 +9,12 @@ fontes de cada fornecedor. Cada registro carrega `valid_from`, `retrieved_at`,
 
 Métodos de coleta, por fornecedor
 ---------------------------------
-AWS        → API pública. Duas rotas, nesta ordem:
-             1. AWS Price List Query API (boto3, cliente `pricing`, região
-                us-east-1). Precisa de credencial, devolve payloads pequenos.
-             2. Bulk offer files em pricing.us-east-1.amazonaws.com — públicos,
-                sem credencial, porém grandes (EC2 chega a centenas de MB).
+AWS        → API pública. Duas rotas:
+             1. (padrão) Bulk offer files em pricing.us-east-1.amazonaws.com —
+                públicos, sem credencial (ver public_prices.py). O EC2 tem
+                ~450 MB: baixado uma vez para .cache/ e lido em streaming.
+             2. (--aws-boto3) AWS Price List Query API, com credencial.
+Azure      → Azure Retail Prices API (pública, sem credencial).
 Snowflake  → NÃO há API pública de preços. A tabela abaixo transcreve a
              Credit Consumption Table / Storage Pricing publicadas no site.
              Com `--snowflake-account`, lê a taxa real da própria conta em
@@ -24,8 +25,8 @@ Databricks → NÃO há API pública de preços. Tabela abaixo transcreve a pág
 
 Uso
 ---
-    pip install boto3 requests
-    python tools/fetch_pricing.py                      # AWS + tabelas curadas
+    pip install requests ijson pyarrow duckdb
+    python tools/fetch_pricing.py                      # AWS + Azure + curadas
     python tools/fetch_pricing.py --no-aws             # só curadas
     python tools/fetch_pricing.py --snowflake-account  # + taxa real Snowflake
     python tools/fetch_pricing.py --databricks-account # + preços reais DBX
@@ -36,6 +37,9 @@ Nenhuma credencial é lida de arquivo: use variáveis de ambiente.
 
 from __future__ import annotations
 import argparse, json, os, sys, datetime, pathlib
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import public_prices
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 TODAY = datetime.date.today().isoformat()
@@ -51,14 +55,16 @@ AWS_TARGETS = [
      "S3", "standard-storage", "Storage", "GB-month"),
     ("AmazonS3", {"volumeType": "Standard - Infrequent Access", "storageClass": "Infrequent Access"},
      "S3", "ia-storage", "Storage", "GB-month"),
-    ("AmazonS3", {"volumeType": "Glacier Instant Retrieval", "storageClass": "Glacier Instant Retrieval"},
+    ("AmazonS3", {"usagetype": "TimedStorage-GIR-ByteHrs"},
      "S3", "glacier-ir", "Storage", "GB-month"),
     ("AmazonS3", {"group": "S3-API-Tier1"}, "S3", "put-requests", "Requests", "1k requests"),
     ("AmazonS3", {"group": "S3-API-Tier2"}, "S3", "get-requests", "Requests", "1k requests"),
-    ("AWSGlue", {"operation": "jobrun", "group": "ETL Job run"},
+    ("AWSGlue", {"usagetype": "USE1-ETL-DPU-Hour"},
      "Glue", "etl-dpu", "Compute", "DPU-hour"),
-    ("AWSGlue", {"operation": "crawlerrun"}, "Glue", "crawler-dpu", "Compute", "DPU-hour"),
-    ("AmazonAthena", {"queryType": "Data Scanned"}, "Athena", "data-scanned", "Query", "TB scanned"),
+    ("AWSGlue", {"usagetype": "USE1-ETL-DPU-Hour-Gen2"},
+     "Glue", "etl-dpu-gen2", "Compute", "DPU-hour"),
+    ("AWSGlue", {"usagetype": "USE1-Crawler-DPU-Hour"}, "Glue", "crawler-dpu", "Compute", "DPU-hour"),
+    ("AmazonAthena", {"usagetype": "USE1-DataScannedInTB"}, "Athena", "data-scanned", "Query", "TB scanned"),
     ("AmazonEC2", {"instanceType": "m5.xlarge", "tenancy": "Shared", "operatingSystem": "Linux",
                    "preInstalledSw": "NA", "capacitystatus": "Used"},
      "EC2", "m5.xlarge", "Compute", "node-hour"),
@@ -72,7 +78,7 @@ AWS_TARGETS = [
      "EMR", "emr-uplift-m5.xlarge", "Compute", "node-hour"),
     ("ElasticMapReduce", {"instanceType": "m5.2xlarge"},
      "EMR", "emr-uplift-m5.2xlarge", "Compute", "node-hour"),
-    ("AWSDatabaseMigrationSvc", {"instanceType": "dms.c5.large"},
+    ("AWSDatabaseMigrationSvc", {"usagetype": "InstanceUsg:dms.c5.large"},
      "DMS", "dms.c5.large", "Compute", "instance-hour"),
 ]
 
@@ -97,7 +103,7 @@ AWS_FALLBACK = [
     ("EC2",     "r5.xlarge",           "Compute",  "node-hour",         0.252,  "AWS EC2 On-Demand Pricing (página pública)"),
     ("EMR",     "emr-uplift-m5.xlarge","Compute",  "node-hour",         0.048,  "Amazon EMR Pricing (página pública)"),
     ("EMR",     "emr-uplift-m5.2xlarge","Compute", "node-hour",         0.096,  "Amazon EMR Pricing (página pública)"),
-    ("DMS",     "dms.c5.large",        "Compute",  "instance-hour",     0.154,  "AWS DMS Pricing (página pública)"),
+    ("DMS",     "dms.c5.large",        "Compute",  "instance-hour",     0.119,  "AWS DMS Pricing (página pública)"),
     ("Network", "cross-region-out",    "Transfer", "GB",                0.02,   "AWS Data Transfer Pricing (página pública)"),
     ("Network", "internet-out",        "Transfer", "GB",                0.09,   "AWS Data Transfer Pricing (página pública)"),
 ]
@@ -272,7 +278,7 @@ def dedupe(records: list[dict]) -> list[dict]:
         key = (r["provider"], r["service"], r["sku"])
         if key not in best or rank[r["method"]] > rank[best[key]["method"]]:
             best[key] = r
-    order = {"AWS": 0, "Snowflake": 1, "Databricks": 2}
+    order = {"AWS": 0, "Azure": 1, "Snowflake": 2, "Databricks": 3}
     return sorted(best.values(), key=lambda r: (order.get(r["provider"], 9), r["service"], r["sku"]))
 
 
@@ -297,23 +303,53 @@ const FX = { USD:1, BRL:%(brl).2f, EUR:%(eur).2f };
 '''
 
 
+def store_rows(rows: list[dict]) -> None:
+    """Snapshot em Parquet (data/pricing.parquet) e histórico em DuckDB
+    (data/pricing.duckdb, uma linha por preço por dia de coleta)."""
+    import duckdb, pyarrow as pa, pyarrow.parquet as pq
+
+    data = ROOT / "data"
+    data.mkdir(exist_ok=True)
+    table = pa.Table.from_pylist(rows)
+    pq.write_table(table, data / "pricing.parquet", compression="zstd")
+    con = duckdb.connect(str(data / "pricing.duckdb"))
+    con.register("snap", table)
+    con.execute("CREATE TABLE IF NOT EXISTS pricing_history AS SELECT * FROM snap WHERE false")
+    con.execute("DELETE FROM pricing_history WHERE retrieved_at = ?", [TODAY])
+    con.execute("INSERT INTO pricing_history SELECT * FROM snap")
+    con.close()
+    print(f"  {data / 'pricing.parquet'}\n  {data / 'pricing.duckdb'} (pricing_history)")
+
+
 def main() -> None:
+    sys.stdout.reconfigure(encoding="utf-8")
     ap = argparse.ArgumentParser(description="Coletor de preços do DataCost Architect")
     ap.add_argument("--no-aws", action="store_true", help="não consultar a AWS")
+    ap.add_argument("--no-azure", action="store_true", help="não consultar a Azure")
+    ap.add_argument("--aws-boto3", action="store_true", help="AWS via Query API (credencial) em vez dos bulk files")
+    ap.add_argument("--azure-region", default="eastus")
+    ap.add_argument("--no-store", action="store_true", help="não gravar Parquet/DuckDB")
     ap.add_argument("--region", default=REGION_AWS)
     ap.add_argument("--snowflake-account", action="store_true")
     ap.add_argument("--databricks-account", action="store_true")
     ap.add_argument("--brl", type=float, default=5.40, help="taxa USD→BRL (apresentação)")
     ap.add_argument("--eur", type=float, default=0.92, help="taxa USD→EUR (apresentação)")
     ap.add_argument("--out-json", default=str(ROOT / "pricing.json"))
-    ap.add_argument("--out-js", default=str(ROOT / "pricing.js"))
+    ap.add_argument("--out-js", default=str(ROOT / "src" / "pricing.js"))
     args = ap.parse_args()
 
     records: list[dict] = []
     records += curated_records(args.region)
     if not args.no_aws:
-        print("→ AWS Price List Query API")
-        records += fetch_aws(args.region)
+        if args.aws_boto3:
+            print("→ AWS Price List Query API")
+            records += fetch_aws(args.region)
+        else:
+            print("→ AWS Price List (bulk files públicos)")
+            records += public_prices.fetch_aws_bulk(args.region, AWS_TARGETS, TODAY)
+    if not args.no_azure:
+        print("→ Azure Retail Prices API")
+        records += public_prices.fetch_azure(args.azure_region, TODAY)
     if args.snowflake_account:
         print("→ Snowflake RATE_SHEET_DAILY")
         records += fetch_snowflake_account()
@@ -324,7 +360,7 @@ def main() -> None:
     rows = dedupe(records)
     meta = {
         "generated_at": TODAY,
-        "generator": "tools/fetch_pricing.py v0.2",
+        "generator": "tools/fetch_pricing.py v0.3",
         "aws_region": args.region,
         "counts": {m: sum(1 for r in rows if r["method"] == m) for m in ("api", "curated", "account")},
     }
@@ -335,6 +371,9 @@ def main() -> None:
         JS_TEMPLATE % {"meta": json.dumps(meta, indent=2, ensure_ascii=False),
                        "rows": json.dumps(rows, indent=2, ensure_ascii=False),
                        "brl": args.brl, "eur": args.eur}, encoding="utf-8")
+
+    if not args.no_store:
+        store_rows(rows)
 
     print(f"\n{len(rows)} preços gravados")
     print(f"  {args.out_json}\n  {args.out_js}")
