@@ -50,6 +50,13 @@ def test_base(case):
                       ("perGBIngested", "per_gb_ingested"), ("perGBStored", "per_gb_stored"),
                       ("perMillionRec", "per_million_rec"), ("perQuery", "per_query"), ("perRunSet", "per_run_set")]:
         assert r["unit"][py] == approx(exp["unit"][camel])
+    for (key, u), row in zip(exp["usage"], r["rows"]):
+        assert row["stage"]["key"] == key
+        mine = {k: v for k, v in row["usage"].items() if v}
+        theirs = {snake(k): v for k, v in u.items() if v}
+        assert mine.keys() == theirs.keys()
+        for k in mine:
+            assert mine[k] == approx(theirs[k])
     for (key, total, runtime), row in zip(exp["stageTotals"], r["rows"]):
         assert row["stage"]["key"] == key
         assert row["total"] == approx(total) and row["runtime_min"] == approx(runtime)

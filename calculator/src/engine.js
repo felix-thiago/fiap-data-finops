@@ -86,6 +86,12 @@ const TABLE_FORMATS = {
   hudi:    { label:'Apache Hudi (CoW)', metaOverhead:0.040, snapshotMult:1.35, scanFactor:0.70, maintenance:true,  writeAmp:1.25, complexity:4 },
 };
 
+/* Calibração com execuções medidas (tools/calibrate.py) sobrescreve as premissas do catálogo. */
+if (typeof CALIBRATION !== 'undefined') {
+  for (const [k, v] of Object.entries(CALIBRATION.engines || {})) if (ENGINES[k]) Object.assign(ENGINES[k], v, { measured: true });
+  for (const [k, v] of Object.entries(CALIBRATION.whSizes || {})) if (WH_SIZES[k]) Object.assign(WH_SIZES[k], v);
+}
+
 const FREQUENCIES = [
   { runsPerDay:1,   label:'Diário' },
   { runsPerDay:2,   label:'A cada 12 h' },
@@ -154,6 +160,27 @@ function stageComputeCost(st, g, volPerRun, runsPerMonth, runtimeMin, retryFacto
   }
 }
 
+/** Quantidades físicas do compute do estágio (as mesmas que geram o custo). */
+function stageUsage(st, g, volPerRun, runsPerMonth, runtimeMin, retryFactor) {
+  const e = ENGINES[st.engine];
+  const billedH = Math.max(runtimeMin, e.minBillMin || 0) / 60;
+  const nodes = (st.workers || 1) + 1;
+  const wt = WORKER_TYPES[st.workerType || 'm5.xlarge'];
+  if (['glue','ec2','dbx','dbx_sl','custom'].includes(e.kind)) {
+    const u = { nodeHours: nodes * billedH * runsPerMonth * retryFactor };
+    if (e.kind === 'glue') u.dpuHours = u.nodeHours * wt.dbu;
+    if (e.kind === 'dbx' || e.kind === 'dbx_sl') u.dbu = u.nodeHours * wt.dbu * (e.photon || 1);
+    return u;
+  }
+  if (e.kind === 'dms') return { nodeHours: 730 };
+  if (e.kind === 'snowflake') {
+    const idleH = (st.autoSuspendSec || 0) / 3600 * runsPerMonth;
+    return { credits: (billedH * runsPerMonth + idleH) * WH_SIZES[st.whSize || 'S'].credits };
+  }
+  if (e.kind === 'snowpipe') return { credits: volPerRun * runsPerMonth * 0.06 };
+  return {};
+}
+
 /* ------------------------------------------------------------------ */
 /* 4. MOTOR PRINCIPAL — pipeline por estágios                          */
 /* ------------------------------------------------------------------ */
@@ -189,6 +216,8 @@ function calcPipeline(g, stages) {
     /* --- tempo e compute (o estágio de consumo é cobrado por query, adiante) --- */
     const runtimeMin = st.kind==='serve' ? 0 : stageRuntimeMin(st, g, volPerRun);
     const compute    = st.kind==='serve' ? 0 : stageComputeCost(st, g, volPerRun, runsPerMonth, runtimeMin, retryFactor);
+    const usage      = st.kind==='serve' ? {} : stageUsage(st, g, volPerRun, runsPerMonth, runtimeMin, retryFactor);
+    let putsN = 0, getsN = 0;
 
     /* --- volume que SAI --- */
     const dailyOut = dailyIn * st.reduction;
@@ -210,6 +239,7 @@ function calcPipeline(g, stages) {
       filesPerRun = Math.max(1, Math.ceil((dailyOut/runsPerDay * ff.ratio * 1024) / g.targetFileMB));
       const puts = filesPerRun * runsPerMonth * retryFactor * tf.writeAmp;
       const gets = filesPerRun * runsPerMonth * 2;
+      putsN = puts; getsN = gets;
       requests = az ? (puts/10000)*price('Azure','ADLS','write-ops') + (gets/10000)*price('Azure','ADLS','read-ops')
                     : (puts/1000)*price('AWS','S3','put-requests') + (gets/1000)*price('AWS','S3','get-requests');
 
@@ -238,6 +268,7 @@ function calcPipeline(g, stages) {
       if (e.kind === 'athena') {
         const scannedTB = (g.queriesPerDay * DAYS * g.scanPerQueryGB * tfPrev.scanFactor) / 1024;
         serveCost = scannedTB * price('AWS','Athena','data-scanned');
+        usage.scannedTb = scannedTB;
         serveDetail = `${scannedTB.toFixed(2)} TB escaneados/mês (scan factor ${tfPrev.scanFactor})`;
         if (tfPrev.scanFactor < 1) A(`${tfPrev.label}: partition/file pruning reduz o volume escaneado para ${(tfPrev.scanFactor*100).toFixed(0)}%.`);
       } else if (e.kind === 'snowflake') {
@@ -245,11 +276,13 @@ function calcPipeline(g, stages) {
         const queryH = g.queriesPerDay * DAYS * g.avgQuerySec / 3600;
         const idleH  = (st.autoSuspendSec||0)/3600 * g.queriesPerDay * DAYS / 20; // agrupa queries em sessões
         const credits = (queryH + idleH) * sz.credits;
+        usage.credits = credits;
         serveCost = credits * price('Snowflake','Warehouse', g.snowflakeEdition==='enterprise'?'credit-enterprise':'credit-standard');
         serveDetail = `${credits.toFixed(1)} créditos/mês (warehouse ${st.whSize})`;
       } else if (e.kind === 'dbsql') {
         const queryH = g.queriesPerDay * DAYS * g.avgQuerySec / 3600;
         const dbu = queryH * 4;
+        usage.dbu = dbu;
         serveCost = dbu * (g.cloud === 'azure' ? price('Azure','Databricks','dbu-sql-serverless') : price('Databricks','SQL Warehouse','dbu-sql-serverless'));
         serveDetail = `${dbu.toFixed(1)} DBU/mês em SQL Serverless`;
       }
@@ -260,6 +293,7 @@ function calcPipeline(g, stages) {
       runsPerDay, runsPerMonth, volPerRun, dailyIn, dailyOut,
       runtimeMin, intervalMin: 1440/runsPerDay,
       filesPerRun, storedGB,
+      usage: { ...usage, puts: putsN, gets: getsN, dwStorageTb: st.kind==='load' ? storedGB/1024 : 0 },
       cost: { compute, storage: storage + whStorage, requests, maintenance, serve: serveCost },
       total: compute + storage + whStorage + requests + maintenance + serveCost,
       serveDetail,

@@ -57,6 +57,22 @@ TABLE_FORMATS = {
     "hudi":    dict(label="Apache Hudi (CoW)", meta_overhead=0.040, snapshot_mult=1.35, scan_factor=0.70, maintenance=True, write_amp=1.25, complexity=4),
 }
 
+def _apply_calibration():
+    import json, pathlib
+    path = pathlib.Path(__file__).resolve().parent.parent / "calibration.json"
+    if not path.exists():
+        return
+    cal = json.loads(path.read_text(encoding="utf-8"))
+    for k, v in cal.get("engines", {}).items():
+        if k in ENGINES:
+            ENGINES[k].update(gb_per_node_min=v["gb_per_node_min"], startup_min=v["startup_min"], measured=True)
+    for k, v in cal.get("wh_sizes", {}).items():
+        if k in WH_SIZES:
+            WH_SIZES[k]["gb_per_min"] = v["gb_per_min"]
+
+
+_apply_calibration()
+
 FREQUENCIES = [
     (1, "Diário"), (2, "A cada 12 h"), (4, "A cada 6 h"), (12, "A cada 2 h"),
     (24, "A cada 1 h"), (48, "A cada 30 min"), (96, "A cada 15 min"), (288, "A cada 5 min"),

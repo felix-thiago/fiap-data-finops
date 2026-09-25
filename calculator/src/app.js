@@ -435,6 +435,25 @@ function viewResult() {
   });
   c3.appendChild(t); root.appendChild(c3);
 
+  const c4 = el('div','card'); c4.appendChild(el('h3',null,'Uso físico por estágio — o que digitar nas calculadoras oficiais'));
+  const ut = el('table','cmp');
+  ut.appendChild(el('tr',null,'<th>Estágio</th><th>Compute / mês</th><th class="r">Storage</th><th class="r">Requests PUT+GET</th><th class="r">Athena</th>'));
+  r.rows.forEach(x => {
+    const u = x.usage;
+    const comp = u.dpuHours != null ? num(u.dpuHours,1)+' DPU-h'
+      : u.dbu != null && u.nodeHours != null ? `${num(u.dbu,1)} DBU + ${num(u.nodeHours,1)} node-h`
+      : u.dbu != null ? num(u.dbu,1)+' DBU'
+      : u.nodeHours != null ? num(u.nodeHours,1)+' node-h'
+      : u.credits != null ? num(u.credits,1)+' créditos' : '—';
+    const stor = x.stage.kind==='load' ? (u.dwStorageTb? num(u.dwStorageTb,2)+' TB (Snowflake)':'—') : (x.storedGB? num(x.storedGB/1024,2)+' TB (S3)':'—');
+    const tr = el('tr');
+    tr.innerHTML = `<td><b>${x.stage.name}</b></td><td>${comp}</td><td class="r">${stor}</td><td class="r">${u.puts||u.gets? num(u.puts+u.gets,0):'—'}</td><td class="r">${u.scannedTb? num(u.scannedTb,2)+' TB':'—'}</td>`;
+    ut.appendChild(tr);
+  });
+  c4.appendChild(ut);
+  c4.appendChild(el('p','note','Quantidades mensais que geram o custo estimado. Use-as para conferir a estimativa nas calculadoras da AWS, do Snowflake e do Databricks (ver validation/worksheet.md).'));
+  root.appendChild(c4);
+
   const two = el('div','two');
   const u = el('div','card'); u.appendChild(el('h3',null,'Unit economics'));
   u.appendChild(kvTable([

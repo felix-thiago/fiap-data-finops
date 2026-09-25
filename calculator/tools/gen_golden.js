@@ -5,7 +5,7 @@ const root = path.join(__dirname, '..');
 const read = f => fs.readFileSync(path.join(root, 'src', f), 'utf8');
 const app = read('app.js');
 const defaults = app.slice(app.indexOf('const G_DEFAULTS'), app.indexOf('const G_FIELDS'));
-const code = read('pricing.js') + '\n' + read('engine.js') + '\n' + defaults + `
+const code = read('pricing.js') + '\n' + read('calibration.js') + '\n' + read('engine.js') + '\n' + defaults + `
 this.__api = { G_DEFAULTS, STAGE_DEFAULTS, calcPipeline, scheduleSweep, VARIANTS, PROFILES, scoreVariants,
                findOptimizations, sensitivity, breakEven, budgetGate, gateSuggestions };`;
 const ctx = { structuredClone, console };
@@ -49,6 +49,7 @@ const out = scenarios.map(([name, fg, fs_]) => {
       range: base.range, unit: base.unit, complexity: base.complexity,
       assumptions: base.assumptions,
       stageTotals: base.rows.map(r => [r.stage.key, r.total, r.runtimeMin]),
+      usage: base.rows.map(r => [r.stage.key, r.usage]),
       variants, scored,
       optimizations: A.findOptimizations(g, stages, base).map(o => [o.id, o.saving, o.slaAfter, o.latAfter]),
       sweep: A.scheduleSweep(g, stages).map(x => [x.runsPerDay, x.monthly, x.latencyMin, x.slaStatus]),

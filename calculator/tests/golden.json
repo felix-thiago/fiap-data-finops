@@ -220,6 +220,66 @@
      0
     ]
    ],
+   "usage": [
+    [
+     "raw",
+     {
+      "nodeHours": 179.59644444444447,
+      "dpuHours": 179.59644444444447,
+      "puts": 7587.84,
+      "gets": 14592,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "bronze",
+     {
+      "nodeHours": 179.59644444444447,
+      "dpuHours": 179.59644444444447,
+      "puts": 8194.8672,
+      "gets": 14592,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "silver",
+     {
+      "nodeHours": 179.59644444444447,
+      "dpuHours": 179.59644444444447,
+      "puts": 4746.19392,
+      "gets": 8451.199999999999,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "gold",
+     {
+      "nodeHours": 170.98986666666667,
+      "dpuHours": 170.98986666666667,
+      "puts": 1195.0848,
+      "gets": 2128,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "dwload",
+     {
+      "credits": 9.322666666666667,
+      "puts": 0,
+      "gets": 0,
+      "dwStorageTb": 4.6195312500000005
+     }
+    ],
+    [
+     "serve",
+     {
+      "credits": 405.33333333333337,
+      "puts": 0,
+      "gets": 0,
+      "dwStorageTb": 0
+     }
+    ]
+   ],
    "variants": {
     "asis": 2725.1178763596,
     "dbx": 2469.5125439741028,
@@ -801,6 +861,66 @@
      0
     ]
    ],
+   "usage": [
+    [
+     "raw",
+     {
+      "nodeHours": 5999.282370370371,
+      "dpuHours": 5999.282370370371,
+      "puts": 258998.272,
+      "gets": 498073.6,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "bronze",
+     {
+      "nodeHours": 5999.282370370371,
+      "dpuHours": 5999.282370370371,
+      "puts": 279718.13376,
+      "gets": 498073.6,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "silver",
+     {
+      "nodeHours": 5999.282370370371,
+      "dpuHours": 5999.282370370371,
+      "puts": 161131.57632000002,
+      "gets": 286915.2,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "gold",
+     {
+      "nodeHours": 5757.888355555556,
+      "dpuHours": 5757.888355555556,
+      "puts": 40291.430400000005,
+      "gets": 71744,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "dwload",
+     {
+      "credits": 277.9235555555555,
+      "puts": 0,
+      "gets": 0,
+      "dwStorageTb": 157.67999999999998
+     }
+    ],
+    [
+     "serve",
+     {
+      "credits": 405.33333333333337,
+      "puts": 0,
+      "gets": 0,
+      "dwStorageTb": 0
+     }
+    ]
+   ],
    "variants": {
     "asis": 65857.29931025351,
     "dbx": 56923.999719921885,
@@ -1365,6 +1485,66 @@
      "serve",
      810.6666666666667,
      0
+    ]
+   ],
+   "usage": [
+    [
+     "raw",
+     {
+      "nodeHours": 232.2897777777778,
+      "dpuHours": 232.2897777777778,
+      "puts": 9864.192,
+      "gets": 18969.6,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "bronze",
+     {
+      "nodeHours": 232.2897777777778,
+      "dpuHours": 232.2897777777778,
+      "puts": 10653.32736,
+      "gets": 18969.6,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "silver",
+     {
+      "nodeHours": 232.2897777777778,
+      "dpuHours": 232.2897777777778,
+      "puts": 6146.1504,
+      "gets": 10944,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "gold",
+     {
+      "nodeHours": 221.57546666666667,
+      "dpuHours": 221.57546666666667,
+      "puts": 1536.5376,
+      "gets": 2736,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "dwload",
+     {
+      "credits": 11.754666666666667,
+      "puts": 0,
+      "gets": 0,
+      "dwStorageTb": 6.005390625
+     }
+    ],
+    [
+     "serve",
+     {
+      "credits": 405.33333333333337,
+      "puts": 0,
+      "gets": 0,
+      "dwStorageTb": 0
+     }
     ]
    ],
    "variants": {
@@ -1945,6 +2125,66 @@
      "serve",
      810.6666666666667,
      0
+    ]
+   ],
+   "usage": [
+    [
+     "raw",
+     {
+      "nodeHours": 270.4924444444444,
+      "dpuHours": 270.4924444444444,
+      "puts": 7587.839999999999,
+      "gets": 14591.999999999998,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "bronze",
+     {
+      "nodeHours": 270.4924444444444,
+      "dpuHours": 270.4924444444444,
+      "puts": 8194.8672,
+      "gets": 14591.999999999998,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "silver",
+     {
+      "nodeHours": 270.4924444444444,
+      "dpuHours": 270.4924444444444,
+      "puts": 4916.92032,
+      "gets": 8755.199999999999,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "gold",
+     {
+      "nodeHours": 225.52746666666664,
+      "dpuHours": 225.52746666666664,
+      "puts": 1638.9734399999998,
+      "gets": 2918.3999999999996,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "dwload",
+     {
+      "credits": 37.29066666666666,
+      "puts": 0,
+      "gets": 0,
+      "dwStorageTb": 4.6195312500000005
+     }
+    ],
+    [
+     "serve",
+     {
+      "credits": 405.33333333333337,
+      "puts": 0,
+      "gets": 0,
+      "dwStorageTb": 0
+     }
     ]
    ],
    "variants": {
@@ -2547,6 +2787,66 @@
      0
     ]
    ],
+   "usage": [
+    [
+     "raw",
+     {
+      "nodeHours": 214.13422222222223,
+      "dpuHours": 214.13422222222223,
+      "puts": 9047.039999999999,
+      "gets": 14592,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "bronze",
+     {
+      "nodeHours": 214.13422222222223,
+      "dpuHours": 214.13422222222223,
+      "puts": 9770.8032,
+      "gets": 14592,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "silver",
+     {
+      "nodeHours": 214.13422222222223,
+      "dpuHours": 214.13422222222223,
+      "puts": 5658.92352,
+      "gets": 8451.199999999999,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "gold",
+     {
+      "nodeHours": 203.87253333333334,
+      "dpuHours": 203.87253333333334,
+      "puts": 1424.9088,
+      "gets": 2128,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "dwload",
+     {
+      "credits": 9.322666666666667,
+      "puts": 0,
+      "gets": 0,
+      "dwStorageTb": 4.6195312500000005
+     }
+    ],
+    [
+     "serve",
+     {
+      "credits": 405.33333333333337,
+      "puts": 0,
+      "gets": 0,
+      "dwStorageTb": 0
+     }
+    ]
+   ],
    "variants": {
     "asis": 3278.3850360576007,
     "dbx": 3003.1635898943255,
@@ -3128,6 +3428,66 @@
      0
     ]
    ],
+   "usage": [
+    [
+     "raw",
+     {
+      "nodeHours": 5999.282370370371,
+      "dpuHours": 5999.282370370371,
+      "puts": 2900799.616,
+      "gets": 5578460.8,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "bronze",
+     {
+      "nodeHours": 5999.282370370371,
+      "dpuHours": 5999.282370370371,
+      "puts": 2237745.07008,
+      "gets": 3984588.8,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "silver",
+     {
+      "nodeHours": 5999.282370370371,
+      "dpuHours": 5999.282370370371,
+      "puts": 1288950.17472,
+      "gets": 2295139.1999999997,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "gold",
+     {
+      "nodeHours": 5757.888355555556,
+      "dpuHours": 5757.888355555556,
+      "puts": 322263.15264000004,
+      "gets": 573830.4,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "dwload",
+     {
+      "credits": 277.9235555555555,
+      "puts": 0,
+      "gets": 0,
+      "dwStorageTb": 157.67999999999998
+     }
+    ],
+    [
+     "serve",
+     {
+      "credits": 405.33333333333337,
+      "puts": 0,
+      "gets": 0,
+      "dwStorageTb": 0
+     }
+    ]
+   ],
    "variants": {
     "asis": 81374.8630883783,
     "dbx": 72441.56349804667,
@@ -3665,6 +4025,57 @@
      "serve",
      133.59375,
      0
+    ]
+   ],
+   "usage": [
+    [
+     "raw",
+     {
+      "nodeHours": 179.59644444444447,
+      "dpuHours": 179.59644444444447,
+      "puts": 7587.84,
+      "gets": 14592,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "bronze",
+     {
+      "nodeHours": 179.59644444444447,
+      "dpuHours": 179.59644444444447,
+      "puts": 8194.8672,
+      "gets": 14592,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "silver",
+     {
+      "nodeHours": 179.59644444444447,
+      "dpuHours": 179.59644444444447,
+      "puts": 4746.19392,
+      "gets": 8451.199999999999,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "gold",
+     {
+      "nodeHours": 170.98986666666667,
+      "dpuHours": 170.98986666666667,
+      "puts": 1106.56,
+      "gets": 2128,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "serve",
+     {
+      "scannedTb": 26.71875,
+      "puts": 0,
+      "gets": 0,
+      "dwStorageTb": 0
+     }
     ]
    ],
    "variants": {
@@ -4231,6 +4642,64 @@
      "serve",
      810.6666666666667,
      0
+    ]
+   ],
+   "usage": [
+    [
+     "raw",
+     {
+      "nodeHours": 95.90186666666666,
+      "puts": 7587.84,
+      "gets": 14592,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "bronze",
+     {
+      "nodeHours": 129.03941629185405,
+      "puts": 8194.8672,
+      "gets": 14592,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "silver",
+     {
+      "nodeHours": 84.51733333333335,
+      "dbu": 84.51733333333335,
+      "puts": 4746.19392,
+      "gets": 8451.199999999999,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "gold",
+     {
+      "nodeHours": 170.98986666666667,
+      "dpuHours": 170.98986666666667,
+      "puts": 1195.0848,
+      "gets": 2128,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "dwload",
+     {
+      "credits": 9.322666666666667,
+      "puts": 0,
+      "gets": 0,
+      "dwStorageTb": 4.6195312500000005
+     }
+    ],
+    [
+     "serve",
+     {
+      "credits": 405.33333333333337,
+      "puts": 0,
+      "gets": 0,
+      "dwStorageTb": 0
+     }
     ]
    ],
    "variants": {
@@ -4807,6 +5276,65 @@
      0
     ]
    ],
+   "usage": [
+    [
+     "raw",
+     {
+      "nodeHours": 730,
+      "puts": 9864.192,
+      "gets": 18969.6,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "bronze",
+     {
+      "nodeHours": 232.2897777777778,
+      "dpuHours": 232.2897777777778,
+      "puts": 10653.32736,
+      "gets": 18969.6,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "silver",
+     {
+      "nodeHours": 232.2897777777778,
+      "dpuHours": 232.2897777777778,
+      "puts": 6146.1504,
+      "gets": 10944,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "gold",
+     {
+      "nodeHours": 221.57546666666667,
+      "dpuHours": 221.57546666666667,
+      "puts": 1536.5376,
+      "gets": 2736,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "dwload",
+     {
+      "credits": 11.754666666666667,
+      "puts": 0,
+      "gets": 0,
+      "dwStorageTb": 6.005390625
+     }
+    ],
+    [
+     "serve",
+     {
+      "dbu": 253.33333333333334,
+      "puts": 0,
+      "gets": 0,
+      "dwStorageTb": 0
+     }
+    ]
+   ],
    "variants": {
     "asis": 2647.8529792562445,
     "dbx": 2313.6769745150978,
@@ -5377,6 +5905,66 @@
      "serve",
      810.6666666666667,
      0
+    ]
+   ],
+   "usage": [
+    [
+     "raw",
+     {
+      "nodeHours": 91.77422222222224,
+      "dpuHours": 183.54844444444447,
+      "puts": 7587.84,
+      "gets": 14592,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "bronze",
+     {
+      "nodeHours": 91.77422222222224,
+      "dpuHours": 183.54844444444447,
+      "puts": 8194.8672,
+      "gets": 14592,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "silver",
+     {
+      "nodeHours": 179.59644444444447,
+      "dpuHours": 179.59644444444447,
+      "puts": 4746.19392,
+      "gets": 8451.199999999999,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "gold",
+     {
+      "nodeHours": 170.98986666666667,
+      "dpuHours": 170.98986666666667,
+      "puts": 1195.0848,
+      "gets": 2128,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "dwload",
+     {
+      "credits": 9.322666666666667,
+      "puts": 0,
+      "gets": 0,
+      "dwStorageTb": 4.6195312500000005
+     }
+    ],
+    [
+     "serve",
+     {
+      "credits": 405.33333333333337,
+      "puts": 0,
+      "gets": 0,
+      "dwStorageTb": 0
+     }
     ]
    ],
    "variants": {
@@ -5957,6 +6545,66 @@
      "serve",
      810.6666666666667,
      0
+    ]
+   ],
+   "usage": [
+    [
+     "raw",
+     {
+      "nodeHours": 2931.359407407407,
+      "dpuHours": 2931.359407407407,
+      "puts": 126464,
+      "gets": 243200,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "bronze",
+     {
+      "nodeHours": 2931.359407407407,
+      "dpuHours": 2931.359407407407,
+      "puts": 136581.12,
+      "gets": 243200,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "silver",
+     {
+      "nodeHours": 2931.359407407407,
+      "dpuHours": 2931.359407407407,
+      "puts": 78670.72512,
+      "gets": 140083.19999999998,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "gold",
+     {
+      "nodeHours": 2812.682311111111,
+      "dpuHours": 2812.682311111111,
+      "puts": 19667.68128,
+      "gets": 35020.799999999996,
+      "dwStorageTb": 0
+     }
+    ],
+    [
+     "dwload",
+     {
+      "credits": 176.45511111111114,
+      "puts": 0,
+      "gets": 0,
+      "dwStorageTb": 76.9921875
+     }
+    ],
+    [
+     "serve",
+     {
+      "credits": 405.33333333333337,
+      "puts": 0,
+      "gets": 0,
+      "dwStorageTb": 0
+     }
     ]
    ],
    "variants": {
