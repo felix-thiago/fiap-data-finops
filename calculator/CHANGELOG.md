@@ -46,11 +46,19 @@ Tudo o que foi entregue desde a v0.2 (protótipo em JS puro), na ordem em que en
 - **README da raiz reescrito** (visão geral, capacidades, como rodar, estrutura, validação, status e equipe) e README técnico atualizado para a v0.3.
 - 81 testes passando (`python -m pytest calculator/tests`).
 
+### 7. Botão "Atualizar preços" e câmbio automático (`feat/price-refresh`)
+- **Botão "Atualizar preços"** no cabeçalho: dispara o coletor (AWS + Azure + câmbio) e regera o `index.html`. Abre um popup com estimativa de tempo, barra de progresso, etapas em tempo real e, ao terminar, um resumo do que mudou (preços e câmbio); os custos da tela são recalculados sem recarregar.
+- **Servidor local** `tools/serve.py` (`python calculator/tools/serve.py`): escuta só em 127.0.0.1, exige cabeçalho próprio e valida a origem no POST, executa um job por vez e não repassa parâmetros do cliente ao subprocesso. Sem o servidor (arquivo aberto direto ou GitHub Pages), o botão explica como iniciá-lo.
+- A estimativa do popup aprende com a duração da última coleta (~24 s com cache; a primeira vez baixa ~450 MB do EC2).
+- **Câmbio automático:** USD→BRL/EUR via Frankfurter (taxas do BCE), gravado no `pricing.json` (`meta.fx`), com fallback para 5,40/0,92 e opção `--brl/--eur/--no-fx`. A data dos preços e o câmbio aparecem no cabeçalho, com aviso quando passam de 7 dias.
+- Testes do servidor (`tests/test_serve.py`): 85 testes no total.
+
 ## Como reproduzir
 
 ```bash
 pip install requests ijson pyarrow duckdb pytest
-python calculator/tools/fetch_pricing.py     # preços AWS + Azure + curados
+python calculator/tools/fetch_pricing.py     # preços AWS + Azure + câmbio + curados
+python calculator/tools/serve.py             # app local com o botão "Atualizar preços"
 python calculator/build.py                   # gera index.html
 python -m pytest calculator/tests            # paridade JS x Python, preços, validação e calibração
 node calculator/tools/gen_golden.js          # regenera tests/golden.json a partir do JS

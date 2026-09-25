@@ -299,7 +299,8 @@ const price = (provider, service, sku) => {
 };
 
 /* Câmbio — camada de apresentação apenas (seção 25 do scopo.md). */
-const FX = { USD:1, BRL:%(brl).2f, EUR:%(eur).2f };
+const FX = { USD:1, BRL:%(brl).4f, EUR:%(eur).4f };
+const FX_META = %(fxmeta)s;
 '''
 
 
@@ -332,8 +333,9 @@ def main() -> None:
     ap.add_argument("--region", default=REGION_AWS)
     ap.add_argument("--snowflake-account", action="store_true")
     ap.add_argument("--databricks-account", action="store_true")
-    ap.add_argument("--brl", type=float, default=5.40, help="taxa USD→BRL (apresentação)")
-    ap.add_argument("--eur", type=float, default=0.92, help="taxa USD→EUR (apresentação)")
+    ap.add_argument("--brl", type=float, default=None, help="taxa USD→BRL manual (padrão: coleta via API)")
+    ap.add_argument("--eur", type=float, default=None, help="taxa USD→EUR manual (padrão: coleta via API)")
+    ap.add_argument("--no-fx", action="store_true", help="não consultar o câmbio (usa 5,40 / 0,92)")
     ap.add_argument("--out-json", default=str(ROOT / "pricing.json"))
     ap.add_argument("--out-js", default=str(ROOT / "src" / "pricing.js"))
     args = ap.parse_args()
@@ -357,12 +359,20 @@ def main() -> None:
         print("→ Databricks system.billing.list_prices")
         records += fetch_databricks_account()
 
+    fx = {"USD": 1.0, "BRL": 5.40, "EUR": 0.92, "source": "padrão do projeto", "date": TODAY, "method": "default"}
+    if args.brl is not None or args.eur is not None:
+        fx.update(BRL=args.brl or fx["BRL"], EUR=args.eur or fx["EUR"], source="informado na linha de comando", method="manual")
+    elif not args.no_fx:
+        print("→ Câmbio (Frankfurter / BCE)")
+        fx = public_prices.fetch_fx() or fx
+
     rows = dedupe(records)
     meta = {
         "generated_at": TODAY,
         "generator": "tools/fetch_pricing.py v0.3",
         "aws_region": args.region,
         "counts": {m: sum(1 for r in rows if r["method"] == m) for m in ("api", "curated", "account")},
+        "fx": fx,
     }
 
     pathlib.Path(args.out_json).write_text(
@@ -370,7 +380,8 @@ def main() -> None:
     pathlib.Path(args.out_js).write_text(
         JS_TEMPLATE % {"meta": json.dumps(meta, indent=2, ensure_ascii=False),
                        "rows": json.dumps(rows, indent=2, ensure_ascii=False),
-                       "brl": args.brl, "eur": args.eur}, encoding="utf-8")
+                       "brl": fx["BRL"], "eur": fx["EUR"],
+                       "fxmeta": json.dumps(fx, ensure_ascii=False)}, encoding="utf-8")
 
     if not args.no_store:
         store_rows(rows)

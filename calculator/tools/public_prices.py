@@ -183,3 +183,25 @@ def fetch_azure(region: str, today: str, verbose=True) -> list[dict]:
             print(f"  ✓ Azure {service:<10} {sku:<20} {item['retailPrice']:g}")
         time.sleep(1.0)
     return out
+
+
+# ---------------------------------------------------------------------------
+# Câmbio (apenas camada de apresentação)
+# ---------------------------------------------------------------------------
+FX_URL = "https://api.frankfurter.app/latest"
+
+
+def fetch_fx(verbose=True) -> dict | None:
+    """USD→BRL/EUR (taxas de referência do BCE via Frankfurter, sem chave). None se falhar."""
+    try:
+        r = requests.get(FX_URL, params={"from": "USD", "to": "BRL,EUR"}, timeout=30)
+        r.raise_for_status()
+        j = r.json()
+        fx = {"USD": 1.0, "BRL": float(j["rates"]["BRL"]), "EUR": float(j["rates"]["EUR"]),
+              "source": "Frankfurter (taxas de referência do BCE)", "date": j["date"], "method": "api"}
+        if verbose:
+            print(f"  ✓ Câmbio USD→BRL {fx['BRL']:.4f}  USD→EUR {fx['EUR']:.4f}  ({fx['date']})")
+        return fx
+    except Exception as exc:                                        # noqa: BLE001
+        print(f"! Câmbio indisponível ({exc}); mantendo taxas padrão", file=sys.stderr)
+        return None

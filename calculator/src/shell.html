@@ -87,6 +87,28 @@ main{max-width:1240px;margin:0 auto;padding:0 22px 72px}
 .scard .bud{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
 .scard .bud input{width:92px;padding:3px 7px;border-radius:6px;border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.18);color:#fff;font-size:13.5px;font-weight:650}
 .scard .bud input:focus{outline:2px solid #fff;background:rgba(255,255,255,.28)}
+/* atualização de preços */
+header .pinfo{font-size:12px;color:#9aa3bd;padding-top:14px}
+header .pinfo.stale{color:#f0c060}
+header .btn-alt{background:#2f9c8f;margin-top:14px}
+header .btn-alt:hover{background:#3bb3a5}
+.btn.ghost{background:#eef1fd;color:var(--accent)}
+.btn.ghost:hover{background:#dfe5fb}
+.modal-bg{position:fixed;inset:0;z-index:2000;background:rgba(16,20,35,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.35);width:min(560px,100%);max-height:90vh;overflow:auto;padding:20px 22px}
+.modal h3{font-size:18px;text-transform:none;letter-spacing:0;color:var(--ink);margin-bottom:10px}
+.modal-body p{margin:0 0 10px}
+.modal-foot{display:flex;justify-content:flex-end;margin-top:14px}
+.pbar{height:10px;background:#e6e9f0;border-radius:99px;overflow:hidden;margin:6px 0 14px}
+.pbar span{display:block;height:100%;background:linear-gradient(90deg,#4f6bed,#2fa8a0);border-radius:99px;transition:width .8s linear}
+.psteps{list-style:none;margin:0 0 8px;padding:0}
+.psteps li{display:flex;gap:10px;align-items:center;padding:5px 0;color:var(--muted)}
+.psteps li i{font-style:normal;width:18px;text-align:center;font-weight:700}
+.psteps li.done{color:var(--ok)}
+.psteps li.running{color:var(--accent);font-weight:640}
+.psteps li.running i{display:inline-block;animation:spin 1.2s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.plog{background:#101423;color:#dfe4f5;border-radius:8px;padding:10px;font-size:11.5px;overflow:auto;max-height:180px}
 /* form */
 .advbar{display:flex;align-items:center;gap:8px;padding:9px 11px;background:#eef1f8;border:1px solid var(--line);
   border-radius:var(--radius);margin-bottom:14px;font-size:12.5px;color:#3c4460}
@@ -254,6 +276,8 @@ tr.hl{background:#f4f6fd}
     </select>
   </div>
   <label class="adv"><input type="checkbox" id="advToggle"> Advanced parameters</label>
+  <div id="priceInfo" class="pinfo" title="Data da última coleta de preços"></div>
+  <button id="refreshPrices" type="button" class="btn-alt">Atualizar preços</button>
   <button id="reset" type="button">Reset scenario</button>
 </header>
 

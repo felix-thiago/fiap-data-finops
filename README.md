@@ -22,11 +22,13 @@ O engenheiro de dados descreve um pipeline (fonte, volume, ingestão, camadas ra
 | Sensibilidade ao volume e break-even entre arquiteturas | *Sensitivity & break-even* |
 | Premissas, fonte e versão de cada preço, limitações | *Assumptions* |
 
-Preços vêm de **APIs públicas** (AWS Price List e Azure Retail Prices), com versionamento em Parquet/DuckDB. Snowflake e Databricks não têm API pública de preços e usam tabela curada.
+Preços vêm de **APIs públicas** (AWS Price List e Azure Retail Prices) e o câmbio do BCE via Frankfurter, com versionamento em Parquet/DuckDB. Snowflake e Databricks não têm API pública de preços e usam tabela curada.
 
 ## Como rodar
 
 **Só usar o app** — abra `calculator/index.html` no navegador (arquivo único, sem servidor).
+
+**App com atualização de preços** — `python calculator/tools/serve.py` abre o app em `http://127.0.0.1:8765` e habilita o botão *Atualizar preços* (roda o coletor de AWS, Azure e câmbio e recalcula a tela).
 
 **Desenvolvimento** (Python 3.12, Node 20+ opcional):
 
