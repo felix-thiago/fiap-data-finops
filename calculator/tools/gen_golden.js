@@ -28,6 +28,7 @@ const scenarios = [
     s => s.map(x => x.key === 'raw' ? { ...x, engine: 'custom_fw', workers: 6 } : x.key === 'silver' ? { ...x, engine: 'databricks_sl' } : x.key === 'bronze' ? { ...x, engine: 'ec2_spark', workerType: 'r5.xlarge' } : x)],
   ['dbsql_serve_dms', g => ({ ...g, ingestion: 'cdc' }),
     s => s.map(x => x.key === 'raw' ? { ...x, engine: 'dms' } : x.kind === 'serve' ? { ...x, engine: 'dbsql' } : x)],
+  ['glue_g2x_workers', g => g, s => s.map(x => x.kind === 'ingest' || x.key === 'bronze' ? { ...x, workerType: 'm5.2xlarge' } : x)],
   ['big_volume_wh_large', g => ({ ...g, dailyDeltaGB: 2000, sourceVolumeGB: 90000, slaMaxMinutes: 60 }),
     s => s.map(x => x.kind === 'load' ? { ...x, whSize: 'L', autoSuspendSec: 600 } : x)],
 ];

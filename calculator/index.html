@@ -931,7 +931,7 @@ function stageComputeCost(st, g, volPerRun, runsPerMonth, runtimeMin, retryFacto
 
   switch (e.kind) {
     case 'glue':
-      return nodes * billedH * price('AWS','Glue', e.sku || 'etl-dpu') * runsPerMonth * retryFactor;
+      return nodes * wt.dbu * billedH * price('AWS','Glue', e.sku || 'etl-dpu') * runsPerMonth * retryFactor; // 1 DPU por worker G.1X, 2 por G.2X
     case 'ec2': {
       const perNode = price('AWS','EC2', wt.ec2) + (e.emr ? price('AWS','EMR', wt.emrUplift) : 0);
       return nodes * billedH * perNode * runsPerMonth * retryFactor;
