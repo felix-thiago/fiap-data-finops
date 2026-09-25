@@ -12,6 +12,14 @@ const PRICING_META = {
     "api": 25,
     "curated": 11,
     "account": 0
+  },
+  "fx": {
+    "USD": 1.0,
+    "BRL": 5.1808,
+    "EUR": 0.87974,
+    "source": "Frankfurter (taxas de referência do BCE)",
+    "date": "2026-09-24",
+    "method": "api"
   }
 };
 
@@ -529,4 +537,5 @@ const price = (provider, service, sku) => {
 };
 
 /* Câmbio — camada de apresentação apenas (seção 25 do scopo.md). */
-const FX = { USD:1, BRL:5.40, EUR:0.92 };
+const FX = { USD:1, BRL:5.1808, EUR:0.8797 };
+const FX_META = {"USD": 1.0, "BRL": 5.1808, "EUR": 0.87974, "source": "Frankfurter (taxas de referência do BCE)", "date": "2026-09-24", "method": "api"};

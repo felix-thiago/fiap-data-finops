@@ -87,6 +87,28 @@ main{max-width:1240px;margin:0 auto;padding:0 22px 72px}
 .scard .bud{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
 .scard .bud input{width:92px;padding:3px 7px;border-radius:6px;border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.18);color:#fff;font-size:13.5px;font-weight:650}
 .scard .bud input:focus{outline:2px solid #fff;background:rgba(255,255,255,.28)}
+/* atualização de preços */
+header .pinfo{font-size:12px;color:#9aa3bd;padding-top:14px}
+header .pinfo.stale{color:#f0c060}
+header .btn-alt{background:#2f9c8f;margin-top:14px}
+header .btn-alt:hover{background:#3bb3a5}
+.btn.ghost{background:#eef1fd;color:var(--accent)}
+.btn.ghost:hover{background:#dfe5fb}
+.modal-bg{position:fixed;inset:0;z-index:2000;background:rgba(16,20,35,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.35);width:min(560px,100%);max-height:90vh;overflow:auto;padding:20px 22px}
+.modal h3{font-size:18px;text-transform:none;letter-spacing:0;color:var(--ink);margin-bottom:10px}
+.modal-body p{margin:0 0 10px}
+.modal-foot{display:flex;justify-content:flex-end;margin-top:14px}
+.pbar{height:10px;background:#e6e9f0;border-radius:99px;overflow:hidden;margin:6px 0 14px}
+.pbar span{display:block;height:100%;background:linear-gradient(90deg,#4f6bed,#2fa8a0);border-radius:99px;transition:width .8s linear}
+.psteps{list-style:none;margin:0 0 8px;padding:0}
+.psteps li{display:flex;gap:10px;align-items:center;padding:5px 0;color:var(--muted)}
+.psteps li i{font-style:normal;width:18px;text-align:center;font-weight:700}
+.psteps li.done{color:var(--ok)}
+.psteps li.running{color:var(--accent);font-weight:640}
+.psteps li.running i{display:inline-block;animation:spin 1.2s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.plog{background:#101423;color:#dfe4f5;border-radius:8px;padding:10px;font-size:11.5px;overflow:auto;max-height:180px}
 /* form */
 .advbar{display:flex;align-items:center;gap:8px;padding:9px 11px;background:#eef1f8;border:1px solid var(--line);
   border-radius:var(--radius);margin-bottom:14px;font-size:12.5px;color:#3c4460}
@@ -238,14 +260,6 @@ tr.hl{background:#f4f6fd}
   </div>
   <div class="sp"></div>
   <div>
-    <label for="profile">Decision profile</label>
-    <select id="profile">
-      <option value="cost">Cost Optimized</option>
-      <option value="balanced" selected>Balanced</option>
-      <option value="performance">Performance Optimized</option>
-    </select>
-  </div>
-  <div>
     <label for="currency">Currency</label>
     <select id="currency">
       <option value="USD" selected>USD</option>
@@ -254,7 +268,8 @@ tr.hl{background:#f4f6fd}
     </select>
   </div>
   <label class="adv"><input type="checkbox" id="advToggle"> Advanced parameters</label>
-  <button id="reset" type="button">Reset scenario</button>
+  <div id="priceInfo" class="pinfo" title="Data da última coleta de preços"></div>
+  <button id="refreshPrices" type="button" class="btn-alt">Atualizar preços</button>
 </header>
 
 <main>
@@ -287,6 +302,14 @@ const PRICING_META = {
     "api": 25,
     "curated": 11,
     "account": 0
+  },
+  "fx": {
+    "USD": 1.0,
+    "BRL": 5.1808,
+    "EUR": 0.87974,
+    "source": "Frankfurter (taxas de referência do BCE)",
+    "date": "2026-09-24",
+    "method": "api"
   }
 };
 
@@ -804,7 +827,8 @@ const price = (provider, service, sku) => {
 };
 
 /* Câmbio — camada de apresentação apenas (seção 25 do scopo.md). */
-const FX = { USD:1, BRL:5.40, EUR:0.92 };
+const FX = { USD:1, BRL:5.1808, EUR:0.8797 };
+const FX_META = {"USD": 1.0, "BRL": 5.1808, "EUR": 0.87974, "source": "Frankfurter (taxas de referência do BCE)", "date": "2026-09-24", "method": "api"};
 
 </script>
 <script>
@@ -2102,6 +2126,11 @@ function viewCompare() {
   const root = el('div');
   root.appendChild(el('div','lead','<h2>Scenario comparison</h2><p>Variantes da mesma arquitetura, calculadas sobre o mesmo workload e o mesmo schedule.</p>'));
 
+  const prof = el('div','card'); prof.appendChild(el('h3',null,'Perfil de decisão'));
+  prof.appendChild(sel('Define os pesos do score (custo, SLA, performance, escalabilidade, complexidade) e, portanto, o ranking abaixo',
+    Object.entries(PROFILES).map(([k,v])=>[k,v.label]), PROFILE, v=>{PROFILE=v; render(false);}));
+  root.appendChild(prof);
+
   const pick = el('div','card'); pick.appendChild(el('h3',null,'Variantes comparadas'));
   Object.values(VARIANTS).forEach(v=>{
     const row = el('label','chk');
@@ -2250,6 +2279,7 @@ function viewAssumptions() {
 
   const p=el('div','card');
   p.appendChild(el('h3',null,`Pricing database — gerado em ${PRICING_META.generated_at} por ${PRICING_META.generator}`));
+  if (PRICING_META.fx) p.appendChild(el('p','note',`Câmbio (apresentação): USD→BRL ${PRICING_META.fx.BRL.toFixed(4)} · USD→EUR ${PRICING_META.fx.EUR.toFixed(4)} — ${PRICING_META.fx.source}, ${PRICING_META.fx.date}.`));
   const t=el('table','cmp');
   t.appendChild(el('tr',null,'<th>Provider</th><th>Service</th><th>SKU</th><th>Unit</th><th class="r">Price (USD)</th><th>Método</th><th>Valid from</th><th>Source</th>'));
   PRICING.forEach(x=>{ const tr=el('tr');
@@ -2314,11 +2344,107 @@ function render() {
   window.scrollTo(0, scroll);
 }
 
+/* ==================================================================== */
+/* ATUALIZAÇÃO DE PREÇOS (usa o servidor local: python tools/serve.py)   */
+/* ==================================================================== */
+const PRICE_API = { status:'/api/prices/status', prices:'/api/prices', refresh:'/api/prices/refresh' };
+let PRICE_POLL = null;
+const fmtDur = s => s >= 90 ? `${Math.floor(s/60)} min ${String(Math.round(s%60)).padStart(2,'0')} s` : `${Math.round(s)} s`;
+const fmtEta = s => s >= 90 ? `~${Math.round(s/60)} min` : `~${Math.round(s)} s`;
+
+function renderPriceInfo() {
+  const d = PRICING_META.generated_at;
+  const days = Math.floor((Date.now() - new Date(d + 'T00:00:00').getTime()) / 86400000);
+  const e = $('#priceInfo'); if (!e) return;
+  e.textContent = `Preços de ${d} · USD→BRL ${FX.BRL.toFixed(2)}` + (days > 7 ? ` · há ${days} dias` : '');
+  e.classList.toggle('stale', days > 7);
+}
+
+function closeModal() { clearInterval(PRICE_POLL); PRICE_POLL = null; const m = document.getElementById('modal'); if (m) m.remove(); }
+
+function applyPrices(data) {
+  const key = p => `${p.provider}/${p.service}/${p.sku}`;
+  const old = new Map(PRICING.map(p => [key(p), p.price]));
+  const changes = [], added = [];
+  data.pricing.forEach(p => {
+    if (!old.has(key(p))) added.push(key(p));
+    else if (old.get(key(p)) !== p.price) changes.push({ k:key(p), from:old.get(key(p)), to:p.price });
+  });
+  const fxBefore = FX.BRL;
+  PRICING.splice(0, PRICING.length, ...data.pricing);
+  Object.assign(PRICING_META, data.meta);
+  if (data.meta.fx) { FX.BRL = data.meta.fx.BRL; FX.EUR = data.meta.fx.EUR; if (typeof FX_META !== 'undefined') Object.assign(FX_META, data.meta.fx); }
+  render(); renderPriceInfo();
+  return { total: data.pricing.length, changes, added, fxBefore, fxNow: FX.BRL };
+}
+
+async function openPriceRefresh() {
+  closeModal();
+  const bg = el('div','modal-bg'); bg.id = 'modal';
+  const box = el('div','modal'); bg.appendChild(box);
+  box.appendChild(el('h3',null,'Atualizar preços'));
+  const body = el('div','modal-body'); box.appendChild(body);
+  const foot = el('div','modal-foot'); box.appendChild(foot);
+  const close = el('button','btn ghost','Fechar'); close.onclick = closeModal; foot.appendChild(close);
+  bg.onclick = e => { if (e.target === bg) closeModal(); };
+  document.body.appendChild(bg);
+
+  let st;
+  try {
+    const r = await fetch(PRICE_API.status, { cache:'no-store' });
+    st = await r.json(); if (!st || !st.state) throw new Error('resposta inválida');
+  } catch (e) {
+    body.innerHTML = `<p><b>Servidor local não encontrado.</b> O navegador sozinho não executa o coletor de preços (Python); é o servidor local que faz isso.</p>
+      <p>No terminal, na raiz do projeto:</p><p><code>python calculator/tools/serve.py</code></p>
+      <p>e use o botão na página que abrir (<code>http://127.0.0.1:8765</code>).</p>
+      <p class="note">No GitHub Pages os preços são os da última publicação: <b>${PRICING_META.generated_at}</b>.</p>`;
+    return;
+  }
+
+  const paint = s => {
+    const pct = s.state === 'done' ? 100 : Math.min(95, s.elapsed / s.estimate_seconds * 100);
+    const icon = { done:'✓', running:'⟳', pending:'○' };
+    body.innerHTML = `<p>Estimativa: <b>${fmtEta(s.estimate_seconds)}</b> · decorrido <b>${fmtDur(s.elapsed)}</b></p>
+      <div class="pbar"><span style="width:${pct}%"></span></div>
+      <ul class="psteps">${s.steps.map(x => `<li class="${x.status}"><i>${icon[x.status]}</i>${x.label}</li>`).join('')}</ul>
+      <p class="note">${(s.log_tail[s.log_tail.length-1] || '').replace(/</g,'&lt;')}</p>`;
+  };
+
+  try {
+    if (st.state !== 'running') {
+      const r = await fetch(PRICE_API.refresh, { method:'POST', headers:{ 'X-DataCost':'1' } });
+      if (!r.ok && r.status !== 200) throw new Error('não foi possível iniciar (' + r.status + ')');
+      st = await r.json();
+    }
+  } catch (e) { body.innerHTML = `<p class="neg-t"><b>Falha ao iniciar:</b> ${e.message}</p>`; return; }
+
+  paint(st);
+  PRICE_POLL = setInterval(async () => {
+    try {
+      const s = await (await fetch(PRICE_API.status, { cache:'no-store' })).json();
+      if (s.state === 'running') return paint(s);
+      clearInterval(PRICE_POLL); PRICE_POLL = null;
+      if (s.state === 'error') {
+        body.innerHTML = `<p class="neg-t"><b>A atualização falhou:</b> ${s.error}</p><pre class="plog">${s.log_tail.join('\n').replace(/</g,'&lt;')}</pre>`;
+        return;
+      }
+      const data = await (await fetch(PRICE_API.prices, { cache:'no-store' })).json();
+      const res = applyPrices(data);
+      const top = [...res.changes].sort((a,b) => Math.abs(b.to/b.from-1) - Math.abs(a.to/a.from-1)).slice(0, 8);
+      body.innerHTML = `<p class="ok-t" style="font-size:14px"><b>✓ Preços atualizados em ${fmtDur(s.elapsed)}.</b></p>
+        <p>${res.total} preços · <b>${res.changes.length}</b> mudaram · <b>${res.added.length}</b> novos · câmbio USD→BRL ${res.fxBefore.toFixed(4)} → <b>${res.fxNow.toFixed(4)}</b></p>` +
+        (top.length ? `<table class="cmp"><tr><th>Preço</th><th class="r">Antes</th><th class="r">Agora</th><th class="r">Δ</th></tr>${top.map(c =>
+          `<tr><td><code>${c.k}</code></td><td class="r">${c.from}</td><td class="r">${c.to}</td><td class="r ${c.to>c.from?'neg-t':'pos-t'}">${((c.to/c.from-1)*100).toFixed(1)}%</td></tr>`).join('')}</table>`
+          : '<p class="note">Nenhum preço de tabela mudou desde a última coleta.</p>') +
+        '<p class="note">Os custos da tela já foram recalculados com os novos valores.</p>';
+    } catch (e) { /* tenta de novo no próximo tick */ }
+  }, 1000);
+}
+
 function boot() {
-  $('#profile').onchange = e => { PROFILE=e.target.value; render(false); };
   $('#currency').onchange = e => { CURRENCY=e.target.value; render(false); };
   $('#advToggle').onchange = e => { SHOW_ADV=e.target.checked; render(); };
-  $('#reset').onclick = () => { G=structuredClone(G_DEFAULTS); STAGES=STAGE_DEFAULTS(); render(); };
+  $('#refreshPrices').onclick = openPriceRefresh; renderPriceInfo();
   document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{TAB=t.dataset.tab;render(false);});
   render();
 }

@@ -666,6 +666,11 @@ function viewCompare() {
   const root = el('div');
   root.appendChild(el('div','lead','<h2>Scenario comparison</h2><p>Variantes da mesma arquitetura, calculadas sobre o mesmo workload e o mesmo schedule.</p>'));
 
+  const prof = el('div','card'); prof.appendChild(el('h3',null,'Perfil de decisão'));
+  prof.appendChild(sel('Define os pesos do score (custo, SLA, performance, escalabilidade, complexidade) e, portanto, o ranking abaixo',
+    Object.entries(PROFILES).map(([k,v])=>[k,v.label]), PROFILE, v=>{PROFILE=v; render(false);}));
+  root.appendChild(prof);
+
   const pick = el('div','card'); pick.appendChild(el('h3',null,'Variantes comparadas'));
   Object.values(VARIANTS).forEach(v=>{
     const row = el('label','chk');
@@ -814,6 +819,7 @@ function viewAssumptions() {
 
   const p=el('div','card');
   p.appendChild(el('h3',null,`Pricing database — gerado em ${PRICING_META.generated_at} por ${PRICING_META.generator}`));
+  if (PRICING_META.fx) p.appendChild(el('p','note',`Câmbio (apresentação): USD→BRL ${PRICING_META.fx.BRL.toFixed(4)} · USD→EUR ${PRICING_META.fx.EUR.toFixed(4)} — ${PRICING_META.fx.source}, ${PRICING_META.fx.date}.`));
   const t=el('table','cmp');
   t.appendChild(el('tr',null,'<th>Provider</th><th>Service</th><th>SKU</th><th>Unit</th><th class="r">Price (USD)</th><th>Método</th><th>Valid from</th><th>Source</th>'));
   PRICING.forEach(x=>{ const tr=el('tr');
@@ -878,11 +884,107 @@ function render() {
   window.scrollTo(0, scroll);
 }
 
+/* ==================================================================== */
+/* ATUALIZAÇÃO DE PREÇOS (usa o servidor local: python tools/serve.py)   */
+/* ==================================================================== */
+const PRICE_API = { status:'/api/prices/status', prices:'/api/prices', refresh:'/api/prices/refresh' };
+let PRICE_POLL = null;
+const fmtDur = s => s >= 90 ? `${Math.floor(s/60)} min ${String(Math.round(s%60)).padStart(2,'0')} s` : `${Math.round(s)} s`;
+const fmtEta = s => s >= 90 ? `~${Math.round(s/60)} min` : `~${Math.round(s)} s`;
+
+function renderPriceInfo() {
+  const d = PRICING_META.generated_at;
+  const days = Math.floor((Date.now() - new Date(d + 'T00:00:00').getTime()) / 86400000);
+  const e = $('#priceInfo'); if (!e) return;
+  e.textContent = `Preços de ${d} · USD→BRL ${FX.BRL.toFixed(2)}` + (days > 7 ? ` · há ${days} dias` : '');
+  e.classList.toggle('stale', days > 7);
+}
+
+function closeModal() { clearInterval(PRICE_POLL); PRICE_POLL = null; const m = document.getElementById('modal'); if (m) m.remove(); }
+
+function applyPrices(data) {
+  const key = p => `${p.provider}/${p.service}/${p.sku}`;
+  const old = new Map(PRICING.map(p => [key(p), p.price]));
+  const changes = [], added = [];
+  data.pricing.forEach(p => {
+    if (!old.has(key(p))) added.push(key(p));
+    else if (old.get(key(p)) !== p.price) changes.push({ k:key(p), from:old.get(key(p)), to:p.price });
+  });
+  const fxBefore = FX.BRL;
+  PRICING.splice(0, PRICING.length, ...data.pricing);
+  Object.assign(PRICING_META, data.meta);
+  if (data.meta.fx) { FX.BRL = data.meta.fx.BRL; FX.EUR = data.meta.fx.EUR; if (typeof FX_META !== 'undefined') Object.assign(FX_META, data.meta.fx); }
+  render(); renderPriceInfo();
+  return { total: data.pricing.length, changes, added, fxBefore, fxNow: FX.BRL };
+}
+
+async function openPriceRefresh() {
+  closeModal();
+  const bg = el('div','modal-bg'); bg.id = 'modal';
+  const box = el('div','modal'); bg.appendChild(box);
+  box.appendChild(el('h3',null,'Atualizar preços'));
+  const body = el('div','modal-body'); box.appendChild(body);
+  const foot = el('div','modal-foot'); box.appendChild(foot);
+  const close = el('button','btn ghost','Fechar'); close.onclick = closeModal; foot.appendChild(close);
+  bg.onclick = e => { if (e.target === bg) closeModal(); };
+  document.body.appendChild(bg);
+
+  let st;
+  try {
+    const r = await fetch(PRICE_API.status, { cache:'no-store' });
+    st = await r.json(); if (!st || !st.state) throw new Error('resposta inválida');
+  } catch (e) {
+    body.innerHTML = `<p><b>Servidor local não encontrado.</b> O navegador sozinho não executa o coletor de preços (Python); é o servidor local que faz isso.</p>
+      <p>No terminal, na raiz do projeto:</p><p><code>python calculator/tools/serve.py</code></p>
+      <p>e use o botão na página que abrir (<code>http://127.0.0.1:8765</code>).</p>
+      <p class="note">No GitHub Pages os preços são os da última publicação: <b>${PRICING_META.generated_at}</b>.</p>`;
+    return;
+  }
+
+  const paint = s => {
+    const pct = s.state === 'done' ? 100 : Math.min(95, s.elapsed / s.estimate_seconds * 100);
+    const icon = { done:'✓', running:'⟳', pending:'○' };
+    body.innerHTML = `<p>Estimativa: <b>${fmtEta(s.estimate_seconds)}</b> · decorrido <b>${fmtDur(s.elapsed)}</b></p>
+      <div class="pbar"><span style="width:${pct}%"></span></div>
+      <ul class="psteps">${s.steps.map(x => `<li class="${x.status}"><i>${icon[x.status]}</i>${x.label}</li>`).join('')}</ul>
+      <p class="note">${(s.log_tail[s.log_tail.length-1] || '').replace(/</g,'&lt;')}</p>`;
+  };
+
+  try {
+    if (st.state !== 'running') {
+      const r = await fetch(PRICE_API.refresh, { method:'POST', headers:{ 'X-DataCost':'1' } });
+      if (!r.ok && r.status !== 200) throw new Error('não foi possível iniciar (' + r.status + ')');
+      st = await r.json();
+    }
+  } catch (e) { body.innerHTML = `<p class="neg-t"><b>Falha ao iniciar:</b> ${e.message}</p>`; return; }
+
+  paint(st);
+  PRICE_POLL = setInterval(async () => {
+    try {
+      const s = await (await fetch(PRICE_API.status, { cache:'no-store' })).json();
+      if (s.state === 'running') return paint(s);
+      clearInterval(PRICE_POLL); PRICE_POLL = null;
+      if (s.state === 'error') {
+        body.innerHTML = `<p class="neg-t"><b>A atualização falhou:</b> ${s.error}</p><pre class="plog">${s.log_tail.join('\n').replace(/</g,'&lt;')}</pre>`;
+        return;
+      }
+      const data = await (await fetch(PRICE_API.prices, { cache:'no-store' })).json();
+      const res = applyPrices(data);
+      const top = [...res.changes].sort((a,b) => Math.abs(b.to/b.from-1) - Math.abs(a.to/a.from-1)).slice(0, 8);
+      body.innerHTML = `<p class="ok-t" style="font-size:14px"><b>✓ Preços atualizados em ${fmtDur(s.elapsed)}.</b></p>
+        <p>${res.total} preços · <b>${res.changes.length}</b> mudaram · <b>${res.added.length}</b> novos · câmbio USD→BRL ${res.fxBefore.toFixed(4)} → <b>${res.fxNow.toFixed(4)}</b></p>` +
+        (top.length ? `<table class="cmp"><tr><th>Preço</th><th class="r">Antes</th><th class="r">Agora</th><th class="r">Δ</th></tr>${top.map(c =>
+          `<tr><td><code>${c.k}</code></td><td class="r">${c.from}</td><td class="r">${c.to}</td><td class="r ${c.to>c.from?'neg-t':'pos-t'}">${((c.to/c.from-1)*100).toFixed(1)}%</td></tr>`).join('')}</table>`
+          : '<p class="note">Nenhum preço de tabela mudou desde a última coleta.</p>') +
+        '<p class="note">Os custos da tela já foram recalculados com os novos valores.</p>';
+    } catch (e) { /* tenta de novo no próximo tick */ }
+  }, 1000);
+}
+
 function boot() {
-  $('#profile').onchange = e => { PROFILE=e.target.value; render(false); };
   $('#currency').onchange = e => { CURRENCY=e.target.value; render(false); };
   $('#advToggle').onchange = e => { SHOW_ADV=e.target.checked; render(); };
-  $('#reset').onclick = () => { G=structuredClone(G_DEFAULTS); STAGES=STAGE_DEFAULTS(); render(); };
+  $('#refreshPrices').onclick = openPriceRefresh; renderPriceInfo();
   document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{TAB=t.dataset.tab;render(false);});
   render();
 }
