@@ -666,6 +666,11 @@ function viewCompare() {
   const root = el('div');
   root.appendChild(el('div','lead','<h2>Scenario comparison</h2><p>Variantes da mesma arquitetura, calculadas sobre o mesmo workload e o mesmo schedule.</p>'));
 
+  const prof = el('div','card'); prof.appendChild(el('h3',null,'Perfil de decisão'));
+  prof.appendChild(sel('Define os pesos do score (custo, SLA, performance, escalabilidade, complexidade) e, portanto, o ranking abaixo',
+    Object.entries(PROFILES).map(([k,v])=>[k,v.label]), PROFILE, v=>{PROFILE=v; render(false);}));
+  root.appendChild(prof);
+
   const pick = el('div','card'); pick.appendChild(el('h3',null,'Variantes comparadas'));
   Object.values(VARIANTS).forEach(v=>{
     const row = el('label','chk');
@@ -977,11 +982,9 @@ async function openPriceRefresh() {
 }
 
 function boot() {
-  $('#profile').onchange = e => { PROFILE=e.target.value; render(false); };
   $('#currency').onchange = e => { CURRENCY=e.target.value; render(false); };
   $('#advToggle').onchange = e => { SHOW_ADV=e.target.checked; render(); };
   $('#refreshPrices').onclick = openPriceRefresh; renderPriceInfo();
-  $('#reset').onclick = () => { G=structuredClone(G_DEFAULTS); STAGES=STAGE_DEFAULTS(); render(); };
   document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{TAB=t.dataset.tab;render(false);});
   render();
 }
