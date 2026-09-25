@@ -1,5 +1,0 @@
-dagster
-dagster-webserver
-pyspark
-fastapi
-uvicorn
