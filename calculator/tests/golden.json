@@ -1,0 +1,5213 @@
+[
+ {
+  "name": "default",
+  "g": {
+   "name": "Oracle → Lakehouse → Snowflake",
+   "environment": "Production",
+   "criticality": "High",
+   "sourceType": "Oracle",
+   "sourceVolumeGB": 4096,
+   "dailyDeltaGB": 120,
+   "recordsPerDay": 60000000,
+   "ingestion": "incremental",
+   "targetFileMB": 128,
+   "catalogObjects": 50000,
+   "queriesPerDay": 300,
+   "avgQuerySec": 25,
+   "scanPerQueryGB": 3,
+   "failureRate": 2,
+   "retries": 2,
+   "crossRegionGB": 0,
+   "internetGB": 0,
+   "discountPct": 0,
+   "budgetMonthly": 2500,
+   "slaMaxMinutes": 360,
+   "freshnessHours": 30,
+   "orchestration": "chained",
+   "snowflakeEdition": "standard",
+   "snowflakeStorage": "capacity",
+   "dwStorage": true,
+   "customGbPerNodeMin": 0.5,
+   "customCostPerNodeHour": 0.3,
+   "_provided": {
+    "targetFileMB": 1,
+    "failureRate": 1,
+    "retries": 1,
+    "queriesPerDay": 1,
+    "recordsPerDay": 1,
+    "catalogObjects": 1,
+    "scanPerQueryGB": 1,
+    "avgQuerySec": 1
+   }
+  },
+  "stages": [
+   {
+    "key": "raw",
+    "name": "Ingestion → Raw",
+    "kind": "ingest",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 4,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-snappy",
+    "tableFormat": "hive",
+    "retentionDays": 365,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 0,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "bronze",
+    "name": "Bronze",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 4,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-snappy",
+    "tableFormat": "iceberg",
+    "retentionDays": 365,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "silver",
+    "name": "Silver",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 4,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 0.8,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "iceberg",
+    "retentionDays": 730,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "gold",
+    "name": "Gold",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 2,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 0.25,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "iceberg",
+    "retentionDays": 1095,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "dwload",
+    "name": "DW Load (Snowflake)",
+    "kind": "load",
+    "enabled": true,
+    "engine": "snowflake_wh",
+    "workers": 1,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "hive",
+    "retentionDays": 1095,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 0,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "serve",
+    "name": "Serving / BI",
+    "kind": "serve",
+    "enabled": true,
+    "engine": "snowflake_serve",
+    "workers": 1,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "iceberg",
+    "retentionDays": 0,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 0,
+    "whSize": "M",
+    "autoSuspendSec": 300
+   }
+  ],
+  "expected": {
+   "monthly": 2725.1178763596,
+   "breakdown": {
+    "Ingestion": 79.02243555555556,
+    "Storage": 1254.3483547596,
+    "Processing": 233.28041244444444,
+    "Warehouse": 829.3120000000001,
+    "Maintenance": 328.6546736,
+    "Network": 0,
+    "Catalog": 0.5
+   },
+   "slaStatus": "PASS",
+   "processingMin": 320.8666666666666,
+   "latencyMin": 1760.8666666666666,
+   "confidence": 82,
+   "range": {
+    "low": 2283.6487803893447,
+    "high": 3166.5869723298547
+   },
+   "unit": {
+    "perMonth": 2725.1178763596,
+    "perYear": 32701.4145163152,
+    "perTB": 764.9453688026947,
+    "perGBIngested": 0.7470169617213815,
+    "perGBStored": 0.049871910615620844,
+    "perMillionRec": 1.494033923442763,
+    "perQuery": 0.2988067846885526,
+    "perRunSet": 14.940339234427631
+   },
+   "complexity": 26,
+   "assumptions": [
+    "Retries: multiplicador de 1.040× sobre compute e requests.",
+    "Apache Iceberg: manutenção (compaction/expire snapshots) cobrada 4×/mês na camada Bronze.",
+    "Apache Iceberg: storage multiplicado por 1.25× devido a snapshots retidos.",
+    "Apache Iceberg: manutenção (compaction/expire snapshots) cobrada 4×/mês na camada Silver.",
+    "Apache Iceberg: manutenção (compaction/expire snapshots) cobrada 4×/mês na camada Gold.",
+    "Estágios encadeados numa única DAG: latência = maior intervalo de agendamento + soma dos tempos de execução."
+   ],
+   "stageTotals": [
+    [
+     "raw",
+     330.91621155555555,
+     68.16666666666667
+    ],
+    [
+     "bronze",
+     548.9456966915556,
+     68.16666666666667
+    ],
+    [
+     "silver",
+     620.3137774051556,
+     68.16666666666667
+    ],
+    [
+     "gold",
+     288.8809719573334,
+     108.16666666666666
+    ],
+    [
+     "dwload",
+     124.89455208333334,
+     8.2
+    ],
+    [
+     "serve",
+     810.6666666666667,
+     0
+    ]
+   ],
+   "variants": {
+    "asis": 2725.1178763596,
+    "dbx": 2469.5125439741028,
+    "emr": 2402.093981515156,
+    "lake": 1869.7129076096,
+    "elt": 2803.419244537378
+   },
+   "scored": {
+    "cost": [
+     [
+      "lake",
+      84.8684396328548
+     ],
+     [
+      "dbx",
+      59.06996227587481
+     ],
+     [
+      "emr",
+      52.56476491115809
+     ],
+     [
+      "elt",
+      42.5
+     ],
+     [
+      "asis",
+      31.612344459338193
+     ]
+    ],
+    "balanced": [
+     [
+      "lake",
+      79.15791951047306
+     ],
+     [
+      "dbx",
+      68.00614104072807
+     ],
+     [
+      "emr",
+      56.75903397291524
+     ],
+     [
+      "elt",
+      56.50000000000001
+     ],
+     [
+      "asis",
+      39.354432334064136
+     ]
+    ],
+    "performance": [
+     [
+      "dbx",
+      79.45464116856607
+     ],
+     [
+      "elt",
+      76.5
+     ],
+     [
+      "lake",
+      69.73687926570959
+     ],
+     [
+      "emr",
+      61.44576786901821
+     ],
+     [
+      "asis",
+      47.677216167032064
+     ]
+    ]
+   },
+   "optimizations": [
+    [
+     "wh-autosuspend",
+     243.19999999999982,
+     "PASS",
+     1760.8666666666666
+    ],
+    [
+     "raw-retention",
+     189.74999999999955,
+     "PASS",
+     1760.8666666666666
+    ],
+    [
+     "raw-lifecycle",
+     114.97499999999945,
+     "PASS",
+     1760.8666666666666
+    ]
+   ],
+   "sweep": [
+    [
+     1,
+     2725.1178763596,
+     1760.8666666666666,
+     "PASS"
+    ],
+    [
+     2,
+     2733.8102344524,
+     883.5333333333333,
+     "PASS"
+    ],
+    [
+     4,
+     2751.1941704524,
+     444.8666666666667,
+     "PASS"
+    ],
+    [
+     12,
+     2820.730694638,
+     152.42222222222222,
+     "PASS"
+    ],
+    [
+     24,
+     2925.0366511948,
+     79.31111111111112,
+     "PASS"
+    ],
+    [
+     48,
+     3133.6438831948,
+     42.75555555555556,
+     "PASS"
+    ],
+    [
+     96,
+     3550.8951890764,
+     24.477777777777778,
+     "PASS"
+    ],
+    [
+     288,
+     5219.8092184396,
+     12.292592592592593,
+     "PASS"
+    ]
+   ],
+   "sweepGold": [
+    [
+     1,
+     2725.1178763596
+    ],
+    [
+     2,
+     2726.1613994060003
+    ],
+    [
+     4,
+     2728.2480554060003
+    ],
+    [
+     12,
+     2736.594679406
+    ],
+    [
+     24,
+     2749.1169559628006
+    ],
+    [
+     48,
+     2774.1568279628
+    ],
+    [
+     96,
+     2824.2459341900003
+    ],
+    [
+     288,
+     3024.6023590987998
+    ]
+   ],
+   "sensitivity": [
+    [
+     0.25,
+     0.890625,
+     {
+      "asis": 1296.6025426131,
+      "dbx": 1237.4238911167258,
+      "emr": 1220.3608969019888,
+      "lake": 472.92730042560004,
+      "elt": 1320.2592286575446
+     }
+    ],
+    [
+     0.5,
+     1.78125,
+     {
+      "asis": 1772.7744505595333,
+      "dbx": 1648.120238766785,
+      "emr": 1614.2720551373113,
+      "lake": 938.5226328511999,
+      "elt": 1814.646030648422
+     }
+    ],
+    [
+     1,
+     3.5625,
+     {
+      "asis": 2725.1178763596,
+      "dbx": 2469.5125439741028,
+      "emr": 2402.093981515156,
+      "lake": 1869.7129076096,
+      "elt": 2803.419244537378
+     }
+    ],
+    [
+     2,
+     7.125,
+     {
+      "asis": 4629.804923006134,
+      "dbx": 4112.29734943514,
+      "emr": 3977.738029317245,
+      "lake": 3732.093652172801,
+      "elt": 4780.96586736169
+     }
+    ],
+    [
+     4,
+     14.25,
+     {
+      "asis": 8439.178821252799,
+      "dbx": 7397.866765310811,
+      "emr": 7129.0259298750225,
+      "lake": 7456.854946252799,
+      "elt": 8736.05891796391
+     }
+    ],
+    [
+     8,
+     28.5,
+     {
+      "asis": 16057.926812792535,
+      "dbx": 13969.005792108559,
+      "emr": 13431.60192603698,
+      "lake": 14906.3777294592,
+      "elt": 16646.245214214756
+     }
+    ],
+    [
+     16,
+     57,
+     {
+      "asis": 31295.422795872004,
+      "dbx": 27111.283845704045,
+      "emr": 26036.75391836089,
+      "lake": 29805.423295872006,
+      "elt": 32466.617806716447
+     }
+    ]
+   ],
+   "breakEven": [
+    {
+     "multiplier": 3.063887062800406,
+     "tb": 10.915097661226447,
+     "from": "lake",
+     "to": "emr"
+    }
+   ],
+   "gate": {
+    "status": "NO-GO",
+    "budget": 2500,
+    "monthly": 2725.1178763596,
+    "headroom": -225.1178763595999,
+    "usedPct": 109.00471505438401
+   },
+   "gateTight": {
+    "status": "REVIEW",
+    "budget": 2779.620233886792,
+    "monthly": 2725.1178763596,
+    "headroom": 54.50235752719209,
+    "usedPct": 98.0392156862745
+   },
+   "suggestions": {
+    "steps": [
+     {
+      "id": "wh-autosuspend",
+      "title": "Reduzir auto-suspend do warehouse para 60 s",
+      "why": "Warehouse suspenso não consome créditos; janelas de ociosidade longas são cobradas a cada execução ou sessão.",
+      "saving": 243.19999999999982,
+      "newMonthly": 2481.9178763596,
+      "slaAfter": "PASS"
+     },
+     {
+      "id": "raw-retention",
+      "title": "Reduzir a retenção da camada bruta para 90 dias",
+      "why": "Com Silver e Gold versionadas, manter a bruta por mais de um ano raramente atende a um requisito real de negócio ou compliance.",
+      "saving": 189.75,
+      "newMonthly": 2292.1678763596,
+      "slaAfter": "PASS"
+     }
+    ],
+    "finalMonthly": 2292.1678763596,
+    "reachable": false,
+    "finalSla": "PASS"
+   }
+  }
+ },
+ {
+  "name": "full_load",
+  "g": {
+   "name": "Oracle → Lakehouse → Snowflake",
+   "environment": "Production",
+   "criticality": "High",
+   "sourceType": "Oracle",
+   "sourceVolumeGB": 4096,
+   "dailyDeltaGB": 120,
+   "recordsPerDay": 60000000,
+   "ingestion": "full",
+   "targetFileMB": 128,
+   "catalogObjects": 50000,
+   "queriesPerDay": 300,
+   "avgQuerySec": 25,
+   "scanPerQueryGB": 3,
+   "failureRate": 2,
+   "retries": 2,
+   "crossRegionGB": 0,
+   "internetGB": 0,
+   "discountPct": 0,
+   "budgetMonthly": 2500,
+   "slaMaxMinutes": 360,
+   "freshnessHours": 30,
+   "orchestration": "chained",
+   "snowflakeEdition": "standard",
+   "snowflakeStorage": "capacity",
+   "dwStorage": true,
+   "customGbPerNodeMin": 0.5,
+   "customCostPerNodeHour": 0.3,
+   "_provided": {
+    "targetFileMB": 1,
+    "failureRate": 1,
+    "retries": 1,
+    "queriesPerDay": 1,
+    "recordsPerDay": 1,
+    "catalogObjects": 1,
+    "scanPerQueryGB": 1,
+    "avgQuerySec": 1
+   }
+  },
+  "stages": [
+   {
+    "key": "raw",
+    "name": "Ingestion → Raw",
+    "kind": "ingest",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 4,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-snappy",
+    "tableFormat": "hive",
+    "retentionDays": 365,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 0,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "bronze",
+    "name": "Bronze",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 4,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-snappy",
+    "tableFormat": "iceberg",
+    "retentionDays": 365,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "silver",
+    "name": "Silver",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 4,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 0.8,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "iceberg",
+    "retentionDays": 730,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "gold",
+    "name": "Gold",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 2,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 0.25,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "iceberg",
+    "retentionDays": 1095,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "dwload",
+    "name": "DW Load (Snowflake)",
+    "kind": "load",
+    "enabled": true,
+    "engine": "snowflake_wh",
+    "workers": 1,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "hive",
+    "retentionDays": 1095,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 0,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "serve",
+    "name": "Serving / BI",
+    "kind": "serve",
+    "enabled": true,
+    "engine": "snowflake_serve",
+    "workers": 1,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "iceberg",
+    "retentionDays": 0,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 0,
+    "whSize": "M",
+    "autoSuspendSec": 300
+   }
+  ],
+  "expected": {
+   "monthly": 65857.29931025351,
+   "breakdown": {
+    "Ingestion": 2639.6842429629633,
+    "Storage": 42838.634668262406,
+    "Processing": 7812.8393623703705,
+    "Warehouse": 1366.5137777777777,
+    "Maintenance": 11199.127258879998,
+    "Network": 0,
+    "Catalog": 0.5
+   },
+   "slaStatus": "FAIL",
+   "processingMin": 10746.822222222223,
+   "latencyMin": 12186.822222222223,
+   "confidence": 82,
+   "range": {
+    "low": 55188.41682199244,
+    "high": 76526.18179851458
+   },
+   "unit": {
+    "perMonth": 65857.29931025351,
+    "perYear": 790287.5917230421,
+    "perTB": 541.5896324856375,
+    "perGBIngested": 0.5288961254742554,
+    "perGBStored": 0.0352904792413545,
+    "perMillionRec": 36.10597549904249,
+    "perQuery": 7.221195099808499,
+    "perRunSet": 361.05975499042495
+   },
+   "complexity": 26,
+   "assumptions": [
+    "Retries: multiplicador de 1.040× sobre compute e requests.",
+    "Full load: cada execução do primeiro estágio lê o volume total da fonte.",
+    "Apache Iceberg: manutenção (compaction/expire snapshots) cobrada 4×/mês na camada Bronze.",
+    "Apache Iceberg: storage multiplicado por 1.25× devido a snapshots retidos.",
+    "Apache Iceberg: manutenção (compaction/expire snapshots) cobrada 4×/mês na camada Silver.",
+    "Apache Iceberg: manutenção (compaction/expire snapshots) cobrada 4×/mês na camada Gold.",
+    "Estágios encadeados numa única DAG: latência = maior intervalo de agendamento + soma dos tempos de execução."
+   ],
+   "stageTotals": [
+    [
+     "raw",
+     11261.210463762962,
+     2277.0555555555557
+    ],
+    [
+     "bronze",
+     18672.442223071765,
+     2277.0555555555557
+    ],
+    [
+     "silver",
+     21108.46773124456,
+     2277.0555555555557
+    ],
+    [
+     "gold",
+     9821.525114396445,
+     3642.388888888889
+    ],
+    [
+     "dwload",
+     4182.487111111111,
+     273.26666666666665
+    ],
+    [
+     "serve",
+     810.6666666666667,
+     0
+    ]
+   ],
+   "variants": {
+    "asis": 65857.29931025351,
+    "dbx": 56923.999719921885,
+    "emr": 54631.98405369648,
+    "lake": 60944.30178247573,
+    "elt": 68349.68130245499
+   },
+   "scored": {
+    "cost": [
+     [
+      "dbx",
+      65.88817872354133
+     ],
+     [
+      "emr",
+      65.41364985440374
+     ],
+     [
+      "lake",
+      39.55272972126564
+     ],
+     [
+      "elt",
+      22.5
+     ],
+     [
+      "asis",
+      16.993004444203468
+     ]
+    ],
+    "balanced": [
+     [
+      "dbx",
+      62.92039092304673
+     ],
+     [
+      "emr",
+      56.55153313920498
+     ],
+     [
+      "lake",
+      35.74226295147434
+     ],
+     [
+      "elt",
+      31.5
+     ],
+     [
+      "asis",
+      18.26763959578434
+     ]
+    ],
+    "performance": [
+     [
+      "dbx",
+      55.31396953456006
+     ],
+     [
+      "elt",
+      41.5
+     ],
+     [
+      "emr",
+      40.827299708807466
+     ],
+     [
+      "lake",
+      25.519742414955687
+     ],
+     [
+      "asis",
+      14.63381979789217
+     ]
+    ]
+   },
+   "optimizations": [
+    [
+     "full-to-incremental",
+     63132.181433893915,
+     "PASS",
+     1760.8666666666666
+    ],
+    [
+     "raw-retention",
+     6476.800000000003,
+     "FAIL",
+     12186.822222222223
+    ],
+    [
+     "raw-lifecycle",
+     3935.2320000000036,
+     "FAIL",
+     12186.822222222223
+    ]
+   ],
+   "sweep": [
+    [
+     1,
+     65857.29931025351,
+     12186.822222222223,
+     "FAIL"
+    ],
+    [
+     2,
+     130879.30795384035,
+     11466.822222222223,
+     "FAIL"
+    ],
+    [
+     4,
+     260923.325241014,
+     11106.822222222223,
+     "FAIL"
+    ],
+    [
+     12,
+     781099.394389709,
+     10866.822222222223,
+     "FAIL"
+    ],
+    [
+     24,
+     1561363.4981127512,
+     10806.822222222223,
+     "FAIL"
+    ],
+    [
+     48,
+     3121891.7055588355,
+     10776.822222222223,
+     "FAIL"
+    ],
+    [
+     96,
+     6242948.120451004,
+     10761.822222222223,
+     "FAIL"
+    ],
+    [
+     288,
+     18727173.780019674,
+     10751.822222222223,
+     "FAIL"
+    ]
+   ],
+   "sweepGold": [
+    [
+     1,
+     65857.29931025351
+    ],
+    [
+     2,
+     65858.34263825353
+    ],
+    [
+     4,
+     65860.42929425352
+    ],
+    [
+     12,
+     65868.77747862472
+    ],
+    [
+     24,
+     65881.2997551815
+    ],
+    [
+     48,
+     65906.33962718151
+    ],
+    [
+     96,
+     65956.42873340871
+    ],
+    [
+     288,
+     66156.7851583175
+    ]
+   ],
+   "sensitivity": [
+    [
+     0.25,
+     30.4,
+     {
+      "asis": 17079.64785232498,
+      "dbx": 14851.04563634207,
+      "emr": 14277.83336618572,
+      "lake": 15241.574470380534,
+      "elt": 17706.824694375347
+     }
+    ],
+    [
+     0.5,
+     60.8,
+     {
+      "asis": 33338.865069983294,
+      "dbx": 28875.363729217475,
+      "emr": 27729.216993704773,
+      "lake": 30475.81697276107,
+      "elt": 34587.77696208403
+     }
+    ],
+    [
+     1,
+     121.6,
+     {
+      "asis": 65857.29931025351,
+      "dbx": 56923.999719921885,
+      "emr": 54631.98405369648,
+      "lake": 60944.30178247573,
+      "elt": 68349.68130245499
+     }
+    ],
+    [
+     2,
+     243.2,
+     {
+      "asis": 130894.16798584035,
+      "dbx": 113021.27189637709,
+      "emr": 108437.51836872629,
+      "lake": 121881.27159695147,
+      "elt": 135873.49017824332
+     }
+    ],
+    [
+     4,
+     486.4,
+     {
+      "asis": 260967.90494692122,
+      "dbx": 225215.81585919473,
+      "emr": 216048.5866086931,
+      "lake": 243755.2108358101,
+      "elt": 270921.1075397272
+     }
+    ],
+    [
+     8,
+     972.8,
+     {
+      "asis": 521115.37906412943,
+      "dbx": 449604.9039798764,
+      "emr": 431270.7232836732,
+      "lake": 487503.0895085739,
+      "elt": 541016.3424577413
+     }
+    ],
+    [
+     16,
+     1945.6,
+     {
+      "asis": 1041410.3272985459,
+      "dbx": 898383.0802212398,
+      "emr": 861714.9966336333,
+      "lake": 974998.8468541014,
+      "elt": 1081206.8122937698
+     }
+    ]
+   ],
+   "breakEven": [
+    {
+     "multiplier": 0.12094020724677898,
+     "tb": 14.706329201208323,
+     "from": "lake",
+     "to": "emr"
+    }
+   ],
+   "gate": {
+    "status": "NO-GO",
+    "budget": 2500,
+    "monthly": 65857.29931025351,
+    "headroom": -63357.29931025351,
+    "usedPct": 2634.2919724101403
+   },
+   "gateTight": {
+    "status": "REVIEW",
+    "budget": 67174.44529645858,
+    "monthly": 65857.29931025351,
+    "headroom": 1317.1459862050688,
+    "usedPct": 98.03921568627452
+   },
+   "suggestions": {
+    "steps": [
+     {
+      "id": "full-to-incremental",
+      "title": "Migrar de Full Load para Incremental",
+      "why": "O delta diário é uma fração pequena da base; reprocessar tudo a cada execução multiplica compute, escrita e storage.",
+      "saving": 63132.181433893915,
+      "newMonthly": 2725.1178763596,
+      "slaAfter": "PASS"
+     }
+    ],
+    "finalMonthly": 2725.1178763596,
+    "reachable": true,
+    "finalSla": "PASS"
+   }
+  }
+ },
+ {
+  "name": "cdc_independent_discount",
+  "g": {
+   "name": "Oracle → Lakehouse → Snowflake",
+   "environment": "Production",
+   "criticality": "High",
+   "sourceType": "Oracle",
+   "sourceVolumeGB": 4096,
+   "dailyDeltaGB": 120,
+   "recordsPerDay": 60000000,
+   "ingestion": "cdc",
+   "targetFileMB": 128,
+   "catalogObjects": 50000,
+   "queriesPerDay": 300,
+   "avgQuerySec": 25,
+   "scanPerQueryGB": 3,
+   "failureRate": 2,
+   "retries": 2,
+   "crossRegionGB": 500,
+   "internetGB": 200,
+   "discountPct": 15,
+   "budgetMonthly": 2500,
+   "slaMaxMinutes": 360,
+   "freshnessHours": 30,
+   "orchestration": "independent",
+   "snowflakeEdition": "standard",
+   "snowflakeStorage": "capacity",
+   "dwStorage": true,
+   "customGbPerNodeMin": 0.5,
+   "customCostPerNodeHour": 0.3,
+   "_provided": {
+    "targetFileMB": 1,
+    "failureRate": 1,
+    "retries": 1,
+    "queriesPerDay": 1,
+    "recordsPerDay": 1,
+    "catalogObjects": 1,
+    "scanPerQueryGB": 1,
+    "avgQuerySec": 1
+   }
+  },
+  "stages": [
+   {
+    "key": "raw",
+    "name": "Ingestion → Raw",
+    "kind": "ingest",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 4,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-snappy",
+    "tableFormat": "hive",
+    "retentionDays": 365,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 0,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "bronze",
+    "name": "Bronze",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 4,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-snappy",
+    "tableFormat": "iceberg",
+    "retentionDays": 365,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "silver",
+    "name": "Silver",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 4,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 0.8,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "iceberg",
+    "retentionDays": 730,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "gold",
+    "name": "Gold",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 2,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 0.25,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "iceberg",
+    "retentionDays": 1095,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "dwload",
+    "name": "DW Load (Snowflake)",
+    "kind": "load",
+    "enabled": true,
+    "engine": "snowflake_wh",
+    "workers": 1,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "hive",
+    "retentionDays": 1095,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 0,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "serve",
+    "name": "Serving / BI",
+    "kind": "serve",
+    "enabled": true,
+    "engine": "snowflake_serve",
+    "workers": 1,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "iceberg",
+    "retentionDays": 0,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 0,
+    "whSize": "M",
+    "autoSuspendSec": 300
+   }
+  ],
+  "expected": {
+   "monthly": 2825.8452425900305,
+   "breakdown": {
+    "Ingestion": 86.8763768888889,
+    "Storage": 1386.05473306203,
+    "Processing": 256.62197831111115,
+    "Warehouse": 709.0496,
+    "Maintenance": 363.0175543280001,
+    "Network": 23.8,
+    "Catalog": 0.425
+   },
+   "slaStatus": "FAIL",
+   "processingMin": 415.2666666666667,
+   "latencyMin": 7615.266666666668,
+   "confidence": 79,
+   "range": {
+    "low": 2291.7604917405147,
+    "high": 3359.9299934395463
+   },
+   "unit": {
+    "perMonth": 2825.8452425900305,
+    "perYear": 33910.142911080366,
+    "perTB": 610.1690132448109,
+    "perGBIngested": 0.5958681769968857,
+    "perGBStored": 0.03978100362460759,
+    "perMillionRec": 1.5492572601919026,
+    "perQuery": 0.30985145203838055,
+    "perRunSet": 15.492572601919026
+   },
+   "complexity": 26,
+   "assumptions": [
+    "Retries: multiplicador de 1.040× sobre compute e requests.",
+    "CDC: +30% sobre o delta diário para before/after image e metadados.",
+    "Apache Iceberg: manutenção (compaction/expire snapshots) cobrada 4×/mês na camada Bronze.",
+    "Apache Iceberg: storage multiplicado por 1.25× devido a snapshots retidos.",
+    "Apache Iceberg: manutenção (compaction/expire snapshots) cobrada 4×/mês na camada Silver.",
+    "Apache Iceberg: manutenção (compaction/expire snapshots) cobrada 4×/mês na camada Gold.",
+    "Desconto contratual de 15% aplicado sobre o preço de lista.",
+    "Estágios agendados de forma independente: latência = Σ (intervalo + tempo de execução) de cada estágio."
+   ],
+   "stageTotals": [
+    [
+     "raw",
+     429.66941102222216,
+     88.16666666666667
+    ],
+    [
+     "bronze",
+     713.0417416990224,
+     88.16666666666667
+    ],
+    [
+     "silver",
+     805.8201100942223,
+     88.16666666666667
+    ],
+    [
+     "gold",
+     375.1925676213334,
+     140.16666666666669
+    ],
+    [
+     "dwload",
+     161.63331770833335,
+     10.6
+    ],
+    [
+     "serve",
+     810.6666666666667,
+     0
+    ]
+   ],
+   "variants": {
+    "asis": 2825.8452425900305,
+    "dbx": 2541.7956385600564,
+    "emr": 2467.3689672669198,
+    "lake": 2067.5230683712807,
+    "elt": 2910.9805974664746
+   },
+   "scored": {
+    "cost": [
+     [
+      "lake",
+      64.86679992731239
+     ],
+     [
+      "dbx",
+      53.6338358339295
+     ],
+     [
+      "emr",
+      48.201329055018526
+     ],
+     [
+      "elt",
+      32.5
+     ],
+     [
+      "asis",
+      12.551488197903037
+     ]
+    ],
+    "balanced": [
+     [
+      "dbx",
+      58.921638902751894
+     ],
+     [
+      "lake",
+      54.1557332364165
+     ],
+     [
+      "emr",
+      48.5702973637212
+     ],
+     [
+      "elt",
+      44
+     ],
+     [
+      "asis",
+      15.0374459621113
+     ]
+    ],
+    "performance": [
+     [
+      "dbx",
+      63.87428770314292
+     ],
+     [
+      "elt",
+      59
+     ],
+     [
+      "emr",
+      46.5676763940176
+     ],
+     [
+      "lake",
+      34.73359985462476
+     ],
+     [
+      "asis",
+      13.018722981055653
+     ]
+    ]
+   },
+   "optimizations": [
+    [
+     "raw-retention",
+     209.67374999999993,
+     "FAIL",
+     7615.266666666668
+    ],
+    [
+     "wh-autosuspend",
+     206.7199999999998,
+     "FAIL",
+     7615.266666666668
+    ],
+    [
+     "raw-lifecycle",
+     127.04737499999965,
+     "FAIL",
+     7615.266666666668
+    ]
+   ],
+   "sweep": [
+    [
+     1,
+     2825.8452425900305,
+     7615.266666666668,
+     "FAIL"
+    ],
+    [
+     2,
+     2833.23358117947,
+     3810.733333333334,
+     "PARTIAL"
+    ],
+    [
+     4,
+     2848.0102583583507,
+     1908.466666666667,
+     "PARTIAL"
+    ],
+    [
+     12,
+     2907.1156407583508,
+     640.288888888889,
+     "PASS"
+    ],
+    [
+     24,
+     2995.775703831631,
+     323.24444444444447,
+     "PASS"
+    ],
+    [
+     48,
+     3173.099550938191,
+     164.72222222222223,
+     "PASS"
+    ],
+    [
+     96,
+     3527.7552030444303,
+     85.46111111111112,
+     "PASS"
+    ],
+    [
+     288,
+     4946.39372725563,
+     32.620370370370374,
+     "PASS"
+    ]
+   ],
+   "sweepGold": [
+    [
+     1,
+     2825.8452425900305
+    ],
+    [
+     2,
+     2826.7322371794708
+    ],
+    [
+     4,
+     2828.5062263583504
+    ],
+    [
+     12,
+     2835.600856758351
+    ],
+    [
+     24,
+     2846.2428023583507
+    ],
+    [
+     48,
+     2867.5266935583504
+    ],
+    [
+     96,
+     2910.102433851471
+    ],
+    [
+     288,
+     3080.4053950239504
+    ]
+   ],
+   "sensitivity": [
+    [
+     0.25,
+     1.1578125,
+     {
+      "asis": 1247.3359645895875,
+      "dbx": 1180.3378429420939,
+      "emr": 1161.5540745588096,
+      "lake": 539.4050210349,
+      "elt": 1272.0889457086985
+     }
+    ],
+    [
+     0.5,
+     2.315625,
+     {
+      "asis": 1773.5057239230682,
+      "dbx": 1634.157108148081,
+      "emr": 1596.8257054615126,
+      "lake": 1048.7777034803598,
+      "elt": 1818.3861629612904
+     }
+    ],
+    [
+     1,
+     4.63125,
+     {
+      "asis": 2825.8452425900305,
+      "dbx": 2541.7956385600564,
+      "emr": 2467.3689672669198,
+      "lake": 2067.5230683712807,
+      "elt": 2910.9805974664746
+     }
+    ],
+    [
+     2,
+     9.2625,
+     {
+      "asis": 4930.524445713394,
+      "dbx": 4357.072865173445,
+      "emr": 4208.455656667172,
+      "lake": 4105.013963942561,
+      "elt": 5096.169632266283
+     }
+    ],
+    [
+     4,
+     18.525,
+     {
+      "asis": 9139.882686170678,
+      "dbx": 7987.627152610784,
+      "emr": 7690.628869678236,
+      "lake": 8179.9955892956805,
+      "elt": 9466.547536076458
+     }
+    ],
+    [
+     8,
+     37.05,
+     {
+      "asis": 17558.59933287469,
+      "dbx": 15248.735893274898,
+      "emr": 14654.975461489803,
+      "lake": 16329.95900579136,
+      "elt": 18207.30350948625
+     }
+    ],
+    [
+     16,
+     74.1,
+     {
+      "asis": 34396.03246049328,
+      "dbx": 29770.95320881369,
+      "emr": 28583.6684793235,
+      "lake": 32629.88567299328,
+      "elt": 35688.815290516395
+     }
+    ]
+   ],
+   "breakEven": [
+    {
+     "multiplier": 2.5333899557064026,
+     "tb": 11.732762232365276,
+     "from": "lake",
+     "to": "emr"
+    }
+   ],
+   "gate": {
+    "status": "NO-GO",
+    "budget": 2500,
+    "monthly": 2825.8452425900305,
+    "headroom": -325.84524259003047,
+    "usedPct": 113.03380970360122
+   },
+   "gateTight": {
+    "status": "REVIEW",
+    "budget": 2882.362147441831,
+    "monthly": 2825.8452425900305,
+    "headroom": 56.51690485180052,
+    "usedPct": 98.03921568627452
+   },
+   "suggestions": {
+    "steps": [
+     {
+      "id": "raw-retention",
+      "title": "Reduzir a retenção da camada bruta para 90 dias",
+      "why": "Com Silver e Gold versionadas, manter a bruta por mais de um ano raramente atende a um requisito real de negócio ou compliance.",
+      "saving": 209.67374999999993,
+      "newMonthly": 2616.1714925900305,
+      "slaAfter": "FAIL"
+     },
+     {
+      "id": "wh-autosuspend",
+      "title": "Reduzir auto-suspend do warehouse para 60 s",
+      "why": "Warehouse suspenso não consome créditos; janelas de ociosidade longas são cobradas a cada execução ou sessão.",
+      "saving": 206.7199999999998,
+      "newMonthly": 2409.4514925900307,
+      "slaAfter": "FAIL"
+     }
+    ],
+    "finalMonthly": 2409.4514925900307,
+    "reachable": false,
+    "finalSla": "FAIL"
+   }
+  }
+ },
+ {
+  "name": "hourly_everything",
+  "g": {
+   "name": "Oracle → Lakehouse → Snowflake",
+   "environment": "Production",
+   "criticality": "High",
+   "sourceType": "Oracle",
+   "sourceVolumeGB": 4096,
+   "dailyDeltaGB": 120,
+   "recordsPerDay": 60000000,
+   "ingestion": "incremental",
+   "targetFileMB": 128,
+   "catalogObjects": 50000,
+   "queriesPerDay": 300,
+   "avgQuerySec": 25,
+   "scanPerQueryGB": 3,
+   "failureRate": 2,
+   "retries": 2,
+   "crossRegionGB": 0,
+   "internetGB": 0,
+   "discountPct": 0,
+   "budgetMonthly": 2500,
+   "slaMaxMinutes": 360,
+   "freshnessHours": 30,
+   "orchestration": "chained",
+   "snowflakeEdition": "standard",
+   "snowflakeStorage": "capacity",
+   "dwStorage": true,
+   "customGbPerNodeMin": 0.5,
+   "customCostPerNodeHour": 0.3,
+   "_provided": {
+    "targetFileMB": 1,
+    "failureRate": 1,
+    "retries": 1,
+    "queriesPerDay": 1,
+    "recordsPerDay": 1,
+    "catalogObjects": 1,
+    "scanPerQueryGB": 1,
+    "avgQuerySec": 1
+   }
+  },
+  "stages": [
+   {
+    "key": "raw",
+    "name": "Ingestion → Raw",
+    "kind": "ingest",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 4,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 24,
+    "reduction": 1,
+    "fileFormat": "parquet-snappy",
+    "tableFormat": "hive",
+    "retentionDays": 365,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 0,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "bronze",
+    "name": "Bronze",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 4,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 24,
+    "reduction": 1,
+    "fileFormat": "parquet-snappy",
+    "tableFormat": "iceberg",
+    "retentionDays": 365,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "silver",
+    "name": "Silver",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 4,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 24,
+    "reduction": 0.8,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "iceberg",
+    "retentionDays": 730,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "gold",
+    "name": "Gold",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 2,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 24,
+    "reduction": 0.25,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "iceberg",
+    "retentionDays": 1095,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "dwload",
+    "name": "DW Load (Snowflake)",
+    "kind": "load",
+    "enabled": true,
+    "engine": "snowflake_wh",
+    "workers": 1,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 24,
+    "reduction": 1,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "hive",
+    "retentionDays": 1095,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 0,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "serve",
+    "name": "Serving / BI",
+    "kind": "serve",
+    "enabled": true,
+    "engine": "snowflake_serve",
+    "workers": 1,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 24,
+    "reduction": 1,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "iceberg",
+    "retentionDays": 0,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 0,
+    "whSize": "M",
+    "autoSuspendSec": 300
+   }
+  ],
+  "expected": {
+   "monthly": 2925.0366511948,
+   "breakdown": {
+    "Ingestion": 119.01667555555555,
+    "Storage": 1254.3518655948,
+    "Processing": 337.2654364444444,
+    "Warehouse": 885.248,
+    "Maintenance": 328.6546736,
+    "Network": 0,
+    "Catalog": 0.5
+   },
+   "slaStatus": "PASS",
+   "processingMin": 19.311111111111114,
+   "latencyMin": 79.31111111111112,
+   "confidence": 82,
+   "range": {
+    "low": 2451.1807137012424,
+    "high": 3398.8925886883576
+   },
+   "unit": {
+    "perMonth": 2925.0366511948,
+    "perYear": 35100.4398143376,
+    "perTB": 821.0629196336281,
+    "perGBIngested": 0.8018192574547149,
+    "perGBStored": 0.05353058951368179,
+    "perMillionRec": 1.6036385149094299,
+    "perQuery": 0.32072770298188596,
+    "perRunSet": 0.6681827145455959
+   },
+   "complexity": 26,
+   "assumptions": [
+    "Retries: multiplicador de 1.040× sobre compute e requests.",
+    "Apache Iceberg: manutenção (compaction/expire snapshots) cobrada 4×/mês na camada Bronze.",
+    "Apache Iceberg: storage multiplicado por 1.25× devido a snapshots retidos.",
+    "Apache Iceberg: manutenção (compaction/expire snapshots) cobrada 4×/mês na camada Silver.",
+    "Apache Iceberg: manutenção (compaction/expire snapshots) cobrada 4×/mês na camada Gold.",
+    "Estágios encadeados numa única DAG: latência = maior intervalo de agendamento + soma dos tempos de execução."
+   ],
+   "stageTotals": [
+    [
+     "raw",
+     370.91045155555554,
+     4.277777777777778
+    ],
+    [
+     "bronze",
+     588.9399366915555,
+     4.277777777777778
+    ],
+    [
+     "silver",
+     660.3089926371556,
+     4.277777777777778
+    ],
+    [
+     "gold",
+     312.8800515605334,
+     5.944444444444445
+    ],
+    [
+     "dwload",
+     180.83055208333332,
+     0.5333333333333333
+    ],
+    [
+     "serve",
+     810.6666666666667,
+     0
+    ]
+   ],
+   "variants": {
+    "asis": 2925.0366511948,
+    "dbx": 2797.994621209303,
+    "emr": 2724.904148350356,
+    "lake": 2013.6956824448002,
+    "elt": 3107.155235372578
+   },
+   "scored": {
+    "cost": [
+     [
+      "lake",
+      93.05495783658041
+     ],
+     [
+      "dbx",
+      51.28588761672478
+     ],
+     [
+      "asis",
+      44.796627110519395
+     ],
+     [
+      "emr",
+      43.22687467490699
+     ],
+     [
+      "elt",
+      42.5
+     ]
+    ],
+    "balanced": [
+     [
+      "lake",
+      90.07327711544055
+     ],
+     [
+      "dbx",
+      60.12330968877304
+     ],
+     [
+      "elt",
+      56.50000000000001
+     ],
+     [
+      "asis",
+      54.17708120924713
+     ],
+     [
+      "emr",
+      46.983181581750536
+     ]
+    ],
+    "performance": [
+     [
+      "lake",
+      86.10991567316081
+     ],
+     [
+      "elt",
+      76.5
+     ],
+     [
+      "dbx",
+      70.62551597292756
+     ],
+     [
+      "asis",
+      66.6035158881362
+     ],
+     [
+      "emr",
+      49.991590790875264
+     ]
+    ]
+   },
+   "optimizations": [
+    [
+     "wh-rightsize",
+     405.3333333333335,
+     "PASS",
+     79.31111111111112
+    ],
+    [
+     "wh-autosuspend",
+     243.20000000000027,
+     "PASS",
+     79.31111111111112
+    ],
+    [
+     "raw-retention",
+     189.75,
+     "PASS",
+     79.31111111111112
+    ],
+    [
+     "raw-lifecycle",
+     114.97499999999991,
+     "PASS",
+     79.31111111111112
+    ],
+    [
+     "downscale-schedule",
+     104.30595655680008,
+     "PASS",
+     152.42222222222222
+    ]
+   ],
+   "sweep": [
+    [
+     1,
+     2725.1178763596,
+     1760.8666666666666,
+     "PASS"
+    ],
+    [
+     2,
+     2733.8102344524,
+     883.5333333333333,
+     "PASS"
+    ],
+    [
+     4,
+     2751.1941704524,
+     444.8666666666667,
+     "PASS"
+    ],
+    [
+     12,
+     2820.730694638,
+     152.42222222222222,
+     "PASS"
+    ],
+    [
+     24,
+     2925.0366511948,
+     79.31111111111112,
+     "PASS"
+    ],
+    [
+     48,
+     3133.6438831948,
+     42.75555555555556,
+     "PASS"
+    ],
+    [
+     96,
+     3550.8951890764,
+     24.477777777777778,
+     "PASS"
+    ],
+    [
+     288,
+     5219.8092184396,
+     12.292592592592593,
+     "PASS"
+    ]
+   ],
+   "sweepGold": [
+    [
+     1,
+     2901.0375715916
+    ],
+    [
+     2,
+     2902.0810946379997
+    ],
+    [
+     4,
+     2904.167750638
+    ],
+    [
+     12,
+     2912.514374638
+    ],
+    [
+     24,
+     2925.0366511948
+    ],
+    [
+     48,
+     2950.0765231948003
+    ],
+    [
+     96,
+     3000.165629422
+    ],
+    [
+     288,
+     3200.5220543308
+    ]
+   ],
+   "sensitivity": [
+    [
+     0.25,
+     0.890625,
+     {
+      "asis": 1496.5277972691001,
+      "dbx": 1565.9124481727256,
+      "emr": 1543.1775435579889,
+      "lake": 616.9165550816,
+      "elt": 1624.0016993135446
+     }
+    ],
+    [
+     0.5,
+     1.78125,
+     {
+      "asis": 1972.6912749307335,
+      "dbx": 1976.600365537985,
+      "emr": 1937.080271508511,
+      "lake": 1082.5034572224001,
+      "elt": 2118.380071019622
+     }
+    ],
+    [
+     1,
+     3.5625,
+     {
+      "asis": 2925.0366511948,
+      "dbx": 2797.994621209303,
+      "emr": 2724.904148350356,
+      "lake": 2013.6956824448002,
+      "elt": 3107.155235372578
+     }
+    ],
+    [
+     2,
+     7.125,
+     {
+      "asis": 4829.722722609333,
+      "dbx": 4440.778451438338,
+      "emr": 4300.547220920444,
+      "lake": 3876.0754517760006,
+      "elt": 5084.7008829648885
+     }
+    ],
+    [
+     4,
+     14.25,
+     {
+      "asis": 8639.099546551999,
+      "dbx": 7726.350793010011,
+      "emr": 7451.838047174221,
+      "lake": 7600.839671551999,
+      "elt": 9039.79685926311
+     }
+    ],
+    [
+     8,
+     28.5,
+     {
+      "asis": 16257.848513323734,
+      "dbx": 14297.49079503976,
+      "emr": 13754.415018568181,
+      "lake": 15050.3634299904,
+      "elt": 16949.984130745957
+     }
+    ],
+    [
+     16,
+     57,
+     {
+      "asis": 31495.346446867203,
+      "dbx": 27439.77079909925,
+      "emr": 26359.56896135609,
+      "lake": 29949.410946867203,
+      "elt": 32770.35867371164
+     }
+    ]
+   ],
+   "breakEven": [
+    {
+     "multiplier": 3.70547136355806,
+     "tb": 13.200741732675587,
+     "from": "lake",
+     "to": "emr"
+    }
+   ],
+   "gate": {
+    "status": "NO-GO",
+    "budget": 2500,
+    "monthly": 2925.0366511948,
+    "headroom": -425.0366511948,
+    "usedPct": 117.00146604779201
+   },
+   "gateTight": {
+    "status": "REVIEW",
+    "budget": 2983.537384218696,
+    "monthly": 2925.0366511948,
+    "headroom": 58.50073302389592,
+    "usedPct": 98.03921568627452
+   },
+   "suggestions": {
+    "steps": [
+     {
+      "id": "wh-rightsize",
+      "title": "Reduzir o tamanho do virtual warehouse",
+      "why": "O tempo total de processamento está bem abaixo do SLA; um warehouse menor mantém o SLA a metade do custo em créditos.",
+      "saving": 405.3333333333335,
+      "newMonthly": 2519.7033178614665,
+      "slaAfter": "PASS"
+     },
+     {
+      "id": "raw-retention",
+      "title": "Reduzir a retenção da camada bruta para 90 dias",
+      "why": "Com Silver e Gold versionadas, manter a bruta por mais de um ano raramente atende a um requisito real de negócio ou compliance.",
+      "saving": 189.75,
+      "newMonthly": 2329.9533178614665,
+      "slaAfter": "PASS"
+     },
+     {
+      "id": "wh-autosuspend",
+      "title": "Reduzir auto-suspend do warehouse para 60 s",
+      "why": "Warehouse suspenso não consome créditos; janelas de ociosidade longas são cobradas a cada execução ou sessão.",
+      "saving": 121.59999999999991,
+      "newMonthly": 2208.3533178614666,
+      "slaAfter": "PASS"
+     },
+     {
+      "id": "downscale-schedule",
+      "title": "Reduzir a frequência dos estágios com folga de freshness",
+      "why": "Há folga entre a latência atual e o requisito de freshness; executar menos vezes reduz startups e mínimos de cobrança.",
+      "saving": 104.30595655679963,
+      "newMonthly": 2104.047361304667,
+      "slaAfter": "PASS"
+     }
+    ],
+    "finalMonthly": 2104.047361304667,
+    "reachable": false,
+    "finalSla": "PASS"
+   }
+  }
+ },
+ {
+  "name": "enterprise_ondemand_fail",
+  "g": {
+   "name": "Oracle → Lakehouse → Snowflake",
+   "environment": "Production",
+   "criticality": "High",
+   "sourceType": "Oracle",
+   "sourceVolumeGB": 4096,
+   "dailyDeltaGB": 120,
+   "recordsPerDay": 60000000,
+   "ingestion": "incremental",
+   "targetFileMB": 128,
+   "catalogObjects": 50000,
+   "queriesPerDay": 300,
+   "avgQuerySec": 25,
+   "scanPerQueryGB": 3,
+   "failureRate": 8,
+   "retries": 3,
+   "crossRegionGB": 0,
+   "internetGB": 0,
+   "discountPct": 0,
+   "budgetMonthly": 2500,
+   "slaMaxMinutes": 360,
+   "freshnessHours": 30,
+   "orchestration": "chained",
+   "snowflakeEdition": "enterprise",
+   "snowflakeStorage": "ondemand",
+   "dwStorage": true,
+   "customGbPerNodeMin": 0.5,
+   "customCostPerNodeHour": 0.3,
+   "_provided": {
+    "targetFileMB": 1,
+    "failureRate": 1,
+    "retries": 1,
+    "queriesPerDay": 1,
+    "recordsPerDay": 1,
+    "catalogObjects": 1,
+    "scanPerQueryGB": 1,
+    "avgQuerySec": 1
+   }
+  },
+  "stages": [
+   {
+    "key": "raw",
+    "name": "Ingestion → Raw",
+    "kind": "ingest",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 4,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-snappy",
+    "tableFormat": "hive",
+    "retentionDays": 365,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 0,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "bronze",
+    "name": "Bronze",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 4,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-snappy",
+    "tableFormat": "iceberg",
+    "retentionDays": 365,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "silver",
+    "name": "Silver",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 4,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 0.8,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "iceberg",
+    "retentionDays": 730,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "gold",
+    "name": "Gold",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 2,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 0.25,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "iceberg",
+    "retentionDays": 1095,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "dwload",
+    "name": "DW Load (Snowflake)",
+    "kind": "load",
+    "enabled": true,
+    "engine": "snowflake_wh",
+    "workers": 1,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "hive",
+    "retentionDays": 1095,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 0,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "serve",
+    "name": "Serving / BI",
+    "kind": "serve",
+    "enabled": true,
+    "engine": "snowflake_serve",
+    "workers": 1,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "iceberg",
+    "retentionDays": 0,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 0,
+    "whSize": "M",
+    "autoSuspendSec": 300
+   }
+  ],
+  "expected": {
+   "monthly": 3278.3850360576007,
+   "breakdown": {
+    "Ingestion": 94.21905777777778,
+    "Storage": 1332.9012744576003,
+    "Processing": 278.1420302222222,
+    "Warehouse": 1243.968,
+    "Maintenance": 328.6546736,
+    "Network": 0,
+    "Catalog": 0.5
+   },
+   "slaStatus": "PASS",
+   "processingMin": 320.8666666666666,
+   "latencyMin": 1760.8666666666666,
+   "confidence": 77,
+   "range": {
+    "low": 2599.759333593677,
+    "high": 3957.010738521524
+   },
+   "unit": {
+    "perMonth": 3278.3850360576007,
+    "perYear": 39340.62043269121,
+    "perTB": 920.2484311740634,
+    "perGBIngested": 0.8986801085684213,
+    "perGBStored": 0.059997157150599015,
+    "perMillionRec": 1.7973602171368426,
+    "perQuery": 0.3594720434273685,
+    "perRunSet": 17.973602171368423
+   },
+   "complexity": 26,
+   "assumptions": [
+    "Retries: multiplicador de 1.240× sobre compute e requests.",
+    "Apache Iceberg: manutenção (compaction/expire snapshots) cobrada 4×/mês na camada Bronze.",
+    "Apache Iceberg: storage multiplicado por 1.25× devido a snapshots retidos.",
+    "Apache Iceberg: manutenção (compaction/expire snapshots) cobrada 4×/mês na camada Silver.",
+    "Apache Iceberg: manutenção (compaction/expire snapshots) cobrada 4×/mês na camada Gold.",
+    "Estágios encadeados numa única DAG: latência = maior intervalo de agendamento + soma dos tempos de execução."
+   ],
+   "stageTotals": [
+    [
+     "raw",
+     346.1201297777777,
+     68.16666666666667
+    ],
+    [
+     "bronze",
+     564.1501985937779,
+     68.16666666666667
+    ],
+    [
+     "silver",
+     635.5149632753778,
+     68.16666666666667
+    ],
+    [
+     "gold",
+     303.35049441066667,
+     108.16666666666666
+    ],
+    [
+     "dwload",
+     212.74925000000002,
+     8.2
+    ],
+    [
+     "serve",
+     1216,
+     0
+    ]
+   ],
+   "variants": {
+    "asis": 3278.3850360576007,
+    "dbx": 3003.1635898943255,
+    "emr": 2930.393283435378,
+    "lake": 1929.7920360576004,
+    "elt": 3502.3129180131555
+   },
+   "scored": {
+    "cost": [
+     [
+      "lake",
+      84.8684396328548
+     ],
+     [
+      "dbx",
+      56.85926923413255
+     ],
+     [
+      "emr",
+      48.927970956270514
+     ],
+     [
+      "elt",
+      42.5
+     ],
+     [
+      "asis",
+      34.832031770693916
+     ]
+    ],
+    "balanced": [
+     [
+      "lake",
+      79.15791951047306
+     ],
+     [
+      "dbx",
+      66.39836428309734
+     ],
+     [
+      "elt",
+      56.50000000000001
+     ],
+     [
+      "emr",
+      54.114092914815195
+     ],
+     [
+      "asis",
+      41.69602310595921
+     ]
+    ],
+    "performance": [
+     [
+      "dbx",
+      78.65075278975071
+     ],
+     [
+      "elt",
+      76.5
+     ],
+     [
+      "lake",
+      69.73687926570959
+     ],
+     [
+      "emr",
+      60.1232973399682
+     ],
+     [
+      "asis",
+      48.8480115529796
+     ]
+    ]
+   },
+   "optimizations": [
+    [
+     "wh-autosuspend",
+     364.8000000000002,
+     "PASS",
+     1760.8666666666666
+    ],
+    [
+     "raw-retention",
+     189.75000000000045,
+     "PASS",
+     1760.8666666666666
+    ],
+    [
+     "raw-lifecycle",
+     114.97500000000036,
+     "PASS",
+     1760.8666666666666
+    ]
+   ],
+   "sweep": [
+    [
+     1,
+     3278.3850360576007,
+     1760.8666666666666,
+     "PASS"
+    ],
+    [
+     2,
+     3289.4972998144003,
+     883.5333333333333,
+     "PASS"
+    ],
+    [
+     4,
+     3311.7209158144005,
+     444.8666666666667,
+     "PASS"
+    ],
+    [
+     12,
+     3400.616291328,
+     152.42222222222222,
+     "PASS"
+    ],
+    [
+     24,
+     3533.9607218688006,
+     79.31111111111112,
+     "PASS"
+    ],
+    [
+     48,
+     3800.6441138688,
+     42.75555555555556,
+     "PASS"
+    ],
+    [
+     96,
+     4334.053926758399,
+     24.477777777777778,
+     "PASS"
+    ],
+    [
+     288,
+     6467.586691737599,
+     12.292592592592593,
+     "PASS"
+    ]
+   ],
+   "sweepGold": [
+    [
+     1,
+     3278.3850360576007
+    ],
+    [
+     2,
+     3279.6292319360005
+    ],
+    [
+     4,
+     3282.1171679360004
+    ],
+    [
+     12,
+     3292.0689119360004
+    ],
+    [
+     24,
+     3306.9992624768
+    ],
+    [
+     48,
+     3336.8544944768
+    ],
+    [
+     96,
+     3396.5758966400003
+    ],
+    [
+     288,
+     3635.4615052928
+    ]
+   ],
+   "sensitivity": [
+    [
+     0.25,
+     0.890625,
+     {
+      "asis": 1740.7342289536002,
+      "dbx": 1677.4577570127815,
+      "emr": 1659.0212587980445,
+      "lake": 488.8499789536001,
+      "elt": 1803.612263442489
+     }
+    ],
+    [
+     0.5,
+     1.78125,
+     {
+      "asis": 2253.2846499072,
+      "dbx": 2119.359853225563,
+      "emr": 2082.812085596089,
+      "lake": 969.1641499072002,
+      "elt": 2369.845966884978
+     }
+    ],
+    [
+     1,
+     3.5625,
+     {
+      "asis": 3278.3850360576007,
+      "dbx": 3003.1635898943255,
+      "emr": 2930.393283435378,
+      "lake": 1929.7920360576004,
+      "elt": 3502.3129180131555
+     }
+    ],
+    [
+     2,
+     7.125,
+     {
+      "asis": 5328.5860362368,
+      "dbx": 4770.771291110251,
+      "emr": 4625.555906992356,
+      "lake": 3851.0480362368007,
+      "elt": 5767.247048147911
+     }
+    ],
+    [
+     4,
+     14.25,
+     {
+      "asis": 9428.9878087168,
+      "dbx": 8305.9864656637,
+      "emr": 8015.880926227911,
+      "lake": 7693.5598087168,
+      "elt": 10297.115080539023
+     }
+    ],
+    [
+     8,
+     28.5,
+     {
+      "asis": 17629.791581555204,
+      "dbx": 15376.417042649004,
+      "emr": 14796.531192577426,
+      "lake": 15378.583581555202,
+      "elt": 19356.851373199646
+     }
+    ],
+    [
+     16,
+     57,
+     {
+      "asis": 34031.399127232005,
+      "dbx": 29517.278196619605,
+      "emr": 28357.831725276446,
+      "lake": 30748.631127232005,
+      "elt": 37476.32395852089
+     }
+    ]
+   ],
+   "breakEven": [
+    {
+     "multiplier": 5.960328997696708,
+     "tb": 21.233672054294523,
+     "from": "lake",
+     "to": "emr"
+    }
+   ],
+   "gate": {
+    "status": "NO-GO",
+    "budget": 2500,
+    "monthly": 3278.3850360576007,
+    "headroom": -778.3850360576007,
+    "usedPct": 131.13540144230402
+   },
+   "gateTight": {
+    "status": "REVIEW",
+    "budget": 3343.9527367787528,
+    "monthly": 3278.3850360576007,
+    "headroom": 65.56770072115205,
+    "usedPct": 98.0392156862745
+   },
+   "suggestions": {
+    "steps": [
+     {
+      "id": "wh-autosuspend",
+      "title": "Reduzir auto-suspend do warehouse para 60 s",
+      "why": "Warehouse suspenso não consome créditos; janelas de ociosidade longas são cobradas a cada execução ou sessão.",
+      "saving": 364.8000000000002,
+      "newMonthly": 2913.5850360576005,
+      "slaAfter": "PASS"
+     },
+     {
+      "id": "raw-retention",
+      "title": "Reduzir a retenção da camada bruta para 90 dias",
+      "why": "Com Silver e Gold versionadas, manter a bruta por mais de um ano raramente atende a um requisito real de negócio ou compliance.",
+      "saving": 189.75000000000045,
+      "newMonthly": 2723.8350360576,
+      "slaAfter": "PASS"
+     }
+    ],
+    "finalMonthly": 2723.8350360576,
+    "reachable": false,
+    "finalSla": "PASS"
+   }
+  }
+ },
+ {
+  "name": "csv_raw_small_files",
+  "g": {
+   "name": "Oracle → Lakehouse → Snowflake",
+   "environment": "Production",
+   "criticality": "High",
+   "sourceType": "Oracle",
+   "sourceVolumeGB": 4096,
+   "dailyDeltaGB": 50,
+   "recordsPerDay": 60000000,
+   "ingestion": "full",
+   "targetFileMB": 16,
+   "catalogObjects": 50000,
+   "queriesPerDay": 300,
+   "avgQuerySec": 25,
+   "scanPerQueryGB": 3,
+   "failureRate": 2,
+   "retries": 2,
+   "crossRegionGB": 0,
+   "internetGB": 0,
+   "discountPct": 0,
+   "budgetMonthly": 2500,
+   "slaMaxMinutes": 360,
+   "freshnessHours": 30,
+   "orchestration": "chained",
+   "snowflakeEdition": "standard",
+   "snowflakeStorage": "capacity",
+   "dwStorage": true,
+   "customGbPerNodeMin": 0.5,
+   "customCostPerNodeHour": 0.3,
+   "_provided": {
+    "targetFileMB": 1,
+    "failureRate": 1,
+    "retries": 1,
+    "queriesPerDay": 1,
+    "recordsPerDay": 1,
+    "catalogObjects": 1,
+    "scanPerQueryGB": 1,
+    "avgQuerySec": 1
+   }
+  },
+  "stages": [
+   {
+    "key": "raw",
+    "name": "Ingestion → Raw",
+    "kind": "ingest",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 4,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "csv-gzip",
+    "tableFormat": "hive",
+    "retentionDays": 730,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 0,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "bronze",
+    "name": "Bronze",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 4,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-snappy",
+    "tableFormat": "iceberg",
+    "retentionDays": 365,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "silver",
+    "name": "Silver",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 4,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 0.8,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "iceberg",
+    "retentionDays": 730,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "gold",
+    "name": "Gold",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 2,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 0.25,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "iceberg",
+    "retentionDays": 1095,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "dwload",
+    "name": "DW Load (Snowflake)",
+    "kind": "load",
+    "enabled": true,
+    "engine": "snowflake_wh",
+    "workers": 1,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "hive",
+    "retentionDays": 1095,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 0,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "serve",
+    "name": "Serving / BI",
+    "kind": "serve",
+    "enabled": true,
+    "engine": "snowflake_serve",
+    "workers": 1,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "iceberg",
+    "retentionDays": 0,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 0,
+    "whSize": "M",
+    "autoSuspendSec": 300
+   }
+  ],
+  "expected": {
+   "monthly": 81374.8630883783,
+   "breakdown": {
+    "Ingestion": 2639.6842429629633,
+    "Storage": 58356.19844638719,
+    "Processing": 7812.8393623703705,
+    "Warehouse": 1366.5137777777777,
+    "Maintenance": 11199.127258879998,
+    "Network": 0,
+    "Catalog": 0.5
+   },
+   "slaStatus": "FAIL",
+   "processingMin": 10746.822222222223,
+   "latencyMin": 12186.822222222223,
+   "confidence": 82,
+   "range": {
+    "low": 68192.13526806101,
+    "high": 94557.59090869558
+   },
+   "unit": {
+    "perMonth": 81374.8630883783,
+    "perYear": 976498.3570605397,
+    "perTB": 669.2011767136374,
+    "perGBIngested": 0.6535167741344116,
+    "perGBStored": 0.03204584118712082,
+    "perMillionRec": 44.61341178090916,
+    "perQuery": 8.922682356181832,
+    "perRunSet": 446.13411780909155
+   },
+   "complexity": 26,
+   "assumptions": [
+    "Retries: multiplicador de 1.040× sobre compute e requests.",
+    "Full load: cada execução do primeiro estágio lê o volume total da fonte.",
+    "Apache Iceberg: manutenção (compaction/expire snapshots) cobrada 4×/mês na camada Bronze.",
+    "Apache Iceberg: storage multiplicado por 1.25× devido a snapshots retidos.",
+    "Apache Iceberg: manutenção (compaction/expire snapshots) cobrada 4×/mês na camada Silver.",
+    "Apache Iceberg: manutenção (compaction/expire snapshots) cobrada 4×/mês na camada Gold.",
+    "Estágios encadeados numa única DAG: latência = maior intervalo de agendamento + soma dos tempos de execução."
+   ],
+   "stageTotals": [
+    [
+     "raw",
+     26759.536425362956,
+     2277.0555555555557
+    ],
+    [
+     "bronze",
+     18683.626963833365,
+     2277.0555555555557
+    ],
+    [
+     "silver",
+     21114.910113836562,
+     2277.0555555555557
+    ],
+    [
+     "gold",
+     9823.135807567643,
+     3642.388888888889
+    ],
+    [
+     "dwload",
+     4182.487111111111,
+     273.26666666666665
+    ],
+    [
+     "serve",
+     810.6666666666667,
+     0
+    ]
+   ],
+   "variants": {
+    "asis": 81374.8630883783,
+    "dbx": 72441.56349804667,
+    "emr": 70149.54783182127,
+    "lake": 76461.86556060053,
+    "elt": 83867.24508057979
+   },
+   "scored": {
+    "cost": [
+     [
+      "dbx",
+      65.88817872354136
+     ],
+     [
+      "emr",
+      65.41364985440374
+     ],
+     [
+      "lake",
+      39.55272972126561
+     ],
+     [
+      "elt",
+      22.5
+     ],
+     [
+      "asis",
+      16.993004444203468
+     ]
+    ],
+    "balanced": [
+     [
+      "dbx",
+      62.92039092304675
+     ],
+     [
+      "emr",
+      56.55153313920498
+     ],
+     [
+      "lake",
+      35.742262951474316
+     ],
+     [
+      "elt",
+      31.5
+     ],
+     [
+      "asis",
+      18.26763959578434
+     ]
+    ],
+    "performance": [
+     [
+      "dbx",
+      55.31396953456007
+     ],
+     [
+      "elt",
+      41.5
+     ],
+     [
+      "emr",
+      40.827299708807466
+     ],
+     [
+      "lake",
+      25.519742414955676
+     ],
+     [
+      "asis",
+      14.63381979789217
+     ]
+    ]
+   },
+   "optimizations": [
+    [
+     "full-to-incremental",
+     79571.50428828411,
+     "PASS",
+     1577.3111111111111
+    ],
+    [
+     "raw-retention",
+     21102.59199999999,
+     "FAIL",
+     12186.822222222223
+    ],
+    [
+     "columnar-raw",
+     11715.356816,
+     "FAIL",
+     12186.822222222223
+    ],
+    [
+     "raw-lifecycle",
+     11003.5968,
+     "FAIL",
+     12186.822222222223
+    ]
+   ],
+   "sweep": [
+    [
+     1,
+     81374.8630883783,
+     12186.822222222223,
+     "FAIL"
+    ],
+    [
+     2,
+     161905.01471008995,
+     11466.822222222223,
+     "FAIL"
+    ],
+    [
+     4,
+     322965.3179535132,
+     11106.822222222223,
+     "FAIL"
+    ],
+    [
+     12,
+     967206.5309272066,
+     10866.822222222223,
+     "FAIL"
+    ],
+    [
+     24,
+     1933568.3503877465,
+     10806.822222222223,
+     "FAIL"
+    ],
+    [
+     48,
+     3866291.9893088266,
+     10776.822222222223,
+     "FAIL"
+    ],
+    [
+     96,
+     7731739.267150986,
+     10761.822222222223,
+     "FAIL"
+    ],
+    [
+     288,
+     23193528.378519617,
+     10751.822222222223,
+     "FAIL"
+    ]
+   ],
+   "sweepGold": [
+    [
+     1,
+     81374.8630883783
+    ],
+    [
+     2,
+     81375.9064163783
+    ],
+    [
+     4,
+     81377.99346247109
+    ],
+    [
+     12,
+     81386.34086665668
+    ],
+    [
+     24,
+     81398.8631432135
+    ],
+    [
+     48,
+     81423.9030152135
+    ],
+    [
+     96,
+     81473.99212144068
+    ],
+    [
+     288,
+     81674.31109744069
+    ]
+   ],
+   "sensitivity": [
+    [
+     0.25,
+     30.4,
+     {
+      "asis": 20959.039037502575,
+      "dbx": 18730.436821519666,
+      "emr": 18157.224551363317,
+      "lake": 19120.96565555813,
+      "elt": 21586.215879552943
+     }
+    ],
+    [
+     0.5,
+     60.8,
+     {
+      "asis": 41097.647050245694,
+      "dbx": 36634.145709479875,
+      "emr": 35487.99897396717,
+      "lake": 38234.598953023466,
+      "elt": 42346.55894234643
+     }
+    ],
+    [
+     1,
+     121.6,
+     {
+      "asis": 81374.8630883783,
+      "dbx": 72441.56349804667,
+      "emr": 70149.54783182127,
+      "lake": 76461.86556060053,
+      "elt": 83867.24508057979
+     }
+    ],
+    [
+     2,
+     243.2,
+     {
+      "asis": 161929.29516464352,
+      "dbx": 144056.3990751803,
+      "emr": 139472.64554752945,
+      "lake": 152916.39877575464,
+      "elt": 166908.6173570465
+     }
+    ],
+    [
+     4,
+     486.4,
+     {
+      "asis": 323038.1593045276,
+      "dbx": 287286.0702168011,
+      "emr": 278118.84096629947,
+      "lake": 305825.4651934165,
+      "elt": 332991.3618973335
+     }
+    ],
+    [
+     8,
+     972.8,
+     {
+      "asis": 645255.8879743887,
+      "dbx": 573745.4128901355,
+      "emr": 555411.2321939323,
+      "lake": 611643.5984188331,
+      "elt": 665156.8513680005
+     }
+    ],
+    [
+     16,
+     1945.6,
+     {
+      "asis": 1289691.344936664,
+      "dbx": 1146664.097859358,
+      "emr": 1109996.0142717515,
+      "lake": 1223279.8644922196,
+      "elt": 1329487.8299318878
+     }
+    ]
+   ],
+   "breakEven": [
+    {
+     "multiplier": 0.12094020724677898,
+     "tb": 14.706329201208323,
+     "from": "lake",
+     "to": "emr"
+    }
+   ],
+   "gate": {
+    "status": "NO-GO",
+    "budget": 2500,
+    "monthly": 81374.8630883783,
+    "headroom": -78874.8630883783,
+    "usedPct": 3254.9945235351324
+   },
+   "gateTight": {
+    "status": "REVIEW",
+    "budget": 83002.36035014587,
+    "monthly": 81374.8630883783,
+    "headroom": 1627.4972617675667,
+    "usedPct": 98.0392156862745
+   },
+   "suggestions": {
+    "steps": [
+     {
+      "id": "full-to-incremental",
+      "title": "Migrar de Full Load para Incremental",
+      "why": "O delta diário é uma fração pequena da base; reprocessar tudo a cada execução multiplica compute, escrita e storage.",
+      "saving": 79571.50428828411,
+      "newMonthly": 1803.358800094189,
+      "slaAfter": "PASS"
+     }
+    ],
+    "finalMonthly": 1803.358800094189,
+    "reachable": true,
+    "finalSla": "PASS"
+   }
+  }
+ },
+ {
+  "name": "athena_hive_gold",
+  "g": {
+   "name": "Oracle → Lakehouse → Snowflake",
+   "environment": "Production",
+   "criticality": "High",
+   "sourceType": "Oracle",
+   "sourceVolumeGB": 4096,
+   "dailyDeltaGB": 120,
+   "recordsPerDay": 60000000,
+   "ingestion": "incremental",
+   "targetFileMB": 128,
+   "catalogObjects": 50000,
+   "queriesPerDay": 300,
+   "avgQuerySec": 25,
+   "scanPerQueryGB": 3,
+   "failureRate": 2,
+   "retries": 2,
+   "crossRegionGB": 0,
+   "internetGB": 0,
+   "discountPct": 0,
+   "budgetMonthly": 2500,
+   "slaMaxMinutes": 360,
+   "freshnessHours": 30,
+   "orchestration": "chained",
+   "snowflakeEdition": "standard",
+   "snowflakeStorage": "capacity",
+   "dwStorage": true,
+   "customGbPerNodeMin": 0.5,
+   "customCostPerNodeHour": 0.3,
+   "_provided": {
+    "targetFileMB": 1,
+    "failureRate": 1,
+    "retries": 1,
+    "queriesPerDay": 1,
+    "recordsPerDay": 1,
+    "catalogObjects": 1,
+    "scanPerQueryGB": 1,
+    "avgQuerySec": 1
+   }
+  },
+  "stages": [
+   {
+    "key": "raw",
+    "name": "Ingestion → Raw",
+    "kind": "ingest",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 4,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-snappy",
+    "tableFormat": "hive",
+    "retentionDays": 365,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 0,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "bronze",
+    "name": "Bronze",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 4,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-snappy",
+    "tableFormat": "iceberg",
+    "retentionDays": 365,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "silver",
+    "name": "Silver",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 4,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 0.8,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "iceberg",
+    "retentionDays": 730,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "gold",
+    "name": "Gold",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 2,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 0.25,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "hive",
+    "retentionDays": 1095,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "serve",
+    "name": "Serving / BI",
+    "kind": "serve",
+    "enabled": true,
+    "engine": "athena",
+    "workers": 1,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "hive",
+    "retentionDays": 0,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 0,
+    "whSize": "M",
+    "autoSuspendSec": 300
+   }
+  ],
+  "expected": {
+   "monthly": 1818.3105609856002,
+   "breakdown": {
+    "Ingestion": 79.02243555555556,
+    "Storage": 1107.0813949856001,
+    "Processing": 233.28041244444444,
+    "Warehouse": 133.59375,
+    "Maintenance": 264.83256800000004,
+    "Network": 0,
+    "Catalog": 0.5
+   },
+   "slaStatus": "PASS",
+   "processingMin": 312.66666666666663,
+   "latencyMin": 1752.6666666666665,
+   "confidence": 80,
+   "range": {
+    "low": 1491.014660008192,
+    "high": 2145.6064619630083
+   },
+   "unit": {
+    "perMonth": 1818.3105609856002,
+    "perYear": 21819.726731827202,
+    "perTB": 510.402964487186,
+    "perGBIngested": 0.4984403950070176,
+    "perGBStored": 0.037780267074613884,
+    "perMillionRec": 0.9968807900140352,
+    "perQuery": 0.19937615800280703,
+    "perRunSet": 11.962569480168423
+   },
+   "complexity": 18,
+   "assumptions": [
+    "Retries: multiplicador de 1.040× sobre compute e requests.",
+    "Apache Iceberg: manutenção (compaction/expire snapshots) cobrada 4×/mês na camada Bronze.",
+    "Apache Iceberg: storage multiplicado por 1.25× devido a snapshots retidos.",
+    "Apache Iceberg: manutenção (compaction/expire snapshots) cobrada 4×/mês na camada Silver.",
+    "Estágios encadeados numa única DAG: latência = maior intervalo de agendamento + soma dos tempos de execução."
+   ],
+   "stageTotals": [
+    [
+     "raw",
+     330.91621155555555,
+     68.16666666666667
+    ],
+    [
+     "bronze",
+     548.9456966915556,
+     68.16666666666667
+    ],
+    [
+     "silver",
+     620.3137774051556,
+     68.16666666666667
+    ],
+    [
+     "gold",
+     184.04112533333333,
+     108.16666666666666
+    ],
+    [
+     "serve",
+     133.59375,
+     0
+    ]
+   ],
+   "variants": {
+    "asis": 1818.3105609856002,
+    "dbx": 1592.497709846419,
+    "emr": 1532.7657285411558,
+    "lake": 1818.3105609856002,
+    "elt": 1832.9872720967114
+   },
+   "scored": {
+    "cost": [
+     [
+      "dbx",
+      84.61512755191148
+     ],
+     [
+      "emr",
+      83.98451643639828
+     ],
+     [
+      "elt",
+      44
+     ],
+     [
+      "asis",
+      31.688744790101126
+     ],
+     [
+      "lake",
+      31.688744790101126
+     ]
+    ],
+    "balanced": [
+     [
+      "dbx",
+      86.95215929932971
+     ],
+     [
+      "emr",
+      79.64602191519772
+     ],
+     [
+      "elt",
+      58.00000000000001
+     ],
+     [
+      "asis",
+      39.95545075643718
+     ],
+     [
+      "lake",
+      39.95545075643718
+     ]
+    ],
+    "performance": [
+     [
+      "dbx",
+      89.63662602513186
+     ],
+     [
+      "elt",
+      78
+     ],
+     [
+      "emr",
+      72.96903287279657
+     ],
+     [
+      "asis",
+      48.97772537821859
+     ],
+     [
+      "lake",
+      48.97772537821859
+     ]
+    ]
+   },
+   "optimizations": [
+    [
+     "raw-retention",
+     189.75,
+     "PASS",
+     1752.6666666666665
+    ],
+    [
+     "raw-lifecycle",
+     114.97500000000014,
+     "PASS",
+     1752.6666666666665
+    ]
+   ],
+   "sweep": [
+    [
+     1,
+     1818.3105609856002,
+     1752.6666666666665,
+     "PASS"
+    ],
+    [
+     2,
+     1824.570906432,
+     879.3333333333333,
+     "PASS"
+    ],
+    [
+     4,
+     1837.090842432,
+     442.66666666666663,
+     "PASS"
+    ],
+    [
+     12,
+     1887.1713666176001,
+     151.55555555555554,
+     "PASS"
+    ],
+    [
+     24,
+     1962.2931714176,
+     78.77777777777777,
+     "PASS"
+    ],
+    [
+     48,
+     2112.5324034176,
+     42.388888888888886,
+     "PASS"
+    ],
+    [
+     96,
+     2413.0471022720003,
+     24.194444444444443,
+     "PASS"
+    ],
+    [
+     288,
+     3615.0147035264,
+     12.064814814814815,
+     "PASS"
+    ]
+   ],
+   "sweepGold": [
+    [
+     1,
+     1818.3105609856002
+    ],
+    [
+     2,
+     1819.3540713856
+    ],
+    [
+     4,
+     1821.4407273856
+    ],
+    [
+     12,
+     1829.7873513856
+    ],
+    [
+     24,
+     1842.3094761856003
+    ],
+    [
+     48,
+     1867.3493481856
+    ],
+    [
+     96,
+     1917.4378473856002
+    ],
+    [
+     288,
+     2117.7918441856
+    ]
+   ],
+   "sensitivity": [
+    [
+     0.25,
+     0.890625,
+     {
+      "asis": 459.97771060800005,
+      "dbx": 408.12477942320464,
+      "emr": 392.9888304968889,
+      "lake": 459.97771060800005,
+      "elt": 469.1712323857778
+     }
+    ],
+    [
+     0.5,
+     1.78125,
+     {
+      "asis": 912.755453216,
+      "dbx": 802.9158820464093,
+      "emr": 772.9145889937778,
+      "lake": 912.755453216,
+      "elt": 923.7767047715555
+     }
+    ],
+    [
+     1,
+     3.5625,
+     {
+      "asis": 1818.3105609856002,
+      "dbx": 1592.497709846419,
+      "emr": 1532.7657285411558,
+      "lake": 1818.3105609856002,
+      "elt": 1832.9872720967114
+     }
+    ],
+    [
+     2,
+     7.125,
+     {
+      "asis": 3629.4209589248003,
+      "dbx": 3171.6615478464378,
+      "emr": 3052.4681900359114,
+      "lake": 3629.4209589248003,
+      "elt": 3651.4085891470227
+     }
+    ],
+    [
+     4,
+     14.25,
+     {
+      "asis": 7251.6415724031995,
+      "dbx": 6329.989041446474,
+      "emr": 6091.872930625422,
+      "lake": 7251.6415724031995,
+      "elt": 7288.251040847645
+     }
+    ],
+    [
+     8,
+     28.5,
+     {
+      "asis": 14496.0829944064,
+      "dbx": 12646.64422369295,
+      "emr": 12170.682606850845,
+      "lake": 14496.0829944064,
+      "elt": 14561.936139295289
+     }
+    ],
+    [
+     16,
+     57,
+     {
+      "asis": 28984.965838412805,
+      "dbx": 25279.9545881859,
+      "emr": 24328.30195930169,
+      "lake": 28984.965838412805,
+      "elt": 29109.30633619058
+     }
+    ]
+   ],
+   "breakEven": [],
+   "gate": {
+    "status": "GO",
+    "budget": 2500,
+    "monthly": 1818.3105609856002,
+    "headroom": 681.6894390143998,
+    "usedPct": 72.732422439424
+   },
+   "gateTight": {
+    "status": "REVIEW",
+    "budget": 1854.6767722053123,
+    "monthly": 1818.3105609856002,
+    "headroom": 36.36621121971211,
+    "usedPct": 98.0392156862745
+   },
+   "suggestions": {
+    "steps": [
+     {
+      "id": "raw-retention",
+      "title": "Reduzir a retenção da camada bruta para 90 dias",
+      "why": "Com Silver e Gold versionadas, manter a bruta por mais de um ano raramente atende a um requisito real de negócio ou compliance.",
+      "saving": 189.75,
+      "newMonthly": 1628.5605609856002,
+      "slaAfter": "PASS"
+     }
+    ],
+    "finalMonthly": 1628.5605609856002,
+    "reachable": false,
+    "finalSla": "PASS"
+   }
+  }
+ },
+ {
+  "name": "databricks_sl_custom",
+  "g": {
+   "name": "Oracle → Lakehouse → Snowflake",
+   "environment": "Production",
+   "criticality": "High",
+   "sourceType": "Oracle",
+   "sourceVolumeGB": 4096,
+   "dailyDeltaGB": 120,
+   "recordsPerDay": 60000000,
+   "ingestion": "incremental",
+   "targetFileMB": 128,
+   "catalogObjects": 50000,
+   "queriesPerDay": 300,
+   "avgQuerySec": 25,
+   "scanPerQueryGB": 3,
+   "failureRate": 2,
+   "retries": 2,
+   "crossRegionGB": 0,
+   "internetGB": 0,
+   "discountPct": 0,
+   "budgetMonthly": 2500,
+   "slaMaxMinutes": 360,
+   "freshnessHours": 30,
+   "orchestration": "chained",
+   "snowflakeEdition": "standard",
+   "snowflakeStorage": "capacity",
+   "dwStorage": true,
+   "customGbPerNodeMin": 0.8,
+   "customCostPerNodeHour": 0.4,
+   "_provided": {
+    "targetFileMB": 1,
+    "failureRate": 1,
+    "retries": 1,
+    "queriesPerDay": 1,
+    "recordsPerDay": 1,
+    "catalogObjects": 1,
+    "scanPerQueryGB": 1,
+    "avgQuerySec": 1
+   }
+  },
+  "stages": [
+   {
+    "key": "raw",
+    "name": "Ingestion → Raw",
+    "kind": "ingest",
+    "enabled": true,
+    "engine": "custom_fw",
+    "workers": 6,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-snappy",
+    "tableFormat": "hive",
+    "retentionDays": 365,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 0,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "bronze",
+    "name": "Bronze",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "ec2_spark",
+    "workers": 4,
+    "workerType": "r5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-snappy",
+    "tableFormat": "iceberg",
+    "retentionDays": 365,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "silver",
+    "name": "Silver",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "databricks_sl",
+    "workers": 4,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 0.8,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "iceberg",
+    "retentionDays": 730,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "gold",
+    "name": "Gold",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 2,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 0.25,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "iceberg",
+    "retentionDays": 1095,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "dwload",
+    "name": "DW Load (Snowflake)",
+    "kind": "load",
+    "enabled": true,
+    "engine": "snowflake_wh",
+    "workers": 1,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "hive",
+    "retentionDays": 1095,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 0,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "serve",
+    "name": "Serving / BI",
+    "kind": "serve",
+    "enabled": true,
+    "engine": "snowflake_serve",
+    "workers": 1,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "iceberg",
+    "retentionDays": 0,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 0,
+    "whSize": "M",
+    "autoSuspendSec": 300
+   }
+  ],
+  "expected": {
+   "monthly": 2424.87355333648,
+   "breakdown": {
+    "Ingestion": 38.36074666666667,
+    "Storage": 1254.3483547596,
+    "Processing": 137.33454090554721,
+    "Warehouse": 829.3120000000001,
+    "Maintenance": 165.01791100466613,
+    "Network": 0,
+    "Catalog": 0.5
+   },
+   "slaStatus": "PASS",
+   "processingMin": 223.42312527946552,
+   "latencyMin": 1663.4231252794655,
+   "confidence": 74,
+   "range": {
+    "low": 1857.453141855744,
+    "high": 2992.2939648172164
+   },
+   "unit": {
+    "perMonth": 2424.87355333648,
+    "perYear": 29098.482640037764,
+    "perTB": 680.6662605856786,
+    "perGBIngested": 0.6647131451032018,
+    "perGBStored": 0.04437719122364372,
+    "perMillionRec": 1.3294262902064036,
+    "perQuery": 0.2658852580412807,
+    "perRunSet": 13.294262902064036
+   },
+   "complexity": 30,
+   "assumptions": [
+    "Retries: multiplicador de 1.040× sobre compute e requests.",
+    "Apache Iceberg: manutenção (compaction/expire snapshots) cobrada 4×/mês na camada Bronze.",
+    "Apache Iceberg: storage multiplicado por 1.25× devido a snapshots retidos.",
+    "Apache Iceberg: manutenção (compaction/expire snapshots) cobrada 4×/mês na camada Silver.",
+    "Apache Iceberg: manutenção (compaction/expire snapshots) cobrada 4×/mês na camada Gold.",
+    "Estágios encadeados numa única DAG: latência = maior intervalo de agendamento + soma dos tempos de execução."
+   ],
+   "stageTotals": [
+    [
+     "raw",
+     290.2545226666666,
+     25.999999999999996
+    ],
+    [
+     "bronze",
+     427.17063032340633,
+     48.977511244377816
+    ],
+    [
+     "silver",
+     482.50620963907375,
+     32.078947368421055
+    ],
+    [
+     "gold",
+     288.8809719573334,
+     108.16666666666666
+    ],
+    [
+     "dwload",
+     124.89455208333334,
+     8.2
+    ],
+    [
+     "serve",
+     810.6666666666667,
+     0
+    ]
+   ],
+   "variants": {
+    "asis": 2424.87355333648,
+    "dbx": 2438.5753861149624,
+    "emr": 2369.6204682784405,
+    "lake": 1569.4685845864801,
+    "elt": 2640.9824892803395
+   },
+   "scored": {
+    "cost": [
+     [
+      "lake",
+      86.45478611602209
+     ],
+     [
+      "dbx",
+      47.677790172412905
+     ],
+     [
+      "elt",
+      41.85714285714286
+     ],
+     [
+      "asis",
+      38.5493579111048
+     ],
+     [
+      "emr",
+      37.92880772682891
+     ]
+    ],
+    "balanced": [
+     [
+      "lake",
+      81.93971482136277
+     ],
+     [
+      "dbx",
+      58.226159462152275
+     ],
+     [
+      "elt",
+      55.85714285714286
+     ],
+     [
+      "asis",
+      45.62867115312013
+     ],
+     [
+      "emr",
+      43.130041983148296
+     ]
+    ],
+    "performance": [
+     [
+      "elt",
+      75.85714285714286
+     ],
+     [
+      "lake",
+      72.90957223204417
+     ],
+     [
+      "dbx",
+      71.21188055766477
+     ],
+     [
+      "asis",
+      51.80415374137098
+     ],
+     [
+      "emr",
+      48.065020991574144
+     ]
+    ]
+   },
+   "optimizations": [
+    [
+     "wh-autosuspend",
+     243.20000000000027,
+     "PASS",
+     1663.4231252794655
+    ],
+    [
+     "raw-retention",
+     189.75,
+     "PASS",
+     1663.4231252794655
+    ],
+    [
+     "raw-lifecycle",
+     114.97500000000036,
+     "PASS",
+     1663.4231252794655
+    ]
+   ],
+   "sweep": [
+    [
+     1,
+     2424.87355333648,
+     1663.4231252794655,
+     "PASS"
+    ],
+    [
+     2,
+     2432.94149542928,
+     835.3115626397328,
+     "PASS"
+    ],
+    [
+     4,
+     2449.07659942928,
+     421.2557813198664,
+     "PASS"
+    ],
+    [
+     12,
+     2513.61779561488,
+     145.2185937732888,
+     "PASS"
+    ],
+    [
+     24,
+     2610.43076017168,
+     76.2092968866444,
+     "PASS"
+    ],
+    [
+     48,
+     2804.05200817168,
+     41.7046484433222,
+     "PASS"
+    ],
+    [
+     96,
+     3206.47374605328,
+     24.4523242216611,
+     "PASS"
+    ],
+    [
+     288,
+     4844.02470341648,
+     12.9507747405537,
+     "PASS"
+    ]
+   ],
+   "sweepGold": [
+    [
+     1,
+     2424.87355333648
+    ],
+    [
+     2,
+     2425.91707638288
+    ],
+    [
+     4,
+     2428.0037323828806
+    ],
+    [
+     12,
+     2436.3503563828804
+    ],
+    [
+     24,
+     2448.87263293968
+    ],
+    [
+     48,
+     2473.9125049396803
+    ],
+    [
+     96,
+     2524.0016111668806
+    ],
+    [
+     288,
+     2724.35803607568
+    ]
+   ],
+   "sensitivity": [
+    [
+     0.25,
+     0.890625,
+     {
+      "asis": 1221.03889985732,
+      "dbx": 1230.2933616519406,
+      "emr": 1212.8462785928102,
+      "lake": 397.36365766982,
+      "elt": 1280.227087843285
+     }
+    ],
+    [
+     0.5,
+     1.78125,
+     {
+      "asis": 1622.3172477146402,
+      "dbx": 1633.054166503881,
+      "emr": 1598.4378051856206,
+      "lake": 788.0654300063068,
+      "elt": 1733.8123516865699
+     }
+    ],
+    [
+     1,
+     3.5625,
+     {
+      "asis": 2424.87355333648,
+      "dbx": 2438.5753861149624,
+      "emr": 2369.6204682784405,
+      "lake": 1569.4685845864801,
+      "elt": 2640.9824892803395
+     }
+    ],
+    [
+     2,
+     7.125,
+     {
+      "asis": 4029.98635962656,
+      "dbx": 4049.618020383525,
+      "emr": 3911.9859895104814,
+      "lake": 3132.2750887932266,
+      "elt": 4455.322959514279
+     }
+    ],
+    [
+     4,
+     14.25,
+     {
+      "asis": 7240.21177716032,
+      "dbx": 7271.703093874249,
+      "emr": 6996.716836928162,
+      "lake": 6257.88790216032,
+      "elt": 8084.003704935758
+     }
+    ],
+    [
+     8,
+     28.5,
+     {
+      "asis": 13660.662807274242,
+      "dbx": 13715.8734359021,
+      "emr": 13166.178726809925,
+      "lake": 12509.113723940909,
+      "elt": 15341.365390825118
+     }
+    ],
+    [
+     16,
+     57,
+     {
+      "asis": 26501.56486750208,
+      "dbx": 26604.214119957796,
+      "emr": 25505.10250657345,
+      "lake": 25011.565367502084,
+      "elt": 29856.08876260384
+     }
+    ]
+   ],
+   "breakEven": [],
+   "gate": {
+    "status": "REVIEW",
+    "budget": 2500,
+    "monthly": 2424.87355333648,
+    "headroom": 75.1264466635198,
+    "usedPct": 96.9949421334592
+   },
+   "gateTight": {
+    "status": "REVIEW",
+    "budget": 2473.37102440321,
+    "monthly": 2424.87355333648,
+    "headroom": 48.49747106672976,
+    "usedPct": 98.0392156862745
+   },
+   "suggestions": {
+    "steps": [
+     {
+      "id": "wh-autosuspend",
+      "title": "Reduzir auto-suspend do warehouse para 60 s",
+      "why": "Warehouse suspenso não consome créditos; janelas de ociosidade longas são cobradas a cada execução ou sessão.",
+      "saving": 243.20000000000027,
+      "newMonthly": 2181.67355333648,
+      "slaAfter": "PASS"
+     },
+     {
+      "id": "raw-retention",
+      "title": "Reduzir a retenção da camada bruta para 90 dias",
+      "why": "Com Silver e Gold versionadas, manter a bruta por mais de um ano raramente atende a um requisito real de negócio ou compliance.",
+      "saving": 189.74999999999955,
+      "newMonthly": 1991.9235533364804,
+      "slaAfter": "PASS"
+     }
+    ],
+    "finalMonthly": 1991.9235533364804,
+    "reachable": false,
+    "finalSla": "PASS"
+   }
+  }
+ },
+ {
+  "name": "dbsql_serve_dms",
+  "g": {
+   "name": "Oracle → Lakehouse → Snowflake",
+   "environment": "Production",
+   "criticality": "High",
+   "sourceType": "Oracle",
+   "sourceVolumeGB": 4096,
+   "dailyDeltaGB": 120,
+   "recordsPerDay": 60000000,
+   "ingestion": "cdc",
+   "targetFileMB": 128,
+   "catalogObjects": 50000,
+   "queriesPerDay": 300,
+   "avgQuerySec": 25,
+   "scanPerQueryGB": 3,
+   "failureRate": 2,
+   "retries": 2,
+   "crossRegionGB": 0,
+   "internetGB": 0,
+   "discountPct": 0,
+   "budgetMonthly": 2500,
+   "slaMaxMinutes": 360,
+   "freshnessHours": 30,
+   "orchestration": "chained",
+   "snowflakeEdition": "standard",
+   "snowflakeStorage": "capacity",
+   "dwStorage": true,
+   "customGbPerNodeMin": 0.5,
+   "customCostPerNodeHour": 0.3,
+   "_provided": {
+    "targetFileMB": 1,
+    "failureRate": 1,
+    "retries": 1,
+    "queriesPerDay": 1,
+    "recordsPerDay": 1,
+    "catalogObjects": 1,
+    "scanPerQueryGB": 1,
+    "avgQuerySec": 1
+   }
+  },
+  "stages": [
+   {
+    "key": "raw",
+    "name": "Ingestion → Raw",
+    "kind": "ingest",
+    "enabled": true,
+    "engine": "dms",
+    "workers": 4,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-snappy",
+    "tableFormat": "hive",
+    "retentionDays": 365,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 0,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "bronze",
+    "name": "Bronze",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 4,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-snappy",
+    "tableFormat": "iceberg",
+    "retentionDays": 365,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "silver",
+    "name": "Silver",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 4,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 0.8,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "iceberg",
+    "retentionDays": 730,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "gold",
+    "name": "Gold",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 2,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 0.25,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "iceberg",
+    "retentionDays": 1095,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "dwload",
+    "name": "DW Load (Snowflake)",
+    "kind": "load",
+    "enabled": true,
+    "engine": "snowflake_wh",
+    "workers": 1,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "hive",
+    "retentionDays": 1095,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 0,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "serve",
+    "name": "Serving / BI",
+    "kind": "serve",
+    "enabled": true,
+    "engine": "dbsql",
+    "workers": 1,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "iceberg",
+    "retentionDays": 0,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 0,
+    "whSize": "M",
+    "autoSuspendSec": 300
+   }
+  ],
+  "expected": {
+   "monthly": 2647.8529792562445,
+   "breakdown": {
+    "Ingestion": 86.86999999999999,
+    "Storage": 1630.6526271318,
+    "Processing": 301.9082097777778,
+    "Warehouse": 200.84266666666667,
+    "Maintenance": 427.0794756800001,
+    "Network": 0,
+    "Catalog": 0.5
+   },
+   "slaStatus": "PASS",
+   "processingMin": 327.1,
+   "latencyMin": 1767.1,
+   "confidence": 79,
+   "range": {
+    "low": 2147.408766176814,
+    "high": 3148.297192335675
+   },
+   "unit": {
+    "perMonth": 2647.8529792562445,
+    "perYear": 31774.235751074935,
+    "perTB": 571.7361358717937,
+    "perGBIngested": 0.5583360701872986,
+    "perGBStored": 0.03727530700466685,
+    "perMillionRec": 1.451673782486976,
+    "perQuery": 0.2903347564973952,
+    "perRunSet": 14.516737824869761
+   },
+   "complexity": 27,
+   "assumptions": [
+    "Retries: multiplicador de 1.040× sobre compute e requests.",
+    "CDC: +30% sobre o delta diário para before/after image e metadados.",
+    "Apache Iceberg: manutenção (compaction/expire snapshots) cobrada 4×/mês na camada Bronze.",
+    "Apache Iceberg: storage multiplicado por 1.25× devido a snapshots retidos.",
+    "Apache Iceberg: manutenção (compaction/expire snapshots) cobrada 4×/mês na camada Silver.",
+    "Apache Iceberg: manutenção (compaction/expire snapshots) cobrada 4×/mês na camada Gold.",
+    "Estágios encadeados numa única DAG: latência = maior intervalo de agendamento + soma dos tempos de execução."
+   ],
+   "stageTotals": [
+    [
+     "raw",
+     414.33190879999995,
+     0
+    ],
+    [
+     "bronze",
+     713.0417416990224,
+     88.16666666666667
+    ],
+    [
+     "silver",
+     805.8201100942223,
+     88.16666666666667
+    ],
+    [
+     "gold",
+     375.1925676213334,
+     140.16666666666669
+    ],
+    [
+     "dwload",
+     161.63331770833335,
+     10.6
+    ],
+    [
+     "serve",
+     177.33333333333334,
+     0
+    ]
+   ],
+   "variants": {
+    "asis": 2647.8529792562445,
+    "dbx": 2313.6769745150978,
+    "emr": 2226.1161847584667,
+    "lake": 2389.0425782145776,
+    "elt": 2748.0122202873554
+   },
+   "scored": {
+    "cost": [
+     [
+      "dbx",
+      85.3325096595385
+     ],
+     [
+      "emr",
+      84.27439578411776
+     ],
+     [
+      "lake",
+      67.69680623114438
+     ],
+     [
+      "elt",
+      42.5
+     ],
+     [
+      "asis",
+      37.55527898603127
+     ]
+    ],
+    "balanced": [
+     [
+      "dbx",
+      87.2024925941039
+     ],
+     [
+      "emr",
+      80.032527712157
+     ],
+     [
+      "lake",
+      66.66846509374886
+     ],
+     [
+      "elt",
+      56.50000000000001
+     ],
+     [
+      "asis",
+      43.67656653529546
+     ]
+    ],
+    "performance": [
+     [
+      "dbx",
+      89.26471454881893
+     ],
+     [
+      "elt",
+      76.5
+     ],
+     [
+      "emr",
+      73.5487915682355
+     ],
+     [
+      "lake",
+      63.489965783290934
+     ],
+     [
+      "asis",
+      49.83828326764773
+     ]
+    ]
+   },
+   "optimizations": [
+    [
+     "raw-retention",
+     246.67499999999973,
+     "PASS",
+     1767.1
+    ],
+    [
+     "raw-lifecycle",
+     149.46749999999975,
+     "PASS",
+     1767.1
+    ]
+   ],
+   "sweep": [
+    [
+     1,
+     2647.8529792562445,
+     1767.1,
+     "PASS"
+    ],
+    [
+     2,
+     2654.8062623026444,
+     885.9,
+     "PASS"
+    ],
+    [
+     4,
+     2668.7128283954444,
+     445.3,
+     "PASS"
+    ],
+    [
+     12,
+     2724.3375323954447,
+     151.56666666666666,
+     "PASS"
+    ],
+    [
+     24,
+     2807.7769289522444,
+     78.13333333333333,
+     "PASS"
+    ],
+    [
+     48,
+     2974.6600996658444,
+     41.416666666666664,
+     "PASS"
+    ],
+    [
+     96,
+     3308.4358033202448,
+     23.058333333333334,
+     "PASS"
+    ],
+    [
+     288,
+     4643.557342392245,
+     10.819444444444443,
+     "PASS"
+    ]
+   ],
+   "sweepGold": [
+    [
+     1,
+     2647.8529792562445
+    ],
+    [
+     2,
+     2648.8965023026444
+    ],
+    [
+     4,
+     2650.9835483954444
+    ],
+    [
+     12,
+     2659.330172395444
+    ],
+    [
+     24,
+     2671.8501083954447
+    ],
+    [
+     48,
+     2696.889980395444
+    ],
+    [
+     96,
+     2746.9790866226444
+    ],
+    [
+     288,
+     2947.335511531445
+    ]
+   ],
+   "sensitivity": [
+    [
+     0.25,
+     1.1578125,
+     {
+      "asis": 866.1347070988611,
+      "dbx": 787.3133875135746,
+      "emr": 765.2148364744166,
+      "lake": 666.6081068384444,
+      "elt": 895.255861356639
+     }
+    ],
+    [
+     0.5,
+     2.315625,
+     {
+      "asis": 1460.0407978179892,
+      "dbx": 1296.101249847416,
+      "emr": 1252.1819525691003,
+      "lake": 1240.752930630489,
+      "elt": 1512.8413143335447
+     }
+    ],
+    [
+     1,
+     4.63125,
+     {
+      "asis": 2647.8529792562445,
+      "dbx": 2313.6769745150978,
+      "emr": 2226.1161847584667,
+      "lake": 2389.0425782145776,
+      "elt": 2748.0122202873554
+     }
+    ],
+    [
+     2,
+     9.2625,
+     {
+      "asis": 5023.477537179156,
+      "dbx": 4348.828618896863,
+      "emr": 4173.9848441836,
+      "lake": 4685.622068429156,
+      "elt": 5218.354227241378
+     }
+    ],
+    [
+     4,
+     18.525,
+     {
+      "asis": 9774.726457978579,
+      "dbx": 8419.131712613993,
+      "emr": 8069.721967987466,
+      "lake": 9278.780853811912,
+      "elt": 10159.038046103024
+     }
+    ],
+    [
+     8,
+     37.05,
+     {
+      "asis": 19277.224494623824,
+      "dbx": 16559.738095094654,
+      "emr": 15861.196410641602,
+      "lake": 18465.098619623823,
+      "elt": 20040.405878872716
+     }
+    ],
+    [
+     16,
+     74.1,
+     {
+      "asis": 38282.22037286791,
+      "dbx": 32840.95066500957,
+      "emr": 31444.145100903464,
+      "lake": 36837.73395620124,
+      "elt": 39803.14134936569
+     }
+    ]
+   ],
+   "breakEven": [
+    {
+     "multiplier": 0.5535238985626914,
+     "tb": 2.5635075552184645,
+     "from": "lake",
+     "to": "emr"
+    }
+   ],
+   "gate": {
+    "status": "NO-GO",
+    "budget": 2500,
+    "monthly": 2647.8529792562445,
+    "headroom": -147.85297925624445,
+    "usedPct": 105.91411917024978
+   },
+   "gateTight": {
+    "status": "REVIEW",
+    "budget": 2700.8100388413695,
+    "monthly": 2647.8529792562445,
+    "headroom": 52.95705958512508,
+    "usedPct": 98.0392156862745
+   },
+   "suggestions": {
+    "steps": [
+     {
+      "id": "raw-retention",
+      "title": "Reduzir a retenção da camada bruta para 90 dias",
+      "why": "Com Silver e Gold versionadas, manter a bruta por mais de um ano raramente atende a um requisito real de negócio ou compliance.",
+      "saving": 246.67499999999973,
+      "newMonthly": 2401.1779792562447,
+      "slaAfter": "PASS"
+     }
+    ],
+    "finalMonthly": 2401.1779792562447,
+    "reachable": false,
+    "finalSla": "PASS"
+   }
+  }
+ },
+ {
+  "name": "big_volume_wh_large",
+  "g": {
+   "name": "Oracle → Lakehouse → Snowflake",
+   "environment": "Production",
+   "criticality": "High",
+   "sourceType": "Oracle",
+   "sourceVolumeGB": 90000,
+   "dailyDeltaGB": 2000,
+   "recordsPerDay": 60000000,
+   "ingestion": "incremental",
+   "targetFileMB": 128,
+   "catalogObjects": 50000,
+   "queriesPerDay": 300,
+   "avgQuerySec": 25,
+   "scanPerQueryGB": 3,
+   "failureRate": 2,
+   "retries": 2,
+   "crossRegionGB": 0,
+   "internetGB": 0,
+   "discountPct": 0,
+   "budgetMonthly": 2500,
+   "slaMaxMinutes": 60,
+   "freshnessHours": 30,
+   "orchestration": "chained",
+   "snowflakeEdition": "standard",
+   "snowflakeStorage": "capacity",
+   "dwStorage": true,
+   "customGbPerNodeMin": 0.5,
+   "customCostPerNodeHour": 0.3,
+   "_provided": {
+    "targetFileMB": 1,
+    "failureRate": 1,
+    "retries": 1,
+    "queriesPerDay": 1,
+    "recordsPerDay": 1,
+    "catalogObjects": 1,
+    "scanPerQueryGB": 1,
+    "avgQuerySec": 1
+   }
+  },
+  "stages": [
+   {
+    "key": "raw",
+    "name": "Ingestion → Raw",
+    "kind": "ingest",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 4,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-snappy",
+    "tableFormat": "hive",
+    "retentionDays": 365,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 0,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "bronze",
+    "name": "Bronze",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 4,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-snappy",
+    "tableFormat": "iceberg",
+    "retentionDays": 365,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "silver",
+    "name": "Silver",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 4,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 0.8,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "iceberg",
+    "retentionDays": 730,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "gold",
+    "name": "Gold",
+    "kind": "transform",
+    "enabled": true,
+    "engine": "glue",
+    "workers": 2,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 0.25,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "iceberg",
+    "retentionDays": 1095,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 4,
+    "whSize": "S",
+    "autoSuspendSec": 60
+   },
+   {
+    "key": "dwload",
+    "name": "DW Load (Snowflake)",
+    "kind": "load",
+    "enabled": true,
+    "engine": "snowflake_wh",
+    "workers": 1,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "hive",
+    "retentionDays": 1095,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 0,
+    "whSize": "L",
+    "autoSuspendSec": 600
+   },
+   {
+    "key": "serve",
+    "name": "Serving / BI",
+    "kind": "serve",
+    "enabled": true,
+    "engine": "snowflake_serve",
+    "workers": 1,
+    "workerType": "m5.xlarge",
+    "runsPerDay": 1,
+    "reduction": 1,
+    "fileFormat": "parquet-zstd",
+    "tableFormat": "iceberg",
+    "retentionDays": 0,
+    "storageClass": "standard",
+    "maintenanceRunsPerMonth": 0,
+    "whSize": "M",
+    "autoSuspendSec": 300
+   }
+  ],
+  "expected": {
+   "monthly": 32645.470095287557,
+   "breakdown": {
+    "Ingestion": 1289.798139259259,
+    "Storage": 20905.802011732,
+    "Processing": 3817.176495407407,
+    "Warehouse": 1163.576888888889,
+    "Maintenance": 5468.61656,
+    "Network": 0,
+    "Catalog": 0.5
+   },
+   "slaStatus": "FAIL",
+   "processingMin": 5150.644444444445,
+   "latencyMin": 6590.644444444445,
+   "confidence": 82,
+   "range": {
+    "low": 27356.90393985097,
+    "high": 37934.03625072414
+   },
+   "unit": {
+    "perMonth": 32645.470095287557,
+    "perYear": 391745.6411434507,
+    "perTB": 549.8184437101062,
+    "perGBIngested": 0.5369320739356506,
+    "perGBStored": 0.03584634589323575,
+    "perMillionRec": 17.89773579785502,
+    "perQuery": 3.5795471595710042,
+    "perRunSet": 178.9773579785502
+   },
+   "complexity": 26,
+   "assumptions": [
+    "Retries: multiplicador de 1.040× sobre compute e requests.",
+    "Apache Iceberg: manutenção (compaction/expire snapshots) cobrada 4×/mês na camada Bronze.",
+    "Apache Iceberg: storage multiplicado por 1.25× devido a snapshots retidos.",
+    "Apache Iceberg: manutenção (compaction/expire snapshots) cobrada 4×/mês na camada Silver.",
+    "Apache Iceberg: manutenção (compaction/expire snapshots) cobrada 4×/mês na camada Gold.",
+    "Estágios encadeados numa única DAG: latência = maior intervalo de agendamento + soma dos tempos de execução."
+   ],
+   "stageTotals": [
+    [
+     "raw",
+     5488.027739259259,
+     1112.611111111111
+    ],
+    [
+     "bronze",
+     9118.40582485926,
+     1112.611111111111
+    ],
+    [
+     "silver",
+     10307.871366164858,
+     1112.611111111111
+    ],
+    [
+     "gold",
+     4796.26796361529,
+     1779.2777777777778
+    ],
+    [
+     "dwload",
+     2123.7305347222223,
+     33.53333333333334
+    ],
+    [
+     "serve",
+     810.6666666666667,
+     0
+    ]
+   ],
+   "variants": {
+    "asis": 32645.470095287557,
+    "dbx": 28286.72965099594,
+    "emr": 27167.439218546813,
+    "lake": 29791.229143898665,
+    "elt": 33784.98215691719
+   },
+   "scored": {
+    "cost": [
+     [
+      "dbx",
+      66.36279651759376
+     ],
+     [
+      "emr",
+      65.6519901901532
+     ],
+     [
+      "lake",
+      42.41916326285515
+     ],
+     [
+      "elt",
+      22.5
+     ],
+     [
+      "asis",
+      16.47076036730086
+     ]
+    ],
+    "balanced": [
+     [
+      "dbx",
+      63.62172476043466
+     ],
+     [
+      "emr",
+      56.869320253537595
+     ],
+     [
+      "lake",
+      37.44188599114985
+     ],
+     [
+      "elt",
+      31.5
+     ],
+     [
+      "asis",
+      17.88782572167335
+     ]
+    ],
+    "performance": [
+     [
+      "dbx",
+      56.44818242502359
+     ],
+     [
+      "elt",
+      41.5
+     ],
+     [
+      "emr",
+      41.303980380306385
+     ],
+     [
+      "lake",
+      25.522430955536375
+     ],
+     [
+      "asis",
+      14.443912860836678
+     ]
+    ]
+   },
+   "optimizations": [
+    [
+     "raw-retention",
+     3162.5000000000073,
+     "FAIL",
+     6590.644444444445
+    ],
+    [
+     "raw-lifecycle",
+     1916.25,
+     "FAIL",
+     6590.644444444445
+    ]
+   ],
+   "sweep": [
+    [
+     1,
+     32645.470095287557,
+     6590.644444444445,
+     "FAIL"
+    ],
+    [
+     2,
+     32734.418063287558,
+     3298.4222222222224,
+     "FAIL"
+    ],
+    [
+     4,
+     32912.31399928755,
+     1652.3111111111111,
+     "PARTIAL"
+    ],
+    [
+     12,
+     33623.90076285876,
+     554.9037037037036,
+     "PARTIAL"
+    ],
+    [
+     24,
+     34691.276378858754,
+     280.55185185185184,
+     "PARTIAL"
+    ],
+    [
+     48,
+     36826.03666957236,
+     143.3759259259259,
+     "PARTIAL"
+    ],
+    [
+     96,
+     41095.539133572354,
+     74.78796296296295,
+     "PASS"
+    ],
+    [
+     288,
+     58173.54898957235,
+     29.06265432098765,
+     "PASS"
+    ]
+   ],
+   "sweepGold": [
+    [
+     1,
+     32645.470095287557
+    ],
+    [
+     2,
+     32646.513423287557
+    ],
+    [
+     4,
+     32648.600079287557
+    ],
+    [
+     12,
+     32656.946703287555
+    ],
+    [
+     24,
+     32669.46663928756
+    ],
+    [
+     48,
+     32694.506511287553
+    ],
+    [
+     96,
+     32744.586255287555
+    ],
+    [
+     288,
+     32944.90523128756
+    ]
+   ],
+   "sensitivity": [
+    [
+     0.25,
+     14.84375,
+     {
+      "asis": 8836.88249982189,
+      "dbx": 7751.920070348984,
+      "emr": 7471.889108636704,
+      "lake": 7453.306261974667,
+      "elt": 9065.649859229296
+     }
+    ],
+    [
+     0.5,
+     29.6875,
+     {
+      "asis": 16773.07836497711,
+      "dbx": 14596.856597231303,
+      "emr": 14037.07247860674,
+      "lake": 14899.280555949335,
+      "elt": 17305.427291791926
+     }
+    ],
+    [
+     1,
+     59.375,
+     {
+      "asis": 32645.470095287557,
+      "dbx": 28286.72965099594,
+      "emr": 27167.439218546813,
+      "lake": 29791.229143898665,
+      "elt": 33784.98215691719
+     }
+    ],
+    [
+     2,
+     118.75,
+     {
+      "asis": 64390.25355590845,
+      "dbx": 55666.475758525215,
+      "emr": 53428.17269842697,
+      "lake": 59575.126319797346,
+      "elt": 66744.09188716771
+     }
+    ],
+    [
+     4,
+     237.5,
+     {
+      "asis": 127879.82047715024,
+      "dbx": 110425.96797358376,
+      "emr": 105949.63965818727,
+      "lake": 119142.92067159468,
+      "elt": 132662.31134766876
+     }
+    ],
+    [
+     8,
+     475,
+     {
+      "asis": 254858.9543196338,
+      "dbx": 219944.95240370085,
+      "emr": 210992.57357770787,
+      "lake": 238278.50937518937,
+      "elt": 264498.75026867085
+     }
+    ],
+    [
+     16,
+     950,
+     {
+      "asis": 508817.2220046009,
+      "dbx": 438982.92126393504,
+      "emr": 421078.44141674903,
+      "lake": 476549.6867823787,
+      "elt": 528171.6281106749
+     }
+    ]
+   ],
+   "breakEven": [
+    {
+     "multiplier": 0.2587340236772446,
+     "tb": 15.362332655836395,
+     "from": "lake",
+     "to": "emr"
+    }
+   ],
+   "gate": {
+    "status": "NO-GO",
+    "budget": 2500,
+    "monthly": 32645.470095287557,
+    "headroom": -30145.470095287557,
+    "usedPct": 1305.8188038115024
+   },
+   "gateTight": {
+    "status": "REVIEW",
+    "budget": 33298.37949719331,
+    "monthly": 32645.470095287557,
+    "headroom": 652.909401905752,
+    "usedPct": 98.0392156862745
+   },
+   "suggestions": {
+    "steps": [
+     {
+      "id": "raw-retention",
+      "title": "Reduzir a retenção da camada bruta para 90 dias",
+      "why": "Com Silver e Gold versionadas, manter a bruta por mais de um ano raramente atende a um requisito real de negócio ou compliance.",
+      "saving": 3162.5000000000073,
+      "newMonthly": 29482.97009528755,
+      "slaAfter": "FAIL"
+     },
+     {
+      "id": "wh-autosuspend",
+      "title": "Reduzir auto-suspend do warehouse para 60 s",
+      "why": "Warehouse suspenso não consome créditos; janelas de ociosidade longas são cobradas a cada execução ou sessão.",
+      "saving": 316.1599999999962,
+      "newMonthly": 29166.810095287554,
+      "slaAfter": "FAIL"
+     }
+    ],
+    "finalMonthly": 29166.810095287554,
+    "reachable": false,
+    "finalSla": "FAIL"
+   }
+  }
+ }
+]

@@ -8,11 +8,12 @@
 :root{
   --bg:#f6f7f9; --panel:#ffffff; --ink:#14161a; --muted:#697084; --line:#e3e6ec;
   --accent:#4f6bed; --ok:#1f8a5b; --warn:#b47708; --bad:#c23b4b;
+  --c-cost:#4f6bed; --c-time:#7a6ff0; --c-teal:#2fa8a0; --c-amber:#e0a32e; --c-rose:#c2586e;
   --radius:10px;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);
-  font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;}
+  font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;}
 h1,h2,h3{margin:0;font-weight:640;letter-spacing:-0.01em}
 code{font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;background:#eef0f5;padding:1px 4px;border-radius:4px}
 
@@ -24,15 +25,68 @@ header .brand p{margin:2px 0 0;font-size:11.5px;color:#9aa3bd;letter-spacing:.04
 header .sp{flex:1}
 header label{font-size:11.5px;color:#9aa3bd;display:block;margin-bottom:3px;letter-spacing:.03em;text-transform:uppercase}
 header select{background:#1c2236;color:#fff;border:1px solid #2c3450;border-radius:7px;padding:6px 9px;font-size:13px}
-header button{background:#2c3450;color:#fff;border:0;border-radius:7px;padding:8px 12px;font-size:13px;cursor:pointer}
-header button:hover{background:#3a4468}
+header button{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:9px 15px;font-size:13.5px;font-weight:600;cursor:pointer}
+header button:hover{background:#6580ff}
+header .adv{text-transform:none;letter-spacing:0;display:flex;align-items:center;gap:7px;font-size:13px;color:#dfe4f5;cursor:pointer;padding-top:14px}
+header .adv input{width:16px;height:16px;accent-color:var(--c-amber)}
 
 /* layout */
-.wrap{display:flex;align-items:flex-start;gap:0;min-height:calc(100vh - 62px)}
-aside{width:330px;flex:0 0 330px;background:var(--panel);border-right:1px solid var(--line);
-  padding:16px 16px 60px;height:calc(100vh - 62px);overflow-y:auto;position:sticky;top:0}
-main{flex:1;min-width:0;padding:18px 22px 64px}
+main{max-width:1240px;margin:0 auto;padding:0 22px 72px}
 
+/* barra de resumo fixa */
+.summary{position:sticky;top:0;z-index:20;background:linear-gradient(var(--bg) 82%,rgba(246,247,249,0));padding:16px 0 10px}
+.sgrid{display:grid;grid-template-columns:1.5fr 1fr 1.2fr 1fr;gap:12px}
+.scard{border-radius:14px;padding:14px 18px;color:#fff;display:flex;flex-direction:column;gap:2px;box-shadow:0 2px 10px rgba(20,22,26,.10)}
+.scard .sl{font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;opacity:.85}
+.scard .sv{font-size:32px;font-weight:720;letter-spacing:-0.02em;line-height:1.15}
+.scard .ss{font-size:12.5px;opacity:.9}
+.s-cost{background:linear-gradient(135deg,#4f6bed,#7a6ff0)}
+.s-conf{background:linear-gradient(135deg,#2fa8a0,#3c8dbc)}
+.s-PASS,.s-GO{background:linear-gradient(135deg,#1f8a5b,#35a873)}
+.s-PARTIAL,.s-REVIEW{background:linear-gradient(135deg,#c78a10,#e0a32e)}
+.s-FAIL,.s-NO-GO{background:linear-gradient(135deg,#b03047,#d35468)}
+.s-NONE{background:linear-gradient(135deg,#697084,#8a91a5)}
+.scard .meter{background:rgba(255,255,255,.3);margin-top:7px}.scard .meter span{background:#fff}
+
+/* workload no centro */
+.wl-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.wl-head h2{font-size:22px}
+.wl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:14px;margin-bottom:22px}
+.card.wl{border-top:4px solid var(--gc,var(--accent));margin-bottom:0}
+.card.wl h3{color:var(--gc,var(--accent))}
+.card.wl .fld input,.card.wl .fld select{padding:8px 10px;font-size:14px}
+.btn{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:8px 14px;font-size:13.5px;font-weight:600;cursor:pointer}
+.btn:hover{background:#6580ff}
+.gate-box{border-radius:14px;padding:20px 22px;color:#fff;margin-bottom:16px}
+.gate-box .gb-t{font-size:13px;letter-spacing:.07em;text-transform:uppercase;opacity:.85}
+.gate-box .gb-v{font-size:44px;font-weight:760;letter-spacing:-0.02em;line-height:1.1}
+.gate-box p{margin:6px 0 0;max-width:80ch;opacity:.95}
+.step{display:grid;grid-template-columns:34px 1fr auto;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid #f0f2f6}
+.step:last-child{border-bottom:0}
+.step .n{width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
+.step b{display:block}.step span{color:var(--muted);font-size:13px}
+.step .sv2{text-align:right;font-variant-numeric:tabular-nums;font-weight:660}
+.step .sv2 em{display:block;font-style:normal;font-weight:400;font-size:12px;color:var(--muted)}
+
+.help{display:block;margin-top:5px;font-size:12px;line-height:1.4;color:var(--muted)}
+.info{display:inline-flex;align-items:center;justify-content:center;width:12px;height:12px;margin-left:4px;padding:0;
+  border-radius:50%;border:1px solid var(--accent);background:#fff;color:var(--accent);font:italic 700 8px/1 Georgia,serif;
+  cursor:pointer;vertical-align:middle;position:relative}
+.info::after{content:"";position:absolute;inset:-5px}
+.info:hover{background:var(--accent);color:#fff}
+.pop{position:fixed;z-index:1000;width:min(320px,calc(100vw - 20px));background:#fff;border:1px solid #d5daea;border-radius:12px;
+  box-shadow:0 10px 30px rgba(20,22,40,.22);padding:12px 14px;font-size:13px;line-height:1.5;color:#2b3147}
+.pop::before{content:"";position:absolute;top:-6px;left:calc(var(--ax,20px) - 6px);width:10px;height:10px;background:#fff;
+  border-left:1px solid #d5daea;border-top:1px solid #d5daea;transform:rotate(45deg)}
+.pop.up::before{display:none}
+.pop-t{font-weight:680;color:var(--accent);margin-bottom:5px;font-size:13.5px}
+.pop-p{margin:0 0 7px}.pop-p:last-child{margin-bottom:0}
+.pop-p.opt{background:#eef1fd;border-radius:7px;padding:6px 9px;color:#2f43a8}
+.info:focus-visible{outline:2px solid #c3cdf7}
+.help.opt{color:#3a4fb0;background:#eef1fd;border-radius:6px;padding:4px 7px}
+.scard .bud{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.scard .bud input{width:92px;padding:3px 7px;border-radius:6px;border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.18);color:#fff;font-size:13.5px;font-weight:650}
+.scard .bud input:focus{outline:2px solid #fff;background:rgba(255,255,255,.28)}
 /* form */
 .advbar{display:flex;align-items:center;gap:8px;padding:9px 11px;background:#eef1f8;border:1px solid var(--line);
   border-radius:var(--radius);margin-bottom:14px;font-size:12.5px;color:#3c4460}
@@ -52,10 +106,10 @@ main{flex:1;min-width:0;padding:18px 22px 64px}
 
 /* tabs */
 .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:18px;flex-wrap:wrap}
-.tab{padding:8px 13px;font-size:13px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;
-  border-radius:6px 6px 0 0}
+.tab{padding:10px 16px;font-size:14px;font-weight:550;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;
+  border-radius:8px 8px 0 0}
 .tab:hover{background:#eef1f8}
-.tab.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:680;background:#eef1fd}
 
 /* cards */
 .lead{margin-bottom:16px}
@@ -69,10 +123,11 @@ main{flex:1;min-width:0;padding:18px 22px 64px}
 .note{font-size:12px;color:var(--muted);margin:10px 0 0}
 
 /* kpis */
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:10px;margin-bottom:14px}
-.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px 13px;display:flex;flex-direction:column;gap:3px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--kc,var(--accent));border-radius:var(--radius);padding:14px 15px;display:flex;flex-direction:column;gap:3px}
+.kpi:nth-child(5n+1){--kc:var(--c-cost)}.kpi:nth-child(5n+2){--kc:var(--c-teal)}.kpi:nth-child(5n+3){--kc:var(--c-amber)}.kpi:nth-child(5n+4){--kc:var(--c-time)}.kpi:nth-child(5n+5){--kc:var(--c-rose)}
 .k-l{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
-.k-v{font-size:22px;font-weight:660;letter-spacing:-0.02em}
+.k-v{font-size:28px;font-weight:660;letter-spacing:-0.02em}
 .k-s{font-size:11.5px;color:var(--muted)}
 .sla{font-size:16px;font-weight:700}
 .sla.ok{color:var(--ok)} .sla.warn{color:var(--warn)} .sla.bad{color:var(--bad)}
@@ -168,8 +223,8 @@ tr.hl{background:#f4f6fd}
 .m-account{background:#e6ebfb;color:#4257b8}
 
 @media (max-width:980px){
-  .wrap{flex-direction:column}
-  aside{width:100%;flex:none;height:auto;position:static;border-right:0;border-bottom:1px solid var(--line)}
+  .sgrid{grid-template-columns:1fr 1fr}
+  .summary{position:static}
   .two{grid-template-columns:1fr}
   .bar{grid-template-columns:130px 1fr 104px}
 }
@@ -179,7 +234,7 @@ tr.hl{background:#f4f6fd}
 <header>
   <div class="brand">
     <h1>DataCost Architect</h1>
-    <p>FinOps Data Architecture Simulator · MVP mock v0.2 · pipeline por estágios</p>
+    <p>FinOps Data Architecture Simulator · MVP mock v0.3 · pipeline por estágios · Go/No-Go</p>
   </div>
   <div class="sp"></div>
   <div>
@@ -198,30 +253,24 @@ tr.hl{background:#f4f6fd}
       <option value="EUR">EUR</option>
     </select>
   </div>
+  <label class="adv"><input type="checkbox" id="advToggle"> Advanced parameters</label>
   <button id="reset" type="button">Reset scenario</button>
 </header>
 
-<div class="wrap">
-  <aside>
-    <div class="advbar">
-      <input type="checkbox" id="advToggle">
-      <label for="advToggle" style="margin:0;cursor:pointer">Show advanced parameters</label>
-    </div>
-    <div id="form"></div>
-  </aside>
-  <main>
-    <nav class="tabs">
-      <div class="tab on" data-tab="pipeline">Pipeline</div>
-      <div class="tab" data-tab="result">Result</div>
-      <div class="tab" data-tab="schedule">Schedule impact</div>
-      <div class="tab" data-tab="compare">Compare scenarios</div>
-      <div class="tab" data-tab="optimize">Optimization</div>
-      <div class="tab" data-tab="sensitivity">Sensitivity &amp; break-even</div>
-      <div class="tab" data-tab="assumptions">Assumptions</div>
-    </nav>
-    <div id="tabBody"></div>
-  </main>
-</div>
+<main>
+  <div class="summary"><div class="sgrid" id="summary"></div></div>
+  <nav class="tabs">
+    <div class="tab on" data-tab="pipeline">Workload &amp; pipeline</div>
+    <div class="tab" data-tab="result">Result</div>
+    <div class="tab" data-tab="gate">Go / No-Go</div>
+    <div class="tab" data-tab="schedule">Schedule impact</div>
+    <div class="tab" data-tab="compare">Compare scenarios</div>
+    <div class="tab" data-tab="optimize">Optimization</div>
+    <div class="tab" data-tab="sensitivity">Sensitivity &amp; break-even</div>
+    <div class="tab" data-tab="assumptions">Assumptions</div>
+  </nav>
+  <div id="tabBody"></div>
+</main>
 
 <script>
 /*__PRICING__*/
