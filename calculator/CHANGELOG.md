@@ -2,7 +2,7 @@
 
 Tudo o que foi entregue desde a v0.2 (protótipo em JS puro), na ordem em que entrou.
 
-## v0.3 — 2026-09-24/25
+## v0.3 — 2026-09-24/25 (PRs #5, #6 e #7)
 
 ### Repositório
 - Remove o PoC antigo (`old/`, Dagster/Spark) e organiza o material do TCC em `documentos_aux/` (escopo, entregáveis parciais 1–3, transcrição da reunião). PR #5.
@@ -27,7 +27,24 @@ Tudo o que foi entregue desde a v0.2 (protótipo em JS puro), na ordem em que en
 - **Orçamento editável** direto no card Go/No-Go do topo (padrão US$ 2.500), sincronizado com o card do workload.
 - **Ajuda contextual:** ícone "i" (12 px) em cada campo e em cada camada (raw, bronze, silver, gold, DW Load, Serving) que abre um popup sobreposto com a descrição do campo e da opção selecionada; fecha ao clicar fora, com Esc, e acompanha o ícone ao rolar.
 - Correção: as caixas de texto perdiam o foco a cada tecla digitada.
-- 65 testes passando (`python -m pytest calculator/tests`).
+
+### 4. Variante Azure e Glue 6.0+ (`feat/azure-glue6`)
+- **Glue 6.0+** como engine (US$ 0,308/DPU-h contra US$ 0,44), variante de comparação e regra de otimização "migrar os jobs Glue para Glue 6.0+" (no cenário padrão: −US$ 192/mês; assume o mesmo throughput, a validar).
+- **Variante "Azure: Databricks + ADLS":** ingestão e transformações em Databricks Jobs (DBU + VMs Dsv5/Esv5), storage e requests em ADLS Gen2, consumo em Databricks SQL, sem custo de catálogo. Snowflake e transferência de dados mantêm o preço da AWS como proxy. No cenário padrão: US$ 2.436/mês (−11% contra o as-is de US$ 2.725).
+- Preço da VM `Standard_E4s_v5` adicionado à coleta da Azure Retail Prices API.
+- Implementado em JS e Python, com paridade testada.
+
+### 5. Validação e correção do Glue (`feat/validation`)
+- **3 workloads de validação** (`validation/workloads.py`): pequeno (lake AWS, ~US$ 55/mês), médio (Glue + Iceberg + Snowflake, ~US$ 2.725) e grande (Glue + Databricks Photon + Snowflake L, ~US$ 41.556), todos em preço de lista, com SLA atendido e dentro do orçamento.
+- **`tools/validation_worksheet.py`** gera `validation/worksheet.md` com, por serviço, a quantidade a digitar nas calculadoras oficiais e o custo do modelo; **`tools/validation_compare.py`** calcula o erro de estimativa (Métrica 1) a partir de `validation/official.json`.
+- **Correção no custo do Glue:** o motor não considerava os DPUs por worker (G.1X = 1 DPU, G.2X = 2 DPUs). Corrigido em JS e Python, com cenário de golden e teste novos.
+- O teste garante que as linhas da planilha somam o total mensal do motor.
+
+### 6. Uso físico, calibração e README (`feat/usage-calibration`)
+- **Uso físico por estágio** (`usage`): DPU-horas, DBU, node-horas, créditos, storage, requests PUT/GET e TB escaneados. Exposto no motor JS e Python (paridade testada) e no app, em um card novo na aba *Result*.
+- **Kit de calibração** (`calibration/`): guia passo a passo em português (Glue, Databricks, EMR e Snowflake), scripts PySpark `gen_data.py` e `etl_benchmark.py` e `tools/calibrate.py`, que transforma execuções medidas em `calibration.json` e `src/calibration.js`. Os dois motores aplicam a calibração sobre o catálogo e marcam a engine como `measured`. Sem medições nada muda.
+- **README da raiz reescrito** (visão geral, capacidades, como rodar, estrutura, validação, status e equipe) e README técnico atualizado para a v0.3.
+- 81 testes passando (`python -m pytest calculator/tests`).
 
 ## Como reproduzir
 
@@ -35,12 +52,15 @@ Tudo o que foi entregue desde a v0.2 (protótipo em JS puro), na ordem em que en
 pip install requests ijson pyarrow duckdb pytest
 python calculator/tools/fetch_pricing.py     # preços AWS + Azure + curados
 python calculator/build.py                   # gera index.html
-python -m pytest calculator/tests            # paridade JS x Python e sanidade dos preços
+python -m pytest calculator/tests            # paridade JS x Python, preços, validação e calibração
 node calculator/tools/gen_golden.js          # regenera tests/golden.json a partir do JS
+python calculator/tools/validation_worksheet.py   # planilha de conferência (validation/worksheet.md)
+python calculator/tools/validation_compare.py     # erro vs. calculadoras oficiais (Métrica 1)
+python calculator/tools/calibrate.py              # aplica execuções medidas (calibration/measurements.csv)
 ```
 
 ## Próximos passos
-1. Variante Azure (Databricks + ADLS) usando os preços já coletados.
-2. Glue 6.0+ como engine.
-3. Três workloads de validação (pequeno, médio, grande) contra as calculadoras oficiais.
-4. Calibrar throughput das engines com execuções medidas.
+1. Preencher `validation/official.json` com os totais das calculadoras oficiais (AWS, Snowflake, Databricks) e rodar a comparação.
+2. Calibrar o throughput das engines com execuções medidas (começando pelo Glue), seguindo `calibration/README.md`.
+3. Publicar o app no GitHub Pages para a demonstração da banca.
+4. Redigir o texto do TCC: metodologia, resultados (erro de estimativa), discussão e limitações.
