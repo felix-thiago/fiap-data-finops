@@ -148,6 +148,95 @@ function gField(def) {
 }
 
 /* ==================================================================== */
+/* AJUDA: descrição de camadas, campos e opções                         */
+/* ==================================================================== */
+const STAGE_INFO = {
+  raw:    'Camada de aterrissagem: cópia fiel da fonte, sem transformação. Preserva o dado original para reprocessamento e auditoria.',
+  bronze: 'Dado bruto já tipado e gravado em formato de tabela (Iceberg/Delta/Hudi). Padroniza schema e tipos e adiciona metadados de carga; ainda sem regra de negócio.',
+  silver: 'Dado limpo e conformado: deduplicação, validações, joins e normalização. Costuma reduzir o volume (fator de redução menor que 1).',
+  gold:   'Dado agregado e modelado para consumo (métricas, data marts). Volume bem menor, consultado com frequência pelo BI.',
+  dwload: 'Carga da camada Gold no Data Warehouse (Snowflake). Cobra o compute do warehouse durante a carga e o storage do DW.',
+  serve:  'Consumo: consultas de BI e analytics sobre o dado servido. O custo depende de consultas/dia, tempo de cada consulta e volume escaneado.',
+};
+const KIND_INFO = {
+  ingest: 'Estágio de ingestão: lê da fonte e grava o dado na primeira camada do lake.',
+  transform: 'Estágio de transformação entre camadas do lake.',
+  load: 'Estágio de carga no data warehouse.',
+  serve: 'Estágio de consumo (BI / analytics).',
+};
+
+const FIELD_HELP = {
+  engine:      'Motor que executa o estágio. Define o modelo de cobrança (DPU-hora, EC2, DBU, créditos) e a velocidade de processamento.',
+  workers:     'Nós de processamento em paralelo (além de 1 driver/coordenador, também cobrado). Mais workers reduzem o tempo, mas elevam o custo por hora.',
+  workerType:  'Tamanho da instância de cada worker. Instâncias maiores processam mais rápido e custam mais por hora.',
+  whSize:      'Tamanho do virtual warehouse do Snowflake. Cada degrau dobra os créditos por hora e a velocidade.',
+  autoSuspend: 'Segundos de inatividade até o warehouse suspender. Enquanto ligado consome créditos: valor alto paga ociosidade; valor muito baixo causa retomadas frequentes.',
+  schedule:    'Frequência de execução do estágio. Mais execuções reduzem a latência, mas multiplicam startups e mínimos de cobrança.',
+  reduction:   'Volume que sai do estágio dividido pelo que entra. 1,0 = mantém; 0,8 = 20% a menos (dedup/filtro); 0,25 = agregação forte.',
+  fileFormat:  'Formato e compressão dos arquivos no lake. Colunar comprimido ocupa menos espaço e lê menos dado por consulta.',
+  tableFormat: 'Camada de metadados sobre os arquivos. Formatos modernos dão transações e pruning (consulta mais barata), mas exigem snapshots e manutenção.',
+  retention:   'Dias em que o dado da camada é mantido. Storage da camada = volume diário × retenção.',
+  storageClass:'Classe de armazenamento do S3: define o preço por GB-mês e o custo/latência de acesso.',
+  maintenance: 'Execuções por mês de compaction e expiração de snapshots. Reduzem arquivos pequenos e versões antigas, mas são compute cobrado.',
+  dwRetention: 'Dias de dado mantidos no storage do Data Warehouse (Snowflake).',
+  tableRead:   'Formato da tabela lida no consumo. Define o scan factor: a fração do dado realmente varrida por consulta (pruning).',
+};
+
+const OPTION_HELP = {
+  engine: {
+    glue: 'Spark gerenciado e serverless da AWS. Cobra por DPU-hora, startup curto e pouca operação.',
+    emr_spark: 'Spark em cluster EMR: paga EC2 mais o adicional do EMR. Mais controle e throughput, mais operação.',
+    emr_sqoop: 'Extração JDBC paralela de bancos relacionais via Sqoop em EMR. Boa para cargas iniciais grandes.',
+    ec2_spark: 'Spark em EC2 autogerenciado: sem adicional do EMR, mas você opera o cluster (maior complexidade).',
+    dms: 'AWS DMS: replicação CDC contínua. A instância fica ligada 24×7, então o custo é fixo e independe do schedule.',
+    databricks: 'Spark no Databricks Jobs. Paga DBU mais a instância EC2 de cada nó.',
+    databricks_photon: 'Databricks com o motor vetorizado Photon: consome ~2× DBU, porém processa bem mais rápido.',
+    databricks_sl: 'Databricks serverless: sem gerir cluster, startup em segundos e DBU mais caro.',
+    snowflake_wh: 'Processa e carrega em virtual warehouse do Snowflake, cobrado em créditos por hora ativa.',
+    snowpipe: 'Carga contínua serverless no Snowflake, cobrada por volume carregado (não por warehouse).',
+    custom_fw: 'Framework interno (ex.: Talaria). Throughput e custo por nó-hora vêm dos parâmetros avançados do workload.',
+    athena: 'SQL serverless direto no S3, cobrado por TB escaneado. Sem infraestrutura para manter.',
+    snowflake_serve: 'Consultas de BI em warehouse Snowflake, cobradas pelo tempo ativo (créditos).',
+    dbsql: 'SQL Warehouse serverless do Databricks, cobrado em DBU pelo tempo de consulta.',
+  },
+  workerType: {
+    'm5.xlarge': '4 vCPU e 16 GB, uso geral. É a referência de desempenho (1×).',
+    'm5.2xlarge': '8 vCPU e 32 GB: processa cerca de 2× mais rápido pelo dobro do preço.',
+    'r5.xlarge': '4 vCPU e 32 GB, otimizada em memória. Indicada para joins e shuffles pesados.',
+  },
+  whSize: {
+    XS: 'X-Small: 1 crédito/hora. Cargas leves e poucos usuários.',
+    S: 'Small: 2 créditos/hora.',
+    M: 'Medium: 4 créditos/hora. Bom para BI com concorrência moderada.',
+    L: 'Large: 8 créditos/hora. Reduz o tempo em cargas pesadas, mas dobra o custo por hora.',
+  },
+  fileFormat: {
+    'parquet-zstd': 'Colunar com compressão ZSTD: o menor tamanho entre os formatos comuns (~18% do dado bruto).',
+    'parquet-snappy': 'Colunar com compressão rápida Snappy (~25% do bruto). Padrão do ecossistema Spark.',
+    'orc-zlib': 'Colunar do ecossistema Hive/Presto (~22% do bruto).',
+    'avro-snappy': 'Orientado a linha, bom para ingestão e streaming; menos eficiente para análise (~45%).',
+    'csv-gzip': 'Texto compactado, sem colunar: força ler o arquivo inteiro (~35%).',
+    'json-none': 'Texto sem compressão (100%): é a referência do tamanho bruto.',
+  },
+  tableFormat: {
+    hive: 'Diretórios e partições, sem camada transacional. Sem overhead, mas sem pruning avançado (scan 100%).',
+    iceberg: 'Transações ACID, time travel e pruning eficiente (~60% do scan). Custa snapshots, metadados e manutenção.',
+    delta: 'Similar ao Iceberg, nativo do Databricks (~65% do scan). Exige compaction e vacuum.',
+    hudi: 'Focado em upserts e CDC. Maior write amplification e overhead de metadados.',
+  },
+  storageClass: {
+    standard: 'S3 Standard: acesso frequente, maior preço por GB.',
+    ia: 'S3 Standard-IA: cerca de metade do preço de storage, para dado lido raramente (cobra por leitura).',
+    glacier: 'Glacier Instant Retrieval: arquivo barato com leitura em milissegundos, para dado quase nunca lido.',
+  },
+};
+const helpFor = (key) => {
+  const f = FIELD_HELP[key];
+  return f || '';
+};
+const optHelp = (key, value) => (OPTION_HELP[key] || {})[value] || '';
+
+/* ==================================================================== */
 /* TAB: PIPELINE (editor de estágios)                                   */
 /* ==================================================================== */
 function viewPipeline() {
@@ -187,6 +276,8 @@ function stageCard(st, idx, row) {
   if (row) head.appendChild(el('span','st-cost', money(row.totalDisc,0)+'/mês · '+mins(row.runtimeMin)));
   c.appendChild(head);
 
+  c.appendChild(el('p','st-info', STAGE_INFO[st.key] || KIND_INFO[st.kind] || ''));
+
   if (!st.enabled) return c;
 
   const grid = el('div','st-grid');
@@ -194,33 +285,33 @@ function stageCard(st, idx, row) {
 
   grid.appendChild(sel('Engine / framework',
     Object.entries(ENGINES).filter(([,e])=>e.roles.includes(st.kind)).map(([k,e])=>[k,e.label]),
-    st.engine, v => { st.engine=v; render(); }));
+    st.engine, v => { st.engine=v; render(); }, 'engine'));
 
   if (['glue','ec2','dbx','dbx_sl','custom'].includes(eng.kind)) {
-    grid.appendChild(inp('Workers','number',st.workers,'nodes', v => { st.workers=Math.max(1,+v||1); render(false); }));
-    grid.appendChild(sel('Worker type', Object.entries(WORKER_TYPES).map(([k,w])=>[k,w.label]), st.workerType, v=>{st.workerType=v;render();}));
+    grid.appendChild(inp('Workers','number',st.workers,'nodes', v => { st.workers=Math.max(1,+v||1); render(false); }, 'workers'));
+    grid.appendChild(sel('Worker type', Object.entries(WORKER_TYPES).map(([k,w])=>[k,w.label]), st.workerType, v=>{st.workerType=v;render();}, 'workerType'));
   }
   if (eng.kind==='snowflake') {
-    grid.appendChild(sel('Warehouse size', Object.entries(WH_SIZES).map(([k,w])=>[k,w.label]), st.whSize, v=>{st.whSize=v;render();}));
-    grid.appendChild(inp('Auto-suspend','number',st.autoSuspendSec,'s', v=>{st.autoSuspendSec=+v||0;render(false);}));
+    grid.appendChild(sel('Warehouse size', Object.entries(WH_SIZES).map(([k,w])=>[k,w.label]), st.whSize, v=>{st.whSize=v;render();}, 'whSize'));
+    grid.appendChild(inp('Auto-suspend','number',st.autoSuspendSec,'s', v=>{st.autoSuspendSec=+v||0;render(false);}, 'autoSuspend'));
   }
   if (st.kind!=='serve') {
-    grid.appendChild(sel('Schedule', FREQUENCIES.map(f=>[f.runsPerDay,f.label]), st.runsPerDay, v=>{st.runsPerDay=+v;render();}));
-    grid.appendChild(inp('Volume reduction','number',st.reduction,'out/in', v=>{st.reduction=Math.max(0.01,+v||0.01);render(false);}));
+    grid.appendChild(sel('Schedule', FREQUENCIES.map(f=>[f.runsPerDay,f.label]), st.runsPerDay, v=>{st.runsPerDay=+v;render();}, 'schedule'));
+    grid.appendChild(inp('Volume reduction','number',st.reduction,'out/in', v=>{st.reduction=Math.max(0.01,+v||0.01);render(false);}, 'reduction'));
   }
   if (st.kind!=='serve' && st.kind!=='load') {
-    grid.appendChild(sel('File format', Object.entries(FILE_FORMATS).map(([k,f])=>[k,f.label]), st.fileFormat, v=>{st.fileFormat=v;render();}));
-    grid.appendChild(sel('Table format', Object.entries(TABLE_FORMATS).map(([k,f])=>[k,f.label]), st.tableFormat, v=>{st.tableFormat=v;render();}));
-    grid.appendChild(inp('Retention','number',st.retentionDays,'days', v=>{st.retentionDays=+v||0;render(false);}));
-    grid.appendChild(sel('Storage class', [['standard','S3 Standard'],['ia','S3 Standard-IA'],['glacier','Glacier IR']], st.storageClass, v=>{st.storageClass=v;render();}));
+    grid.appendChild(sel('File format', Object.entries(FILE_FORMATS).map(([k,f])=>[k,f.label]), st.fileFormat, v=>{st.fileFormat=v;render();}, 'fileFormat'));
+    grid.appendChild(sel('Table format', Object.entries(TABLE_FORMATS).map(([k,f])=>[k,f.label]), st.tableFormat, v=>{st.tableFormat=v;render();}, 'tableFormat'));
+    grid.appendChild(inp('Retention','number',st.retentionDays,'days', v=>{st.retentionDays=+v||0;render(false);}, 'retention'));
+    grid.appendChild(sel('Storage class', [['standard','S3 Standard'],['ia','S3 Standard-IA'],['glacier','Glacier IR']], st.storageClass, v=>{st.storageClass=v;render();}, 'storageClass'));
     if (TABLE_FORMATS[st.tableFormat].maintenance)
-      grid.appendChild(inp('Maintenance runs','number',st.maintenanceRunsPerMonth,'per month', v=>{st.maintenanceRunsPerMonth=+v||0;render(false);}));
+      grid.appendChild(inp('Maintenance runs','number',st.maintenanceRunsPerMonth,'per month', v=>{st.maintenanceRunsPerMonth=+v||0;render(false);}, 'maintenance'));
   }
   if (st.kind==='load') {
-    grid.appendChild(inp('DW retention','number',st.retentionDays,'days', v=>{st.retentionDays=+v||0;render(false);}));
+    grid.appendChild(inp('DW retention','number',st.retentionDays,'days', v=>{st.retentionDays=+v||0;render(false);}, 'dwRetention'));
   }
   if (st.kind==='serve') {
-    grid.appendChild(sel('Table format read', Object.entries(TABLE_FORMATS).map(([k,f])=>[k,f.label]), st.tableFormat, v=>{st.tableFormat=v;render();}));
+    grid.appendChild(sel('Table format read', Object.entries(TABLE_FORMATS).map(([k,f])=>[k,f.label]), st.tableFormat, v=>{st.tableFormat=v;render();}, 'tableFormat', 'tableRead'));
   }
   c.appendChild(grid);
 
@@ -241,18 +332,26 @@ function stageCard(st, idx, row) {
   return c;
 }
 
-function sel(label, options, value, onchange) {
+function sel(label, options, value, onchange, key, fieldKey) {
   const w = el('div','fld'); w.appendChild(el('label',null,label));
   const s = el('select');
   options.forEach(([v,t])=>{ const o=el('option',null,t); o.value=v; if(String(value)===String(v))o.selected=true; s.appendChild(o); });
   s.onchange = () => onchange(s.value);
-  w.appendChild(s); return w;
+  w.appendChild(s);
+  if (key) {
+    const h = helpFor(fieldKey || key), o = optHelp(key, value);
+    if (h) w.appendChild(el('small','help', h));
+    if (o) w.appendChild(el('small','help opt', o));
+  }
+  return w;
 }
-function inp(label,type,value,unit,onchange) {
+function inp(label,type,value,unit,onchange,key) {
   const w = el('div','fld'); w.appendChild(el('label',null,label+(unit?` <span class="u">${unit}</span>`:'')));
   const i = el('input'); i.type=type; i.value=value; i.step='any';
   i.oninput = () => onchange(i.value);
-  w.appendChild(i); return w;
+  w.appendChild(i);
+  if (key && helpFor(key)) w.appendChild(el('small','help', helpFor(key)));
+  return w;
 }
 
 /* ==================================================================== */
@@ -386,12 +485,30 @@ function viewGate() {
 /* BARRA DE RESUMO (fixa)                                               */
 /* ==================================================================== */
 function renderSummary() {
-  const { r, gate } = gateNow(); const box = $('#summary'); box.innerHTML='';
-  const card = (cls,l,v,sub) => { const d=el('div','scard '+cls); d.innerHTML=`<span class="sl">${l}</span><span class="sv">${v}</span><span class="ss">${sub}</span>`; box.appendChild(d); return d; };
-  card('s-cost','Custo mensal estimado', money(r.monthly,0), `faixa ${money(r.range.low,0)} – ${money(r.range.high,0)} · ${money(r.unit.perYear,0)}/ano`);
-  card('s-'+r.slaStatus,'SLA', r.slaStatus, `${mins(r.processingMin)} de ${G.slaMaxMinutes} min · latência ${mins(r.latencyMin)}`);
-  card('s-'+gate.status,'Go / No-Go', gate.status==='NONE'?'—':gate.status, gate.budget? `orçamento ${money(gate.budget,0)} · ${gate.usedPct.toFixed(0)}% usado`:'sem orçamento definido');
-  const c = card('s-conf','Confidence', r.confidence+'%', `custo/TB ${money(r.unit.perTB,2)}`);
+  const { r, gate } = gateNow(); const box = $('#summary');
+  const card = (id,cls,l,v,sub) => {
+    let d = document.getElementById(id);
+    if (!d) { d = el('div','scard'); d.id = id; box.appendChild(d); }
+    d.className = 'scard ' + cls;
+    return d;
+  };
+  const fill = (d,l,v,sub) => { d.innerHTML = `<span class="sl">${l}</span><span class="sv">${v}</span><span class="ss">${sub}</span>`; };
+
+  fill(card('sc-cost','s-cost'), 'Custo mensal estimado', money(r.monthly,0), `faixa ${money(r.range.low,0)} – ${money(r.range.high,0)} · ${money(r.unit.perYear,0)}/ano`);
+  fill(card('sc-sla','s-'+r.slaStatus), 'SLA', r.slaStatus, `${mins(r.processingMin)} de ${G.slaMaxMinutes} min · latência ${mins(r.latencyMin)}`);
+
+  const g = card('sc-gate','s-'+gate.status);
+  if (!g.querySelector('input')) {
+    g.innerHTML = `<span class="sl">Go / No-Go</span><span class="sv"></span>
+      <span class="ss bud">orçamento US$ <input id="sumBudget" type="number" min="0" step="any" title="Orçamento mensal (USD) — editável"> /mês · <b class="used"></b></span>`;
+    g.querySelector('input').oninput = e => { G.budgetMonthly = Math.max(0, +e.target.value || 0); render(); };
+  }
+  g.querySelector('.sv').textContent = gate.status==='NONE' ? '—' : gate.status;
+  const bi = g.querySelector('input'); if (document.activeElement !== bi) bi.value = G.budgetMonthly;
+  g.querySelector('.used').textContent = gate.budget ? gate.usedPct.toFixed(0)+'% usado' : 'sem orçamento';
+
+  const c = card('sc-conf','s-conf');
+  fill(c, 'Confidence', r.confidence+'%', `custo/TB ${money(r.unit.perTB,2)}`);
   c.insertAdjacentHTML('beforeend',`<span class="meter"><span style="width:${r.confidence}%"></span></span>`);
 }
 
