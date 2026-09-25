@@ -5,11 +5,11 @@
            transcrita | 'account' = lido da própria conta.
    ===================================================================== */
 const PRICING_META = {
-  "generated_at": "2026-09-24",
+  "generated_at": "2026-09-25",
   "generator": "tools/fetch_pricing.py v0.3",
   "aws_region": "us-east-1",
   "counts": {
-    "api": 24,
+    "api": 25,
     "curated": 11,
     "account": 0
   }
@@ -26,7 +26,7 @@ const PRICING = [
     "price": 5.0,
     "currency": "USD",
     "valid_from": "2026-09-11",
-    "retrieved_at": "2026-09-24",
+    "retrieved_at": "2026-09-25",
     "source": "AWS Price List bulk — AmazonAthena/us-east-1 (publicado 2026-09-11)",
     "method": "api"
   },
@@ -40,7 +40,7 @@ const PRICING = [
     "price": 0.119,
     "currency": "USD",
     "valid_from": "2026-09-11",
-    "retrieved_at": "2026-09-24",
+    "retrieved_at": "2026-09-25",
     "source": "AWS Price List bulk — AWSDatabaseMigrationSvc/us-east-1 (publicado 2026-09-11)",
     "method": "api"
   },
@@ -54,7 +54,7 @@ const PRICING = [
     "price": 0.384,
     "currency": "USD",
     "valid_from": "2026-09-24",
-    "retrieved_at": "2026-09-24",
+    "retrieved_at": "2026-09-25",
     "source": "AWS Price List bulk — AmazonEC2/us-east-1 (publicado 2026-09-24)",
     "method": "api"
   },
@@ -68,7 +68,7 @@ const PRICING = [
     "price": 0.192,
     "currency": "USD",
     "valid_from": "2026-09-24",
-    "retrieved_at": "2026-09-24",
+    "retrieved_at": "2026-09-25",
     "source": "AWS Price List bulk — AmazonEC2/us-east-1 (publicado 2026-09-24)",
     "method": "api"
   },
@@ -82,7 +82,7 @@ const PRICING = [
     "price": 0.252,
     "currency": "USD",
     "valid_from": "2026-09-24",
-    "retrieved_at": "2026-09-24",
+    "retrieved_at": "2026-09-25",
     "source": "AWS Price List bulk — AmazonEC2/us-east-1 (publicado 2026-09-24)",
     "method": "api"
   },
@@ -96,7 +96,7 @@ const PRICING = [
     "price": 0.096,
     "currency": "USD",
     "valid_from": "2026-09-11",
-    "retrieved_at": "2026-09-24",
+    "retrieved_at": "2026-09-25",
     "source": "AWS Price List bulk — ElasticMapReduce/us-east-1 (publicado 2026-09-11)",
     "method": "api"
   },
@@ -110,7 +110,7 @@ const PRICING = [
     "price": 0.048,
     "currency": "USD",
     "valid_from": "2026-09-11",
-    "retrieved_at": "2026-09-24",
+    "retrieved_at": "2026-09-25",
     "source": "AWS Price List bulk — ElasticMapReduce/us-east-1 (publicado 2026-09-11)",
     "method": "api"
   },
@@ -123,8 +123,8 @@ const PRICING = [
     "unit": "100k objects-month",
     "price": 1.0,
     "currency": "USD",
-    "valid_from": "2026-09-24",
-    "retrieved_at": "2026-09-24",
+    "valid_from": "2026-09-25",
+    "retrieved_at": "2026-09-25",
     "source": "AWS Glue Pricing (página pública)",
     "method": "curated"
   },
@@ -138,7 +138,7 @@ const PRICING = [
     "price": 0.44,
     "currency": "USD",
     "valid_from": "2026-09-11",
-    "retrieved_at": "2026-09-24",
+    "retrieved_at": "2026-09-25",
     "source": "AWS Price List bulk — AWSGlue/us-east-1 (publicado 2026-09-11)",
     "method": "api"
   },
@@ -152,7 +152,7 @@ const PRICING = [
     "price": 0.44,
     "currency": "USD",
     "valid_from": "2026-09-11",
-    "retrieved_at": "2026-09-24",
+    "retrieved_at": "2026-09-25",
     "source": "AWS Price List bulk — AWSGlue/us-east-1 (publicado 2026-09-11)",
     "method": "api"
   },
@@ -166,7 +166,7 @@ const PRICING = [
     "price": 0.308,
     "currency": "USD",
     "valid_from": "2026-09-11",
-    "retrieved_at": "2026-09-24",
+    "retrieved_at": "2026-09-25",
     "source": "AWS Price List bulk — AWSGlue/us-east-1 (publicado 2026-09-11)",
     "method": "api"
   },
@@ -179,8 +179,8 @@ const PRICING = [
     "unit": "GB",
     "price": 0.02,
     "currency": "USD",
-    "valid_from": "2026-09-24",
-    "retrieved_at": "2026-09-24",
+    "valid_from": "2026-09-25",
+    "retrieved_at": "2026-09-25",
     "source": "AWS Data Transfer Pricing (página pública)",
     "method": "curated"
   },
@@ -193,8 +193,8 @@ const PRICING = [
     "unit": "GB",
     "price": 0.09,
     "currency": "USD",
-    "valid_from": "2026-09-24",
-    "retrieved_at": "2026-09-24",
+    "valid_from": "2026-09-25",
+    "retrieved_at": "2026-09-25",
     "source": "AWS Data Transfer Pricing (página pública)",
     "method": "curated"
   },
@@ -208,7 +208,7 @@ const PRICING = [
     "price": 0.0004,
     "currency": "USD",
     "valid_from": "2026-09-18",
-    "retrieved_at": "2026-09-24",
+    "retrieved_at": "2026-09-25",
     "source": "AWS Price List bulk — AmazonS3/us-east-1 (publicado 2026-09-18)",
     "method": "api"
   },
@@ -222,7 +222,7 @@ const PRICING = [
     "price": 0.004,
     "currency": "USD",
     "valid_from": "2026-09-18",
-    "retrieved_at": "2026-09-24",
+    "retrieved_at": "2026-09-25",
     "source": "AWS Price List bulk — AmazonS3/us-east-1 (publicado 2026-09-18)",
     "method": "api"
   },
@@ -236,7 +236,7 @@ const PRICING = [
     "price": 0.0125,
     "currency": "USD",
     "valid_from": "2026-09-18",
-    "retrieved_at": "2026-09-24",
+    "retrieved_at": "2026-09-25",
     "source": "AWS Price List bulk — AmazonS3/us-east-1 (publicado 2026-09-18)",
     "method": "api"
   },
@@ -250,7 +250,7 @@ const PRICING = [
     "price": 0.005,
     "currency": "USD",
     "valid_from": "2026-09-18",
-    "retrieved_at": "2026-09-24",
+    "retrieved_at": "2026-09-25",
     "source": "AWS Price List bulk — AmazonS3/us-east-1 (publicado 2026-09-18)",
     "method": "api"
   },
@@ -264,7 +264,7 @@ const PRICING = [
     "price": 0.023,
     "currency": "USD",
     "valid_from": "2026-09-18",
-    "retrieved_at": "2026-09-24",
+    "retrieved_at": "2026-09-25",
     "source": "AWS Price List bulk — AmazonS3/us-east-1 (publicado 2026-09-18)",
     "method": "api"
   },
@@ -278,7 +278,7 @@ const PRICING = [
     "price": 0.0152,
     "currency": "USD",
     "valid_from": "2019-04-01",
-    "retrieved_at": "2026-09-24",
+    "retrieved_at": "2026-09-25",
     "source": "Azure Retail Prices API — Azure Data Lake Storage Gen2 Hierarchical Namespace / Cool LRS Data Stored",
     "method": "api"
   },
@@ -292,7 +292,7 @@ const PRICING = [
     "price": 0.0052,
     "currency": "USD",
     "valid_from": "2019-04-01",
-    "retrieved_at": "2026-09-24",
+    "retrieved_at": "2026-09-25",
     "source": "Azure Retail Prices API — Azure Data Lake Storage Gen2 Hierarchical Namespace / Hot Read Operations",
     "method": "api"
   },
@@ -306,7 +306,7 @@ const PRICING = [
     "price": 0.0191,
     "currency": "USD",
     "valid_from": "2019-04-01",
-    "retrieved_at": "2026-09-24",
+    "retrieved_at": "2026-09-25",
     "source": "Azure Retail Prices API — Azure Data Lake Storage Gen2 Hierarchical Namespace / Hot LRS Data Stored",
     "method": "api"
   },
@@ -320,7 +320,7 @@ const PRICING = [
     "price": 0.065,
     "currency": "USD",
     "valid_from": "2019-04-01",
-    "retrieved_at": "2026-09-24",
+    "retrieved_at": "2026-09-25",
     "source": "Azure Retail Prices API — Azure Data Lake Storage Gen2 Hierarchical Namespace / Hot Write Operations",
     "method": "api"
   },
@@ -334,7 +334,7 @@ const PRICING = [
     "price": 0.3,
     "currency": "USD",
     "valid_from": "2022-11-01",
-    "retrieved_at": "2026-09-24",
+    "retrieved_at": "2026-09-25",
     "source": "Azure Retail Prices API — Azure Databricks / Premium Jobs Compute Photon DBU",
     "method": "api"
   },
@@ -348,7 +348,7 @@ const PRICING = [
     "price": 0.3,
     "currency": "USD",
     "valid_from": "2019-03-01",
-    "retrieved_at": "2026-09-24",
+    "retrieved_at": "2026-09-25",
     "source": "Azure Retail Prices API — Azure Databricks / Premium Jobs Compute DBU",
     "method": "api"
   },
@@ -362,7 +362,7 @@ const PRICING = [
     "price": 0.7,
     "currency": "USD",
     "valid_from": "2024-02-01",
-    "retrieved_at": "2026-09-24",
+    "retrieved_at": "2026-09-25",
     "source": "Azure Retail Prices API — Azure Databricks Regional / Premium Serverless SQL DBU",
     "method": "api"
   },
@@ -376,7 +376,7 @@ const PRICING = [
     "price": 0.192,
     "currency": "USD",
     "valid_from": "2021-11-01",
-    "retrieved_at": "2026-09-24",
+    "retrieved_at": "2026-09-25",
     "source": "Azure Retail Prices API — Virtual Machines Dsv5 Series / D4s v5",
     "method": "api"
   },
@@ -390,8 +390,22 @@ const PRICING = [
     "price": 0.384,
     "currency": "USD",
     "valid_from": "2021-11-01",
-    "retrieved_at": "2026-09-24",
+    "retrieved_at": "2026-09-25",
     "source": "Azure Retail Prices API — Virtual Machines Dsv5 Series / D8s v5",
+    "method": "api"
+  },
+  {
+    "provider": "Azure",
+    "service": "VM",
+    "region": "eastus",
+    "sku": "Standard_E4s_v5",
+    "metric": "Compute",
+    "unit": "node-hour",
+    "price": 0.252,
+    "currency": "USD",
+    "valid_from": "2021-11-01",
+    "retrieved_at": "2026-09-25",
+    "source": "Azure Retail Prices API — Virtual Machines Esv5 Series / E4s v5",
     "method": "api"
   },
   {
@@ -403,8 +417,8 @@ const PRICING = [
     "unit": "credit",
     "price": 2.0,
     "currency": "USD",
-    "valid_from": "2026-09-24",
-    "retrieved_at": "2026-09-24",
+    "valid_from": "2026-09-25",
+    "retrieved_at": "2026-09-25",
     "source": "Snowflake Serverless Credit Table",
     "method": "curated"
   },
@@ -417,8 +431,8 @@ const PRICING = [
     "unit": "TB-month",
     "price": 23.0,
     "currency": "USD",
-    "valid_from": "2026-09-24",
-    "retrieved_at": "2026-09-24",
+    "valid_from": "2026-09-25",
+    "retrieved_at": "2026-09-25",
     "source": "Snowflake Storage Pricing — capacity",
     "method": "curated"
   },
@@ -431,8 +445,8 @@ const PRICING = [
     "unit": "TB-month",
     "price": 40.0,
     "currency": "USD",
-    "valid_from": "2026-09-24",
-    "retrieved_at": "2026-09-24",
+    "valid_from": "2026-09-25",
+    "retrieved_at": "2026-09-25",
     "source": "Snowflake Storage Pricing — on demand",
     "method": "curated"
   },
@@ -445,8 +459,8 @@ const PRICING = [
     "unit": "credit",
     "price": 3.0,
     "currency": "USD",
-    "valid_from": "2026-09-24",
-    "retrieved_at": "2026-09-24",
+    "valid_from": "2026-09-25",
+    "retrieved_at": "2026-09-25",
     "source": "Snowflake Credit Consumption Table — Enterprise, AWS us-east-1",
     "method": "curated"
   },
@@ -459,8 +473,8 @@ const PRICING = [
     "unit": "credit",
     "price": 2.0,
     "currency": "USD",
-    "valid_from": "2026-09-24",
-    "retrieved_at": "2026-09-24",
+    "valid_from": "2026-09-25",
+    "retrieved_at": "2026-09-25",
     "source": "Snowflake Credit Consumption Table — Standard, AWS us-east-1",
     "method": "curated"
   },
@@ -473,8 +487,8 @@ const PRICING = [
     "unit": "DBU",
     "price": 0.15,
     "currency": "USD",
-    "valid_from": "2026-09-24",
-    "retrieved_at": "2026-09-24",
+    "valid_from": "2026-09-25",
+    "retrieved_at": "2026-09-25",
     "source": "Databricks Pricing — Jobs Compute (Premium, AWS)",
     "method": "curated"
   },
@@ -487,8 +501,8 @@ const PRICING = [
     "unit": "DBU",
     "price": 0.35,
     "currency": "USD",
-    "valid_from": "2026-09-24",
-    "retrieved_at": "2026-09-24",
+    "valid_from": "2026-09-25",
+    "retrieved_at": "2026-09-25",
     "source": "Databricks Pricing — Serverless Jobs (AWS)",
     "method": "curated"
   },
@@ -501,8 +515,8 @@ const PRICING = [
     "unit": "DBU",
     "price": 0.7,
     "currency": "USD",
-    "valid_from": "2026-09-24",
-    "retrieved_at": "2026-09-24",
+    "valid_from": "2026-09-25",
+    "retrieved_at": "2026-09-25",
     "source": "Databricks Pricing — SQL Serverless (AWS)",
     "method": "curated"
   }

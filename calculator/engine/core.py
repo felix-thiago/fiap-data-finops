@@ -34,13 +34,15 @@ def stage_compute_cost(st, g, vol_per_run, runs_per_month, runtime_min, retry_fa
     nodes = (st.get("workers") or 1) + 1
 
     if kind == "glue":
-        return nodes * billed_h * price("AWS", "Glue", "etl-dpu") * runs_per_month * retry_factor
+        return nodes * billed_h * price("AWS", "Glue", e.get("sku", "etl-dpu")) * runs_per_month * retry_factor
     if kind == "ec2":
         per_node = price("AWS", "EC2", wt["ec2"]) + (price("AWS", "EMR", wt["emr_uplift"]) if e.get("emr") else 0)
         return nodes * billed_h * per_node * runs_per_month * retry_factor
     if kind == "dbx":
-        per_node = (wt["dbu"] * price("Databricks", "Jobs Compute", "dbu-jobs-premium") * e.get("photon", 1)
-                    + price("AWS", "EC2", wt["ec2"]))
+        az = g.get("cloud") == "azure"
+        dbu_price = price("Azure", "Databricks", "dbu-jobs-premium") if az else price("Databricks", "Jobs Compute", "dbu-jobs-premium")
+        vm_price = price("Azure", "VM", wt["az_vm"]) if az else price("AWS", "EC2", wt["ec2"])
+        per_node = wt["dbu"] * dbu_price * e.get("photon", 1) + vm_price
         return nodes * billed_h * per_node * runs_per_month * retry_factor
     if kind == "dbx_sl":
         return nodes * wt["dbu"] * billed_h * price("Databricks", "Jobs Compute", "dbu-jobs-serverless") * runs_per_month * retry_factor
@@ -106,12 +108,19 @@ def calc_pipeline(g: dict, stages: list[dict]) -> dict:
             if st["kind"] == "ingest" and g["ingestion"] == "full":
                 stored_gb += g["source_volume_gb"] * ff["ratio"]
             sku = {"ia": "ia-storage", "glacier": "glacier-ir"}.get(st["storage_class"], "standard-storage")
-            storage = stored_gb * price("AWS", "S3", sku)
+            az = g.get("cloud") == "azure"
+            if az:
+                storage = stored_gb * price("Azure", "ADLS", "standard-storage" if st["storage_class"] == "standard" else "ia-storage")
+            else:
+                storage = stored_gb * price("AWS", "S3", sku)
 
             files_per_run = max(1, math.ceil((daily_out / runs_per_day * ff["ratio"] * 1024) / g["target_file_mb"]))
             puts = files_per_run * runs_per_month * retry_factor * tf["write_amp"]
             gets = files_per_run * runs_per_month * 2
-            requests = (puts / 1000) * price("AWS", "S3", "put-requests") + (gets / 1000) * price("AWS", "S3", "get-requests")
+            if az:
+                requests = (puts / 10000) * price("Azure", "ADLS", "write-ops") + (gets / 10000) * price("Azure", "ADLS", "read-ops")
+            else:
+                requests = (puts / 1000) * price("AWS", "S3", "put-requests") + (gets / 1000) * price("AWS", "S3", "get-requests")
 
             if tf["maintenance"] and st["maintenance_runs_per_month"] > 0:
                 active_gb = stored_gb * 0.10
@@ -148,7 +157,8 @@ def calc_pipeline(g: dict, stages: list[dict]) -> dict:
             elif e["kind"] == "dbsql":
                 query_h = g["queries_per_day"] * DAYS * g["avg_query_sec"] / 3600
                 dbu = query_h * 4
-                serve_cost = dbu * price("Databricks", "SQL Warehouse", "dbu-sql-serverless")
+                serve_cost = dbu * (price("Azure", "Databricks", "dbu-sql-serverless") if g.get("cloud") == "azure"
+                                    else price("Databricks", "SQL Warehouse", "dbu-sql-serverless"))
                 serve_detail = f"{dbu:.1f} DBU/mês em SQL Serverless"
 
         total = compute + storage + wh_storage + requests + maintenance + serve_cost
@@ -164,7 +174,10 @@ def calc_pipeline(g: dict, stages: list[dict]) -> dict:
 
     network = g["cross_region_gb"] * price("AWS", "Network", "cross-region-out") \
         + g["internet_gb"] * price("AWS", "Network", "internet-out")
-    catalog = (g["catalog_objects"] / 100000) * price("AWS", "Glue", "catalog-objects")
+    azure = g.get("cloud") == "azure"
+    catalog = 0.0 if azure else (g["catalog_objects"] / 100000) * price("AWS", "Glue", "catalog-objects")
+    if azure:
+        A("Cloud Azure: storage ADLS Gen2 (Hot/Cool LRS), Databricks Premium (DBU) + VMs Dsv5/Esv5; sem custo de catálogo (Unity Catalog). Snowflake e transferência de dados mantêm os preços de lista da AWS como proxy.")
 
     disc = 1 - g["discount_pct"] / 100
     breakdown = dict(Ingestion=0.0, Storage=0.0, Processing=0.0, Warehouse=0.0,

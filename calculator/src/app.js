@@ -89,7 +89,7 @@ const G_GROUPS = [
 /* ---------- estado ---------- */
 let G = structuredClone(G_DEFAULTS);
 let STAGES = STAGE_DEFAULTS();
-let VARIANT_SEL = ['asis','dbx','emr','lake','elt'];
+let VARIANT_SEL = ['asis','glue6','dbx','emr','lake','elt','azure'];
 let PROFILE = 'balanced';
 let CURRENCY = 'USD';
 let SHOW_ADV = false;
@@ -185,6 +185,7 @@ const FIELD_HELP = {
 const OPTION_HELP = {
   engine: {
     glue: 'Spark gerenciado e serverless da AWS. Cobra por DPU-hora, startup curto e pouca operação.',
+    glue6: 'Glue 6.0 ou superior: mesmo Spark gerenciado, com DPU-hora ~30% mais barata (US$ 0,308 contra US$ 0,44).',
     emr_spark: 'Spark em cluster EMR: paga EC2 mais o adicional do EMR. Mais controle e throughput, mais operação.',
     emr_sqoop: 'Extração JDBC paralela de bancos relacionais via Sqoop em EMR. Boa para cargas iniciais grandes.',
     ec2_spark: 'Spark em EC2 autogerenciado: sem adicional do EMR, mas você opera o cluster (maior complexidade).',
