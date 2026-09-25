@@ -71,9 +71,10 @@ main{max-width:1240px;margin:0 auto;padding:0 22px 72px}
 .help{display:block;margin-top:5px;font-size:12px;line-height:1.4;color:var(--muted)}
 .help-box{display:none}
 .help-box.open{display:block}
-.info{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;margin-left:6px;padding:0;
-  border-radius:50%;border:1.5px solid var(--accent);background:#fff;color:var(--accent);font:italic 700 11px/1 Georgia,serif;
-  cursor:pointer;vertical-align:middle}
+.info{display:inline-flex;align-items:center;justify-content:center;width:12px;height:12px;margin-left:4px;padding:0;
+  border-radius:50%;border:1px solid var(--accent);background:#fff;color:var(--accent);font:italic 700 8px/1 Georgia,serif;
+  cursor:pointer;vertical-align:middle;position:relative}
+.info::after{content:"";position:absolute;inset:-5px}
 .info:hover{background:var(--accent);color:#fff}
 .info:focus-visible{outline:2px solid #c3cdf7}
 .help.opt{color:#3a4fb0;background:#eef1fd;border-radius:6px;padding:4px 7px}
