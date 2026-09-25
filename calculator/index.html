@@ -69,16 +69,21 @@ main{max-width:1240px;margin:0 auto;padding:0 22px 72px}
 .step .sv2 em{display:block;font-style:normal;font-weight:400;font-size:12px;color:var(--muted)}
 
 .help{display:block;margin-top:5px;font-size:12px;line-height:1.4;color:var(--muted)}
-.help-box{display:none}
-.help-box.open{display:block}
 .info{display:inline-flex;align-items:center;justify-content:center;width:12px;height:12px;margin-left:4px;padding:0;
   border-radius:50%;border:1px solid var(--accent);background:#fff;color:var(--accent);font:italic 700 8px/1 Georgia,serif;
   cursor:pointer;vertical-align:middle;position:relative}
 .info::after{content:"";position:absolute;inset:-5px}
 .info:hover{background:var(--accent);color:#fff}
+.pop{position:fixed;z-index:1000;width:min(320px,calc(100vw - 20px));background:#fff;border:1px solid #d5daea;border-radius:12px;
+  box-shadow:0 10px 30px rgba(20,22,40,.22);padding:12px 14px;font-size:13px;line-height:1.5;color:#2b3147}
+.pop::before{content:"";position:absolute;top:-6px;left:calc(var(--ax,20px) - 6px);width:10px;height:10px;background:#fff;
+  border-left:1px solid #d5daea;border-top:1px solid #d5daea;transform:rotate(45deg)}
+.pop.up::before{display:none}
+.pop-t{font-weight:680;color:var(--accent);margin-bottom:5px;font-size:13.5px}
+.pop-p{margin:0 0 7px}.pop-p:last-child{margin-bottom:0}
+.pop-p.opt{background:#eef1fd;border-radius:7px;padding:6px 9px;color:#2f43a8}
 .info:focus-visible{outline:2px solid #c3cdf7}
 .help.opt{color:#3a4fb0;background:#eef1fd;border-radius:6px;padding:4px 7px}
-.st-info{margin:0 0 11px;font-size:13px;color:#4a5165;background:#f4f6fd;border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:7px 11px}
 .scard .bud{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
 .scard .bud input{width:92px;padding:3px 7px;border-radius:6px;border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.18);color:#fff;font-size:13.5px;font-weight:650}
 .scard .bud input:focus{outline:2px solid #fff;background:rgba(255,255,255,.28)}
@@ -1625,11 +1630,8 @@ function stageCard(st, idx, row) {
   if (row) head.appendChild(el('span','st-cost', money(row.totalDisc,0)+'/mês · '+mins(row.runtimeMin)));
   c.appendChild(head);
 
-  HELP_SCOPE = st.key;
   const info = STAGE_INFO[st.key] || KIND_INFO[st.kind] || '';
-  const ibox = el('p','st-info help-box' + (OPEN_HELP.has(st.key+':layer') ? ' open' : ''), info);
-  head.insertBefore(infoBtn(st.key+':layer', ibox), head.querySelector('.st-kind'));
-  c.appendChild(ibox);
+  head.insertBefore(infoBtn(st.name, [info]), head.querySelector('.st-kind'));
 
   if (!st.enabled) return c;
 
@@ -1685,30 +1687,47 @@ function stageCard(st, idx, row) {
   return c;
 }
 
-const OPEN_HELP = new Set();
-let HELP_SCOPE = '';
-
-function infoBtn(id, box) {
-  const b = el('button','info','i'); b.type = 'button'; b.title = 'O que é isto?'; b.setAttribute('aria-label','Descrição');
-  b.onclick = e => {
-    e.preventDefault(); e.stopPropagation();
-    const open = box.classList.toggle('open');
-    open ? OPEN_HELP.add(id) : OPEN_HELP.delete(id);
-  };
-  return b;
+/* popup de ajuda: um único balão flutuante posicionado junto ao ícone */
+let POP = null, POP_BTN = null;
+function closePop() { if (POP) { POP.remove(); POP = null; POP_BTN = null; } }
+function openPop(btn, title, lines) {
+  const same = POP_BTN === btn;
+  closePop();
+  if (same) return;
+  const pop = el('div','pop');
+  pop.setAttribute('role','tooltip');
+  pop.appendChild(el('div','pop-t', title));
+  lines.forEach((t,i) => pop.appendChild(el('p', 'pop-p' + (i ? ' opt' : ''), t)));
+  document.body.appendChild(pop);
+  POP = pop; POP_BTN = btn;
+  placePop();
 }
-function helpBox(id, lines) {
-  const box = el('div','help-box' + (OPEN_HELP.has(id) ? ' open' : ''));
-  lines.filter(Boolean).forEach((t,i) => box.appendChild(el('small', 'help' + (i ? ' opt' : ''), t)));
-  return box;
+function placePop() {
+  if (!POP) return;
+  const btn = POP_BTN, pop = POP, m = 10;
+  const r = btn.getBoundingClientRect();
+  if (r.bottom < 0 || r.top > window.innerHeight) return closePop();
+  const pw = pop.offsetWidth, ph = pop.offsetHeight;
+  const left = Math.min(Math.max(m, r.left - 12), window.innerWidth - pw - m);
+  let top = r.bottom + 8, up = false;
+  if (top + ph > window.innerHeight - m && r.top - ph - 8 > m) { top = r.top - ph - 8; up = true; }
+  pop.classList.toggle('up', up);
+  pop.style.left = left + 'px'; pop.style.top = top + 'px';
+  pop.style.setProperty('--ax', Math.max(12, Math.min(pw - 24, r.left + r.width/2 - left)) + 'px');
+}
+document.addEventListener('click', e => { if (POP && !POP.contains(e.target) && !e.target.closest('.info')) closePop(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePop(); });
+window.addEventListener('scroll', placePop, { passive: true });
+window.addEventListener('resize', placePop);
+
+function infoBtn(title, lines) {
+  const b = el('button','info','i'); b.type = 'button'; b.title = 'O que é isto?'; b.setAttribute('aria-label','Descrição de ' + title);
+  b.onclick = e => { e.preventDefault(); e.stopPropagation(); openPop(b, title, lines); };
+  return b;
 }
 function withHelp(w, labelEl, key, lines) {
   const texts = lines.filter(Boolean);
-  if (!texts.length) return;
-  const id = HELP_SCOPE + ':' + key;
-  const box = helpBox(id, texts);
-  labelEl.appendChild(infoBtn(id, box));
-  w.appendChild(box);
+  if (texts.length) labelEl.appendChild(infoBtn(labelEl.firstChild.textContent.trim(), texts));
 }
 
 function sel(label, options, value, onchange, key, fieldKey) {
@@ -2176,6 +2195,7 @@ const VIEWS = { pipeline:viewPipeline, result:viewResult, gate:viewGate, schedul
                 assumptions:viewAssumptions };
 
 function render() {
+  closePop();
   const body = $('#tabBody');
   const act = document.activeElement;
   const fields = () => [...body.querySelectorAll('input,select')];

@@ -276,11 +276,8 @@ function stageCard(st, idx, row) {
   if (row) head.appendChild(el('span','st-cost', money(row.totalDisc,0)+'/mês · '+mins(row.runtimeMin)));
   c.appendChild(head);
 
-  HELP_SCOPE = st.key;
   const info = STAGE_INFO[st.key] || KIND_INFO[st.kind] || '';
-  const ibox = el('p','st-info help-box' + (OPEN_HELP.has(st.key+':layer') ? ' open' : ''), info);
-  head.insertBefore(infoBtn(st.key+':layer', ibox), head.querySelector('.st-kind'));
-  c.appendChild(ibox);
+  head.insertBefore(infoBtn(st.name, [info]), head.querySelector('.st-kind'));
 
   if (!st.enabled) return c;
 
@@ -336,30 +333,47 @@ function stageCard(st, idx, row) {
   return c;
 }
 
-const OPEN_HELP = new Set();
-let HELP_SCOPE = '';
-
-function infoBtn(id, box) {
-  const b = el('button','info','i'); b.type = 'button'; b.title = 'O que é isto?'; b.setAttribute('aria-label','Descrição');
-  b.onclick = e => {
-    e.preventDefault(); e.stopPropagation();
-    const open = box.classList.toggle('open');
-    open ? OPEN_HELP.add(id) : OPEN_HELP.delete(id);
-  };
-  return b;
+/* popup de ajuda: um único balão flutuante posicionado junto ao ícone */
+let POP = null, POP_BTN = null;
+function closePop() { if (POP) { POP.remove(); POP = null; POP_BTN = null; } }
+function openPop(btn, title, lines) {
+  const same = POP_BTN === btn;
+  closePop();
+  if (same) return;
+  const pop = el('div','pop');
+  pop.setAttribute('role','tooltip');
+  pop.appendChild(el('div','pop-t', title));
+  lines.forEach((t,i) => pop.appendChild(el('p', 'pop-p' + (i ? ' opt' : ''), t)));
+  document.body.appendChild(pop);
+  POP = pop; POP_BTN = btn;
+  placePop();
 }
-function helpBox(id, lines) {
-  const box = el('div','help-box' + (OPEN_HELP.has(id) ? ' open' : ''));
-  lines.filter(Boolean).forEach((t,i) => box.appendChild(el('small', 'help' + (i ? ' opt' : ''), t)));
-  return box;
+function placePop() {
+  if (!POP) return;
+  const btn = POP_BTN, pop = POP, m = 10;
+  const r = btn.getBoundingClientRect();
+  if (r.bottom < 0 || r.top > window.innerHeight) return closePop();
+  const pw = pop.offsetWidth, ph = pop.offsetHeight;
+  const left = Math.min(Math.max(m, r.left - 12), window.innerWidth - pw - m);
+  let top = r.bottom + 8, up = false;
+  if (top + ph > window.innerHeight - m && r.top - ph - 8 > m) { top = r.top - ph - 8; up = true; }
+  pop.classList.toggle('up', up);
+  pop.style.left = left + 'px'; pop.style.top = top + 'px';
+  pop.style.setProperty('--ax', Math.max(12, Math.min(pw - 24, r.left + r.width/2 - left)) + 'px');
+}
+document.addEventListener('click', e => { if (POP && !POP.contains(e.target) && !e.target.closest('.info')) closePop(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePop(); });
+window.addEventListener('scroll', placePop, { passive: true });
+window.addEventListener('resize', placePop);
+
+function infoBtn(title, lines) {
+  const b = el('button','info','i'); b.type = 'button'; b.title = 'O que é isto?'; b.setAttribute('aria-label','Descrição de ' + title);
+  b.onclick = e => { e.preventDefault(); e.stopPropagation(); openPop(b, title, lines); };
+  return b;
 }
 function withHelp(w, labelEl, key, lines) {
   const texts = lines.filter(Boolean);
-  if (!texts.length) return;
-  const id = HELP_SCOPE + ':' + key;
-  const box = helpBox(id, texts);
-  labelEl.appendChild(infoBtn(id, box));
-  w.appendChild(box);
+  if (texts.length) labelEl.appendChild(infoBtn(labelEl.firstChild.textContent.trim(), texts));
 }
 
 function sel(label, options, value, onchange, key, fieldKey) {
@@ -827,6 +841,7 @@ const VIEWS = { pipeline:viewPipeline, result:viewResult, gate:viewGate, schedul
                 assumptions:viewAssumptions };
 
 function render() {
+  closePop();
   const body = $('#tabBody');
   const act = document.activeElement;
   const fields = () => [...body.querySelectorAll('input,select')];
