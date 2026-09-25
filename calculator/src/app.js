@@ -276,7 +276,11 @@ function stageCard(st, idx, row) {
   if (row) head.appendChild(el('span','st-cost', money(row.totalDisc,0)+'/mês · '+mins(row.runtimeMin)));
   c.appendChild(head);
 
-  c.appendChild(el('p','st-info', STAGE_INFO[st.key] || KIND_INFO[st.kind] || ''));
+  HELP_SCOPE = st.key;
+  const info = STAGE_INFO[st.key] || KIND_INFO[st.kind] || '';
+  const ibox = el('p','st-info help-box' + (OPEN_HELP.has(st.key+':layer') ? ' open' : ''), info);
+  head.insertBefore(infoBtn(st.key+':layer', ibox), head.querySelector('.st-kind'));
+  c.appendChild(ibox);
 
   if (!st.enabled) return c;
 
@@ -332,25 +336,47 @@ function stageCard(st, idx, row) {
   return c;
 }
 
+const OPEN_HELP = new Set();
+let HELP_SCOPE = '';
+
+function infoBtn(id, box) {
+  const b = el('button','info','i'); b.type = 'button'; b.title = 'O que é isto?'; b.setAttribute('aria-label','Descrição');
+  b.onclick = e => {
+    e.preventDefault(); e.stopPropagation();
+    const open = box.classList.toggle('open');
+    open ? OPEN_HELP.add(id) : OPEN_HELP.delete(id);
+  };
+  return b;
+}
+function helpBox(id, lines) {
+  const box = el('div','help-box' + (OPEN_HELP.has(id) ? ' open' : ''));
+  lines.filter(Boolean).forEach((t,i) => box.appendChild(el('small', 'help' + (i ? ' opt' : ''), t)));
+  return box;
+}
+function withHelp(w, labelEl, key, lines) {
+  const texts = lines.filter(Boolean);
+  if (!texts.length) return;
+  const id = HELP_SCOPE + ':' + key;
+  const box = helpBox(id, texts);
+  labelEl.appendChild(infoBtn(id, box));
+  w.appendChild(box);
+}
+
 function sel(label, options, value, onchange, key, fieldKey) {
-  const w = el('div','fld'); w.appendChild(el('label',null,label));
+  const w = el('div','fld'); const lb = el('label',null,label); w.appendChild(lb);
   const s = el('select');
   options.forEach(([v,t])=>{ const o=el('option',null,t); o.value=v; if(String(value)===String(v))o.selected=true; s.appendChild(o); });
   s.onchange = () => onchange(s.value);
   w.appendChild(s);
-  if (key) {
-    const h = helpFor(fieldKey || key), o = optHelp(key, value);
-    if (h) w.appendChild(el('small','help', h));
-    if (o) w.appendChild(el('small','help opt', o));
-  }
+  if (key) withHelp(w, lb, key, [helpFor(fieldKey || key), optHelp(key, value)]);
   return w;
 }
 function inp(label,type,value,unit,onchange,key) {
-  const w = el('div','fld'); w.appendChild(el('label',null,label+(unit?` <span class="u">${unit}</span>`:'')));
+  const w = el('div','fld'); const lb = el('label',null,label+(unit?` <span class="u">${unit}</span>`:'')); w.appendChild(lb);
   const i = el('input'); i.type=type; i.value=value; i.step='any';
   i.oninput = () => onchange(i.value);
   w.appendChild(i);
-  if (key && helpFor(key)) w.appendChild(el('small','help', helpFor(key)));
+  if (key) withHelp(w, lb, key, [helpFor(key)]);
   return w;
 }
 
