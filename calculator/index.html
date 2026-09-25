@@ -8,11 +8,12 @@
 :root{
   --bg:#f6f7f9; --panel:#ffffff; --ink:#14161a; --muted:#697084; --line:#e3e6ec;
   --accent:#4f6bed; --ok:#1f8a5b; --warn:#b47708; --bad:#c23b4b;
+  --c-cost:#4f6bed; --c-time:#7a6ff0; --c-teal:#2fa8a0; --c-amber:#e0a32e; --c-rose:#c2586e;
   --radius:10px;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);
-  font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;}
+  font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;}
 h1,h2,h3{margin:0;font-weight:640;letter-spacing:-0.01em}
 code{font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;background:#eef0f5;padding:1px 4px;border-radius:4px}
 
@@ -24,14 +25,48 @@ header .brand p{margin:2px 0 0;font-size:11.5px;color:#9aa3bd;letter-spacing:.04
 header .sp{flex:1}
 header label{font-size:11.5px;color:#9aa3bd;display:block;margin-bottom:3px;letter-spacing:.03em;text-transform:uppercase}
 header select{background:#1c2236;color:#fff;border:1px solid #2c3450;border-radius:7px;padding:6px 9px;font-size:13px}
-header button{background:#2c3450;color:#fff;border:0;border-radius:7px;padding:8px 12px;font-size:13px;cursor:pointer}
-header button:hover{background:#3a4468}
+header button{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:9px 15px;font-size:13.5px;font-weight:600;cursor:pointer}
+header button:hover{background:#6580ff}
+header .adv{text-transform:none;letter-spacing:0;display:flex;align-items:center;gap:7px;font-size:13px;color:#dfe4f5;cursor:pointer;padding-top:14px}
+header .adv input{width:16px;height:16px;accent-color:var(--c-amber)}
 
 /* layout */
-.wrap{display:flex;align-items:flex-start;gap:0;min-height:calc(100vh - 62px)}
-aside{width:330px;flex:0 0 330px;background:var(--panel);border-right:1px solid var(--line);
-  padding:16px 16px 60px;height:calc(100vh - 62px);overflow-y:auto;position:sticky;top:0}
-main{flex:1;min-width:0;padding:18px 22px 64px}
+main{max-width:1240px;margin:0 auto;padding:0 22px 72px}
+
+/* barra de resumo fixa */
+.summary{position:sticky;top:0;z-index:20;background:linear-gradient(var(--bg) 82%,rgba(246,247,249,0));padding:16px 0 10px}
+.sgrid{display:grid;grid-template-columns:1.5fr 1fr 1.2fr 1fr;gap:12px}
+.scard{border-radius:14px;padding:14px 18px;color:#fff;display:flex;flex-direction:column;gap:2px;box-shadow:0 2px 10px rgba(20,22,26,.10)}
+.scard .sl{font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;opacity:.85}
+.scard .sv{font-size:32px;font-weight:720;letter-spacing:-0.02em;line-height:1.15}
+.scard .ss{font-size:12.5px;opacity:.9}
+.s-cost{background:linear-gradient(135deg,#4f6bed,#7a6ff0)}
+.s-conf{background:linear-gradient(135deg,#2fa8a0,#3c8dbc)}
+.s-PASS,.s-GO{background:linear-gradient(135deg,#1f8a5b,#35a873)}
+.s-PARTIAL,.s-REVIEW{background:linear-gradient(135deg,#c78a10,#e0a32e)}
+.s-FAIL,.s-NO-GO{background:linear-gradient(135deg,#b03047,#d35468)}
+.s-NONE{background:linear-gradient(135deg,#697084,#8a91a5)}
+.scard .meter{background:rgba(255,255,255,.3);margin-top:7px}.scard .meter span{background:#fff}
+
+/* workload no centro */
+.wl-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.wl-head h2{font-size:22px}
+.wl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:14px;margin-bottom:22px}
+.card.wl{border-top:4px solid var(--gc,var(--accent));margin-bottom:0}
+.card.wl h3{color:var(--gc,var(--accent))}
+.card.wl .fld input,.card.wl .fld select{padding:8px 10px;font-size:14px}
+.btn{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:8px 14px;font-size:13.5px;font-weight:600;cursor:pointer}
+.btn:hover{background:#6580ff}
+.gate-box{border-radius:14px;padding:20px 22px;color:#fff;margin-bottom:16px}
+.gate-box .gb-t{font-size:13px;letter-spacing:.07em;text-transform:uppercase;opacity:.85}
+.gate-box .gb-v{font-size:44px;font-weight:760;letter-spacing:-0.02em;line-height:1.1}
+.gate-box p{margin:6px 0 0;max-width:80ch;opacity:.95}
+.step{display:grid;grid-template-columns:34px 1fr auto;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid #f0f2f6}
+.step:last-child{border-bottom:0}
+.step .n{width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
+.step b{display:block}.step span{color:var(--muted);font-size:13px}
+.step .sv2{text-align:right;font-variant-numeric:tabular-nums;font-weight:660}
+.step .sv2 em{display:block;font-style:normal;font-weight:400;font-size:12px;color:var(--muted)}
 
 /* form */
 .advbar{display:flex;align-items:center;gap:8px;padding:9px 11px;background:#eef1f8;border:1px solid var(--line);
@@ -52,10 +87,10 @@ main{flex:1;min-width:0;padding:18px 22px 64px}
 
 /* tabs */
 .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:18px;flex-wrap:wrap}
-.tab{padding:8px 13px;font-size:13px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;
-  border-radius:6px 6px 0 0}
+.tab{padding:10px 16px;font-size:14px;font-weight:550;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;
+  border-radius:8px 8px 0 0}
 .tab:hover{background:#eef1f8}
-.tab.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:680;background:#eef1fd}
 
 /* cards */
 .lead{margin-bottom:16px}
@@ -69,10 +104,11 @@ main{flex:1;min-width:0;padding:18px 22px 64px}
 .note{font-size:12px;color:var(--muted);margin:10px 0 0}
 
 /* kpis */
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:10px;margin-bottom:14px}
-.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px 13px;display:flex;flex-direction:column;gap:3px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--kc,var(--accent));border-radius:var(--radius);padding:14px 15px;display:flex;flex-direction:column;gap:3px}
+.kpi:nth-child(5n+1){--kc:var(--c-cost)}.kpi:nth-child(5n+2){--kc:var(--c-teal)}.kpi:nth-child(5n+3){--kc:var(--c-amber)}.kpi:nth-child(5n+4){--kc:var(--c-time)}.kpi:nth-child(5n+5){--kc:var(--c-rose)}
 .k-l{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
-.k-v{font-size:22px;font-weight:660;letter-spacing:-0.02em}
+.k-v{font-size:28px;font-weight:660;letter-spacing:-0.02em}
 .k-s{font-size:11.5px;color:var(--muted)}
 .sla{font-size:16px;font-weight:700}
 .sla.ok{color:var(--ok)} .sla.warn{color:var(--warn)} .sla.bad{color:var(--bad)}
@@ -168,8 +204,7 @@ tr.hl{background:#f4f6fd}
 .m-account{background:#e6ebfb;color:#4257b8}
 
 @media (max-width:980px){
-  .wrap{flex-direction:column}
-  aside{width:100%;flex:none;height:auto;position:static;border-right:0;border-bottom:1px solid var(--line)}
+  .sgrid{grid-template-columns:1fr 1fr}
   .two{grid-template-columns:1fr}
   .bar{grid-template-columns:130px 1fr 104px}
 }
@@ -179,7 +214,7 @@ tr.hl{background:#f4f6fd}
 <header>
   <div class="brand">
     <h1>DataCost Architect</h1>
-    <p>FinOps Data Architecture Simulator · MVP mock v0.2 · pipeline por estágios</p>
+    <p>FinOps Data Architecture Simulator · MVP mock v0.3 · pipeline por estágios · Go/No-Go</p>
   </div>
   <div class="sp"></div>
   <div>
@@ -198,30 +233,24 @@ tr.hl{background:#f4f6fd}
       <option value="EUR">EUR</option>
     </select>
   </div>
+  <label class="adv"><input type="checkbox" id="advToggle"> Advanced parameters</label>
   <button id="reset" type="button">Reset scenario</button>
 </header>
 
-<div class="wrap">
-  <aside>
-    <div class="advbar">
-      <input type="checkbox" id="advToggle">
-      <label for="advToggle" style="margin:0;cursor:pointer">Show advanced parameters</label>
-    </div>
-    <div id="form"></div>
-  </aside>
-  <main>
-    <nav class="tabs">
-      <div class="tab on" data-tab="pipeline">Pipeline</div>
-      <div class="tab" data-tab="result">Result</div>
-      <div class="tab" data-tab="schedule">Schedule impact</div>
-      <div class="tab" data-tab="compare">Compare scenarios</div>
-      <div class="tab" data-tab="optimize">Optimization</div>
-      <div class="tab" data-tab="sensitivity">Sensitivity &amp; break-even</div>
-      <div class="tab" data-tab="assumptions">Assumptions</div>
-    </nav>
-    <div id="tabBody"></div>
-  </main>
-</div>
+<main>
+  <div class="summary"><div class="sgrid" id="summary"></div></div>
+  <nav class="tabs">
+    <div class="tab on" data-tab="pipeline">Workload &amp; pipeline</div>
+    <div class="tab" data-tab="result">Result</div>
+    <div class="tab" data-tab="gate">Go / No-Go</div>
+    <div class="tab" data-tab="schedule">Schedule impact</div>
+    <div class="tab" data-tab="compare">Compare scenarios</div>
+    <div class="tab" data-tab="optimize">Optimization</div>
+    <div class="tab" data-tab="sensitivity">Sensitivity &amp; break-even</div>
+    <div class="tab" data-tab="assumptions">Assumptions</div>
+  </nav>
+  <div id="tabBody"></div>
+</main>
 
 <script>
 /* =====================================================================
@@ -1272,6 +1301,35 @@ function breakEven(g, stages, variantIds) {
   return out;
 }
 
+/* ------------------------------------------------------------------ */
+/* 9. GO / NO-GO DE ORÇAMENTO                                          */
+/* ------------------------------------------------------------------ */
+/** GO: limite superior da faixa cabe no orçamento. REVIEW: o valor central
+ *  cabe, mas o limite superior estoura. NO-GO: o valor central já estoura. */
+function budgetGate(monthly, range, budget) {
+  if (!(budget > 0)) return { status: 'NONE', budget: 0, monthly, headroom: 0, usedPct: 0 };
+  const status = monthly > budget ? 'NO-GO' : range.high > budget ? 'REVIEW' : 'GO';
+  return { status, budget, monthly, headroom: budget - monthly, usedPct: monthly / budget * 100 };
+}
+
+/** Aplica, uma a uma, a regra de otimização de maior economia até o custo
+ *  caber no orçamento (recalculando o pipeline a cada passo). */
+function gateSuggestions(g, stages, budget, maxSteps = 6) {
+  let cg = g, cs = stages, cur = calcPipeline(cg, cs);
+  const steps = [], used = new Set();
+  while (cur.monthly > budget && steps.length < maxSteps) {
+    const cands = OPT_RULES.filter(r => !used.has(r.id) && r.applies(cg, cs, cur)).map(r => {
+      const [ng, ns] = r.patch(cg, cs); const a = calcPipeline(ng, ns);
+      return { r, ng, ns, a, saving: cur.monthly - a.monthly };
+    }).filter(c => c.saving > cur.monthly * 0.01).sort((x, y) => y.saving - x.saving);
+    if (!cands.length) break;
+    const c = cands[0]; used.add(c.r.id);
+    steps.push({ id: c.r.id, title: c.r.title, why: c.r.why, saving: c.saving, newMonthly: c.a.monthly, slaAfter: c.a.slaStatus });
+    cg = c.ng; cs = c.ns; cur = c.a;
+  }
+  return { steps, finalMonthly: cur.monthly, reachable: cur.monthly <= budget, finalSla: cur.slaStatus };
+}
+
 </script>
 <script>
 /* =====================================================================
@@ -1287,7 +1345,7 @@ const G_DEFAULTS = {
   queriesPerDay:300, avgQuerySec:25, scanPerQueryGB:3,
   failureRate:2, retries:2,
   crossRegionGB:0, internetGB:0, discountPct:0,
-  slaMaxMinutes:360, freshnessHours:30, orchestration:'chained',
+  budgetMonthly:2500, slaMaxMinutes:360, freshnessHours:30, orchestration:'chained',
   snowflakeEdition:'standard', snowflakeStorage:'capacity', dwStorage:true,
   customGbPerNodeMin:0.5, customCostPerNodeHour:0.30,
   _provided:{ targetFileMB:1, failureRate:1, retries:1, queriesPerDay:1, recordsPerDay:1,
@@ -1331,6 +1389,7 @@ const G_FIELDS = [
   ['dailyDeltaGB','Daily change volume','number',null,false,'GB/day'],
   ['recordsPerDay','Records per day','number',null,true,'rows'],
   ['ingestion','Ingestion strategy','select',[['full','Full load'],['incremental','Incremental'],['cdc','CDC']],false],
+  ['budgetMonthly','Monthly budget (Go/No-Go)','number',null,false,'USD/month'],
   ['slaMaxMinutes','Max processing time (SLA)','number',null,false,'min'],
   ['freshnessHours','Required freshness','number',null,false,'h'],
   ['orchestration','Orchestration','select',[['chained','DAG única (encadeada)'],['independent','Estágios independentes']],false],
@@ -1353,7 +1412,7 @@ const G_FIELDS = [
 const G_GROUPS = [
   { title:'1 · Workload', keys:['name','environment','criticality'] },
   { title:'2 · Source',   keys:['sourceType','sourceVolumeGB','dailyDeltaGB','recordsPerDay','ingestion'] },
-  { title:'3 · SLA & freshness', keys:['slaMaxMinutes','freshnessHours','orchestration'] },
+  { title:'3 · SLA, freshness & budget', keys:['budgetMonthly','slaMaxMinutes','freshnessHours','orchestration'] },
   { title:'4 · Files & catalog', keys:['targetFileMB','catalogObjects'] },
   { title:'5 · Consumption', keys:['queriesPerDay','avgQuerySec','scanPerQueryGB'] },
   { title:'6 · Reliability', keys:['failureRate','retries'] },
@@ -1386,18 +1445,22 @@ const slaCls = s => s==='PASS'?'ok':s==='PARTIAL'?'warn':'bad';
 const base = () => calcPipeline(G, STAGES);
 
 /* ==================================================================== */
-/* SIDEBAR                                                              */
+/* WORKLOAD (painel central)                                            */
 /* ==================================================================== */
-function buildSidebar() {
-  const f = $('#form'); f.innerHTML='';
-  G_GROUPS.forEach(g => {
+function workloadPanel() {
+  const root = el('div');
+  root.appendChild(el('div','wl-head','<h2>Workload</h2>'));
+  const grid = el('div','wl-grid');
+  G_GROUPS.forEach((g,i) => {
     const keys = g.keys.filter(k => SHOW_ADV || !G_FIELDS.find(x=>x[0]===k)[4]);
     if (!keys.length) return;
-    const sec = el('section','grp');
-    sec.appendChild(el('h3',null,g.title));
-    keys.forEach(k => sec.appendChild(gField(G_FIELDS.find(x=>x[0]===k))));
-    f.appendChild(sec);
+    const card = el('section','card wl'); card.style.setProperty('--gc', SERIES[i%SERIES.length]);
+    card.appendChild(el('h3',null,g.title));
+    keys.forEach(k => card.appendChild(gField(G_FIELDS.find(x=>x[0]===k))));
+    grid.appendChild(card);
   });
+  root.appendChild(grid);
+  return root;
 }
 
 function gField(def) {
@@ -1423,6 +1486,7 @@ function gField(def) {
 /* ==================================================================== */
 function viewPipeline() {
   const root = el('div');
+  root.appendChild(workloadPanel());
   root.appendChild(el('div','lead',
     `<h2>Pipeline stages</h2><p>Cada estágio tem engine, tamanho, <b>schedule próprio</b>, formato de arquivo, formato de tabela e retenção. O volume flui de um estágio para o próximo aplicando o fator de redução.</p>`));
 
@@ -1609,6 +1673,61 @@ function barList(pairs, total) {
 }
 function kpi(l,v,s){ const d=el('div','kpi'); d.appendChild(el('span','k-l',l)); d.appendChild(el('span','k-v',v)); if(s)d.appendChild(el('span','k-s',s)); return d; }
 function kvTable(rows){ const t=el('table','kv'); rows.forEach(([a,b])=>{const tr=el('tr');tr.appendChild(el('td',null,a));tr.appendChild(el('td','r',b));t.appendChild(tr);}); return t; }
+
+/* ==================================================================== */
+/* TAB: GO / NO-GO                                                      */
+/* ==================================================================== */
+const GATE_TEXT = {
+  'GO':     'O limite superior da estimativa cabe no orçamento. Pode executar.',
+  'REVIEW': 'O valor central cabe no orçamento, mas o limite superior da faixa de estimativa o estoura. Revise antes de executar.',
+  'NO-GO':  'O custo estimado estoura o orçamento. O pipeline não deve ser disparado sem ajustes.',
+  'NONE':   'Defina um orçamento mensal no card “SLA, freshness & budget” para ativar o Go/No-Go.',
+};
+const gateNow = () => { const r = base(); return { r, gate: budgetGate(r.monthly, r.range, G.budgetMonthly) }; };
+
+function viewGate() {
+  const { r, gate } = gateNow(); const root = el('div');
+  root.appendChild(el('div','lead','<h2>Go / No-Go de orçamento</h2><p>O custo estimado antes da execução é comparado ao orçamento. Se estourar, o motor aplica as otimizações de maior economia, uma a uma, até caber.</p>'));
+  const box = el('div','gate-box s-'+gate.status);
+  box.innerHTML = `<div class="gb-t">Veredito</div><div class="gb-v">${gate.status==='NONE'?'—':gate.status}</div><p>${GATE_TEXT[gate.status]}</p>`;
+  root.appendChild(box);
+
+  const k = el('div','kpis');
+  k.appendChild(kpi('Custo estimado', money(r.monthly,0), `faixa ${money(r.range.low,0)} – ${money(r.range.high,0)}`));
+  k.appendChild(kpi('Orçamento mensal', gate.budget? money(gate.budget,0):'—', 'definido no workload'));
+  k.appendChild(kpi(gate.headroom>=0?'Folga':'Estouro', gate.budget? money(Math.abs(gate.headroom),0):'—', gate.budget? gate.usedPct.toFixed(0)+'% do orçamento':''));
+  root.appendChild(k);
+
+  if (gate.status==='NO-GO') {
+    const sg = gateSuggestions(G, STAGES, G.budgetMonthly);
+    const c = el('div','card'); c.appendChild(el('h3',null,'Caminho para caber no orçamento'));
+    if (!sg.steps.length) c.appendChild(el('p','note','Nenhuma otimização automática aplicável. Revise engines, schedule ou o próprio orçamento.'));
+    sg.steps.forEach((st,i)=> c.appendChild(el('div','step',
+      `<div class="n">${i+1}</div><div><b>${st.title}</b><span>${st.why}</span></div>
+       <div class="sv2">${money(st.newMonthly,0)}<em>−${money(st.saving,0)}/mês · SLA ${st.slaAfter}</em></div>`)));
+    root.appendChild(c);
+    root.appendChild(el('div','card', sg.reachable
+      ? `<p class="verdict"><b class="pos-t">Com ${sg.steps.length} ajuste(s) o pipeline fica em ${money(sg.finalMonthly,0)}/mês</b>, dentro do orçamento de ${money(G.budgetMonthly,0)} (SLA ${sg.finalSla}). As otimizações são aplicadas em sequência, recalculando o pipeline a cada passo.</p>`
+      : `<p class="verdict"><b class="neg-t">Mesmo aplicando as otimizações automáticas o custo fica em ${money(sg.finalMonthly,0)}/mês</b>, ainda acima de ${money(G.budgetMonthly,0)}. Será preciso revisar a arquitetura (aba Compare scenarios), o escopo ou o orçamento.</p>`));
+  } else if (gate.status==='REVIEW') {
+    root.appendChild(el('div','card','<p class="verdict">Para reduzir a incerteza, informe mais parâmetros avançados (aumenta o confidence) ou aplique as oportunidades da aba Optimization.</p>'));
+  }
+  root.appendChild(el('p','note','Equivalente ao mecanismo No-Go do entregável 2: o gate roda sobre a estimativa pré-execução; em produção ele bloquearia o disparo do job (ex.: sensor no orquestrador).'));
+  return root;
+}
+
+/* ==================================================================== */
+/* BARRA DE RESUMO (fixa)                                               */
+/* ==================================================================== */
+function renderSummary() {
+  const { r, gate } = gateNow(); const box = $('#summary'); box.innerHTML='';
+  const card = (cls,l,v,sub) => { const d=el('div','scard '+cls); d.innerHTML=`<span class="sl">${l}</span><span class="sv">${v}</span><span class="ss">${sub}</span>`; box.appendChild(d); return d; };
+  card('s-cost','Custo mensal estimado', money(r.monthly,0), `faixa ${money(r.range.low,0)} – ${money(r.range.high,0)} · ${money(r.unit.perYear,0)}/ano`);
+  card('s-'+r.slaStatus,'SLA', r.slaStatus, `${mins(r.processingMin)} de ${G.slaMaxMinutes} min · latência ${mins(r.latencyMin)}`);
+  card('s-'+gate.status,'Go / No-Go', gate.status==='NONE'?'—':gate.status, gate.budget? `orçamento ${money(gate.budget,0)} · ${gate.usedPct.toFixed(0)}% usado`:'sem orçamento definido');
+  const c = card('s-conf','Confidence', r.confidence+'%', `custo/TB ${money(r.unit.perTB,2)}`);
+  c.insertAdjacentHTML('beforeend',`<span class="meter"><span style="width:${r.confidence}%"></span></span>`);
+}
 
 /* ==================================================================== */
 /* TAB: SCHEDULE IMPACT                                                 */
@@ -1894,15 +2013,25 @@ function viewAssumptions() {
 /* ==================================================================== */
 /* RENDER / BOOT                                                        */
 /* ==================================================================== */
-const VIEWS = { pipeline:viewPipeline, result:viewResult, schedule:viewSchedule,
+const VIEWS = { pipeline:viewPipeline, result:viewResult, gate:viewGate, schedule:viewSchedule,
                 compare:viewCompare, optimize:viewOptimize, sensitivity:viewSensitivity,
                 assumptions:viewAssumptions };
 
-function render(rebuild=true) {
-  if (rebuild) buildSidebar();
-  const body = $('#tabBody'); body.innerHTML='';
-  body.appendChild(VIEWS[TAB]());
+function render() {
+  const body = $('#tabBody');
+  const act = document.activeElement;
+  const fields = () => [...body.querySelectorAll('input,select')];
+  const idx = fields().indexOf(act);
+  const caret = idx >= 0 && act.selectionStart != null ? [act.selectionStart, act.selectionEnd] : null;
+  const scroll = window.scrollY;
+  renderSummary();
+  body.innerHTML=''; body.appendChild(VIEWS[TAB]());
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on', t.dataset.tab===TAB));
+  if (idx >= 0) {
+    const f = fields()[idx];
+    if (f) { f.focus(); if (caret) try { f.setSelectionRange(...caret); } catch (e) {} }
+  }
+  window.scrollTo(0, scroll);
 }
 
 function boot() {

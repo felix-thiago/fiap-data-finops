@@ -11,7 +11,7 @@ const G_DEFAULTS = {
   queriesPerDay:300, avgQuerySec:25, scanPerQueryGB:3,
   failureRate:2, retries:2,
   crossRegionGB:0, internetGB:0, discountPct:0,
-  slaMaxMinutes:360, freshnessHours:30, orchestration:'chained',
+  budgetMonthly:2500, slaMaxMinutes:360, freshnessHours:30, orchestration:'chained',
   snowflakeEdition:'standard', snowflakeStorage:'capacity', dwStorage:true,
   customGbPerNodeMin:0.5, customCostPerNodeHour:0.30,
   _provided:{ targetFileMB:1, failureRate:1, retries:1, queriesPerDay:1, recordsPerDay:1,
@@ -55,6 +55,7 @@ const G_FIELDS = [
   ['dailyDeltaGB','Daily change volume','number',null,false,'GB/day'],
   ['recordsPerDay','Records per day','number',null,true,'rows'],
   ['ingestion','Ingestion strategy','select',[['full','Full load'],['incremental','Incremental'],['cdc','CDC']],false],
+  ['budgetMonthly','Monthly budget (Go/No-Go)','number',null,false,'USD/month'],
   ['slaMaxMinutes','Max processing time (SLA)','number',null,false,'min'],
   ['freshnessHours','Required freshness','number',null,false,'h'],
   ['orchestration','Orchestration','select',[['chained','DAG única (encadeada)'],['independent','Estágios independentes']],false],
@@ -77,7 +78,7 @@ const G_FIELDS = [
 const G_GROUPS = [
   { title:'1 · Workload', keys:['name','environment','criticality'] },
   { title:'2 · Source',   keys:['sourceType','sourceVolumeGB','dailyDeltaGB','recordsPerDay','ingestion'] },
-  { title:'3 · SLA & freshness', keys:['slaMaxMinutes','freshnessHours','orchestration'] },
+  { title:'3 · SLA, freshness & budget', keys:['budgetMonthly','slaMaxMinutes','freshnessHours','orchestration'] },
   { title:'4 · Files & catalog', keys:['targetFileMB','catalogObjects'] },
   { title:'5 · Consumption', keys:['queriesPerDay','avgQuerySec','scanPerQueryGB'] },
   { title:'6 · Reliability', keys:['failureRate','retries'] },
@@ -110,18 +111,22 @@ const slaCls = s => s==='PASS'?'ok':s==='PARTIAL'?'warn':'bad';
 const base = () => calcPipeline(G, STAGES);
 
 /* ==================================================================== */
-/* SIDEBAR                                                              */
+/* WORKLOAD (painel central)                                            */
 /* ==================================================================== */
-function buildSidebar() {
-  const f = $('#form'); f.innerHTML='';
-  G_GROUPS.forEach(g => {
+function workloadPanel() {
+  const root = el('div');
+  root.appendChild(el('div','wl-head','<h2>Workload</h2>'));
+  const grid = el('div','wl-grid');
+  G_GROUPS.forEach((g,i) => {
     const keys = g.keys.filter(k => SHOW_ADV || !G_FIELDS.find(x=>x[0]===k)[4]);
     if (!keys.length) return;
-    const sec = el('section','grp');
-    sec.appendChild(el('h3',null,g.title));
-    keys.forEach(k => sec.appendChild(gField(G_FIELDS.find(x=>x[0]===k))));
-    f.appendChild(sec);
+    const card = el('section','card wl'); card.style.setProperty('--gc', SERIES[i%SERIES.length]);
+    card.appendChild(el('h3',null,g.title));
+    keys.forEach(k => card.appendChild(gField(G_FIELDS.find(x=>x[0]===k))));
+    grid.appendChild(card);
   });
+  root.appendChild(grid);
+  return root;
 }
 
 function gField(def) {
@@ -147,6 +152,7 @@ function gField(def) {
 /* ==================================================================== */
 function viewPipeline() {
   const root = el('div');
+  root.appendChild(workloadPanel());
   root.appendChild(el('div','lead',
     `<h2>Pipeline stages</h2><p>Cada estágio tem engine, tamanho, <b>schedule próprio</b>, formato de arquivo, formato de tabela e retenção. O volume flui de um estágio para o próximo aplicando o fator de redução.</p>`));
 
@@ -333,6 +339,61 @@ function barList(pairs, total) {
 }
 function kpi(l,v,s){ const d=el('div','kpi'); d.appendChild(el('span','k-l',l)); d.appendChild(el('span','k-v',v)); if(s)d.appendChild(el('span','k-s',s)); return d; }
 function kvTable(rows){ const t=el('table','kv'); rows.forEach(([a,b])=>{const tr=el('tr');tr.appendChild(el('td',null,a));tr.appendChild(el('td','r',b));t.appendChild(tr);}); return t; }
+
+/* ==================================================================== */
+/* TAB: GO / NO-GO                                                      */
+/* ==================================================================== */
+const GATE_TEXT = {
+  'GO':     'O limite superior da estimativa cabe no orçamento. Pode executar.',
+  'REVIEW': 'O valor central cabe no orçamento, mas o limite superior da faixa de estimativa o estoura. Revise antes de executar.',
+  'NO-GO':  'O custo estimado estoura o orçamento. O pipeline não deve ser disparado sem ajustes.',
+  'NONE':   'Defina um orçamento mensal no card “SLA, freshness & budget” para ativar o Go/No-Go.',
+};
+const gateNow = () => { const r = base(); return { r, gate: budgetGate(r.monthly, r.range, G.budgetMonthly) }; };
+
+function viewGate() {
+  const { r, gate } = gateNow(); const root = el('div');
+  root.appendChild(el('div','lead','<h2>Go / No-Go de orçamento</h2><p>O custo estimado antes da execução é comparado ao orçamento. Se estourar, o motor aplica as otimizações de maior economia, uma a uma, até caber.</p>'));
+  const box = el('div','gate-box s-'+gate.status);
+  box.innerHTML = `<div class="gb-t">Veredito</div><div class="gb-v">${gate.status==='NONE'?'—':gate.status}</div><p>${GATE_TEXT[gate.status]}</p>`;
+  root.appendChild(box);
+
+  const k = el('div','kpis');
+  k.appendChild(kpi('Custo estimado', money(r.monthly,0), `faixa ${money(r.range.low,0)} – ${money(r.range.high,0)}`));
+  k.appendChild(kpi('Orçamento mensal', gate.budget? money(gate.budget,0):'—', 'definido no workload'));
+  k.appendChild(kpi(gate.headroom>=0?'Folga':'Estouro', gate.budget? money(Math.abs(gate.headroom),0):'—', gate.budget? gate.usedPct.toFixed(0)+'% do orçamento':''));
+  root.appendChild(k);
+
+  if (gate.status==='NO-GO') {
+    const sg = gateSuggestions(G, STAGES, G.budgetMonthly);
+    const c = el('div','card'); c.appendChild(el('h3',null,'Caminho para caber no orçamento'));
+    if (!sg.steps.length) c.appendChild(el('p','note','Nenhuma otimização automática aplicável. Revise engines, schedule ou o próprio orçamento.'));
+    sg.steps.forEach((st,i)=> c.appendChild(el('div','step',
+      `<div class="n">${i+1}</div><div><b>${st.title}</b><span>${st.why}</span></div>
+       <div class="sv2">${money(st.newMonthly,0)}<em>−${money(st.saving,0)}/mês · SLA ${st.slaAfter}</em></div>`)));
+    root.appendChild(c);
+    root.appendChild(el('div','card', sg.reachable
+      ? `<p class="verdict"><b class="pos-t">Com ${sg.steps.length} ajuste(s) o pipeline fica em ${money(sg.finalMonthly,0)}/mês</b>, dentro do orçamento de ${money(G.budgetMonthly,0)} (SLA ${sg.finalSla}). As otimizações são aplicadas em sequência, recalculando o pipeline a cada passo.</p>`
+      : `<p class="verdict"><b class="neg-t">Mesmo aplicando as otimizações automáticas o custo fica em ${money(sg.finalMonthly,0)}/mês</b>, ainda acima de ${money(G.budgetMonthly,0)}. Será preciso revisar a arquitetura (aba Compare scenarios), o escopo ou o orçamento.</p>`));
+  } else if (gate.status==='REVIEW') {
+    root.appendChild(el('div','card','<p class="verdict">Para reduzir a incerteza, informe mais parâmetros avançados (aumenta o confidence) ou aplique as oportunidades da aba Optimization.</p>'));
+  }
+  root.appendChild(el('p','note','Equivalente ao mecanismo No-Go do entregável 2: o gate roda sobre a estimativa pré-execução; em produção ele bloquearia o disparo do job (ex.: sensor no orquestrador).'));
+  return root;
+}
+
+/* ==================================================================== */
+/* BARRA DE RESUMO (fixa)                                               */
+/* ==================================================================== */
+function renderSummary() {
+  const { r, gate } = gateNow(); const box = $('#summary'); box.innerHTML='';
+  const card = (cls,l,v,sub) => { const d=el('div','scard '+cls); d.innerHTML=`<span class="sl">${l}</span><span class="sv">${v}</span><span class="ss">${sub}</span>`; box.appendChild(d); return d; };
+  card('s-cost','Custo mensal estimado', money(r.monthly,0), `faixa ${money(r.range.low,0)} – ${money(r.range.high,0)} · ${money(r.unit.perYear,0)}/ano`);
+  card('s-'+r.slaStatus,'SLA', r.slaStatus, `${mins(r.processingMin)} de ${G.slaMaxMinutes} min · latência ${mins(r.latencyMin)}`);
+  card('s-'+gate.status,'Go / No-Go', gate.status==='NONE'?'—':gate.status, gate.budget? `orçamento ${money(gate.budget,0)} · ${gate.usedPct.toFixed(0)}% usado`:'sem orçamento definido');
+  const c = card('s-conf','Confidence', r.confidence+'%', `custo/TB ${money(r.unit.perTB,2)}`);
+  c.insertAdjacentHTML('beforeend',`<span class="meter"><span style="width:${r.confidence}%"></span></span>`);
+}
 
 /* ==================================================================== */
 /* TAB: SCHEDULE IMPACT                                                 */
@@ -618,15 +679,25 @@ function viewAssumptions() {
 /* ==================================================================== */
 /* RENDER / BOOT                                                        */
 /* ==================================================================== */
-const VIEWS = { pipeline:viewPipeline, result:viewResult, schedule:viewSchedule,
+const VIEWS = { pipeline:viewPipeline, result:viewResult, gate:viewGate, schedule:viewSchedule,
                 compare:viewCompare, optimize:viewOptimize, sensitivity:viewSensitivity,
                 assumptions:viewAssumptions };
 
-function render(rebuild=true) {
-  if (rebuild) buildSidebar();
-  const body = $('#tabBody'); body.innerHTML='';
-  body.appendChild(VIEWS[TAB]());
+function render() {
+  const body = $('#tabBody');
+  const act = document.activeElement;
+  const fields = () => [...body.querySelectorAll('input,select')];
+  const idx = fields().indexOf(act);
+  const caret = idx >= 0 && act.selectionStart != null ? [act.selectionStart, act.selectionEnd] : null;
+  const scroll = window.scrollY;
+  renderSummary();
+  body.innerHTML=''; body.appendChild(VIEWS[TAB]());
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on', t.dataset.tab===TAB));
+  if (idx >= 0) {
+    const f = fields()[idx];
+    if (f) { f.focus(); if (caret) try { f.setSelectionRange(...caret); } catch (e) {} }
+  }
+  window.scrollTo(0, scroll);
 }
 
 function boot() {

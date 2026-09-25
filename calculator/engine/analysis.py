@@ -194,3 +194,37 @@ def break_even(g, stages, variant_ids):
             out.append(dict(multiplier=m, tb=tb, from_=prev["id"], to=best["id"]))
         prev = best
     return out
+
+
+def budget_gate(monthly, range_, budget):
+    """GO: limite superior cabe no orçamento; REVIEW: valor central cabe, superior estoura; NO-GO: central estoura."""
+    if not budget > 0:
+        return dict(status="NONE", budget=0, monthly=monthly, headroom=0, used_pct=0)
+    status = "NO-GO" if monthly > budget else ("REVIEW" if range_["high"] > budget else "GO")
+    return dict(status=status, budget=budget, monthly=monthly, headroom=budget - monthly,
+                used_pct=monthly / budget * 100)
+
+
+def gate_suggestions(g, stages, budget, max_steps=6):
+    cg, cs = g, stages
+    cur = calc_pipeline(cg, cs)
+    steps, used = [], set()
+    while cur["monthly"] > budget and len(steps) < max_steps:
+        cands = []
+        for r in OPT_RULES:
+            if r["id"] in used or not r["applies"](cg, cs, cur):
+                continue
+            ng, ns = r["patch"](copy.deepcopy(cg), copy.deepcopy(cs))
+            a = calc_pipeline(ng, ns)
+            saving = cur["monthly"] - a["monthly"]
+            if saving > cur["monthly"] * 0.01:
+                cands.append((r, ng, ns, a, saving))
+        if not cands:
+            break
+        r, ng, ns, a, saving = sorted(cands, key=lambda c: -c[4])[0]
+        used.add(r["id"])
+        steps.append(dict(id=r["id"], title=r["title"], why=r["why"], saving=saving,
+                          new_monthly=a["monthly"], sla_after=a["sla_status"]))
+        cg, cs, cur = ng, ns, a
+    return dict(steps=steps, final_monthly=cur["monthly"], reachable=cur["monthly"] <= budget,
+                final_sla=cur["sla_status"])

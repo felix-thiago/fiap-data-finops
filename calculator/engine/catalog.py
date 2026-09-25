@@ -69,7 +69,7 @@ G_DEFAULTS = dict(
     queries_per_day=300, avg_query_sec=25, scan_per_query_gb=3,
     failure_rate=2, retries=2,
     cross_region_gb=0, internet_gb=0, discount_pct=0,
-    sla_max_minutes=360, freshness_hours=30, orchestration="chained",
+    budget_monthly=2500, sla_max_minutes=360, freshness_hours=30, orchestration="chained",
     snowflake_edition="standard", snowflake_storage="capacity", dw_storage=True,
     custom_gb_per_node_min=0.5, custom_cost_per_node_hour=0.30,
     provided=["target_file_mb", "failure_rate", "retries", "queries_per_day",

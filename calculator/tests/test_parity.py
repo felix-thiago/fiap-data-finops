@@ -98,3 +98,26 @@ def test_sensitivity_and_break_even(case):
     assert [(b["from_"], b["to"]) for b in got] == [(b["from"], b["to"]) for b in exp["breakEven"]]
     for b, e in zip(got, exp["breakEven"]):
         assert b["multiplier"] == approx(e["multiplier"])
+
+
+def test_budget_gate_and_suggestions(case):
+    from engine.analysis import budget_gate, gate_suggestions
+    g, stages, exp = case
+    base = calc_pipeline(g, stages)
+    for key, budget in (("gate", g["budget_monthly"]), ("gateTight", base["monthly"] * 1.02)):
+        got, e = budget_gate(base["monthly"], base["range"], budget), exp[key]
+        assert got["status"] == e["status"]
+        assert got["headroom"] == approx(e["headroom"]) and got["used_pct"] == approx(e["usedPct"])
+    got, e = gate_suggestions(g, stages, base["monthly"] * 0.7), exp["suggestions"]
+    assert [s["id"] for s in got["steps"]] == [s["id"] for s in e["steps"]]
+    assert got["reachable"] == e["reachable"] and got["final_sla"] == e["finalSla"]
+    assert got["final_monthly"] == approx(e["finalMonthly"])
+
+
+def test_gate_status_semantics():
+    from engine.analysis import budget_gate
+    rng = dict(low=90, high=120)
+    assert budget_gate(100, rng, 130)["status"] == "GO"
+    assert budget_gate(100, rng, 110)["status"] == "REVIEW"
+    assert budget_gate(100, rng, 99)["status"] == "NO-GO"
+    assert budget_gate(100, rng, 0)["status"] == "NONE"

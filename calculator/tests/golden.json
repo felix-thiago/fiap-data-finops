@@ -20,6 +20,7 @@
    "crossRegionGB": 0,
    "internetGB": 0,
    "discountPct": 0,
+   "budgetMonthly": 2500,
    "slaMaxMinutes": 360,
    "freshnessHours": 30,
    "orchestration": "chained",
@@ -484,7 +485,44 @@
      "from": "lake",
      "to": "emr"
     }
-   ]
+   ],
+   "gate": {
+    "status": "NO-GO",
+    "budget": 2500,
+    "monthly": 2725.1178763596,
+    "headroom": -225.1178763595999,
+    "usedPct": 109.00471505438401
+   },
+   "gateTight": {
+    "status": "REVIEW",
+    "budget": 2779.620233886792,
+    "monthly": 2725.1178763596,
+    "headroom": 54.50235752719209,
+    "usedPct": 98.0392156862745
+   },
+   "suggestions": {
+    "steps": [
+     {
+      "id": "wh-autosuspend",
+      "title": "Reduzir auto-suspend do warehouse para 60 s",
+      "why": "Warehouse suspenso não consome créditos; janelas de ociosidade longas são cobradas a cada execução ou sessão.",
+      "saving": 243.19999999999982,
+      "newMonthly": 2481.9178763596,
+      "slaAfter": "PASS"
+     },
+     {
+      "id": "raw-retention",
+      "title": "Reduzir a retenção da camada bruta para 90 dias",
+      "why": "Com Silver e Gold versionadas, manter a bruta por mais de um ano raramente atende a um requisito real de negócio ou compliance.",
+      "saving": 189.75,
+      "newMonthly": 2292.1678763596,
+      "slaAfter": "PASS"
+     }
+    ],
+    "finalMonthly": 2292.1678763596,
+    "reachable": false,
+    "finalSla": "PASS"
+   }
   }
  },
  {
@@ -508,6 +546,7 @@
    "crossRegionGB": 0,
    "internetGB": 0,
    "discountPct": 0,
+   "budgetMonthly": 2500,
    "slaMaxMinutes": 360,
    "freshnessHours": 30,
    "orchestration": "chained",
@@ -973,7 +1012,36 @@
      "from": "lake",
      "to": "emr"
     }
-   ]
+   ],
+   "gate": {
+    "status": "NO-GO",
+    "budget": 2500,
+    "monthly": 65857.29931025351,
+    "headroom": -63357.29931025351,
+    "usedPct": 2634.2919724101403
+   },
+   "gateTight": {
+    "status": "REVIEW",
+    "budget": 67174.44529645858,
+    "monthly": 65857.29931025351,
+    "headroom": 1317.1459862050688,
+    "usedPct": 98.03921568627452
+   },
+   "suggestions": {
+    "steps": [
+     {
+      "id": "full-to-incremental",
+      "title": "Migrar de Full Load para Incremental",
+      "why": "O delta diário é uma fração pequena da base; reprocessar tudo a cada execução multiplica compute, escrita e storage.",
+      "saving": 63132.181433893915,
+      "newMonthly": 2725.1178763596,
+      "slaAfter": "PASS"
+     }
+    ],
+    "finalMonthly": 2725.1178763596,
+    "reachable": true,
+    "finalSla": "PASS"
+   }
   }
  },
  {
@@ -997,6 +1065,7 @@
    "crossRegionGB": 500,
    "internetGB": 200,
    "discountPct": 15,
+   "budgetMonthly": 2500,
    "slaMaxMinutes": 360,
    "freshnessHours": 30,
    "orchestration": "independent",
@@ -1463,7 +1532,44 @@
      "from": "lake",
      "to": "emr"
     }
-   ]
+   ],
+   "gate": {
+    "status": "NO-GO",
+    "budget": 2500,
+    "monthly": 2825.8452425900305,
+    "headroom": -325.84524259003047,
+    "usedPct": 113.03380970360122
+   },
+   "gateTight": {
+    "status": "REVIEW",
+    "budget": 2882.362147441831,
+    "monthly": 2825.8452425900305,
+    "headroom": 56.51690485180052,
+    "usedPct": 98.03921568627452
+   },
+   "suggestions": {
+    "steps": [
+     {
+      "id": "raw-retention",
+      "title": "Reduzir a retenção da camada bruta para 90 dias",
+      "why": "Com Silver e Gold versionadas, manter a bruta por mais de um ano raramente atende a um requisito real de negócio ou compliance.",
+      "saving": 209.67374999999993,
+      "newMonthly": 2616.1714925900305,
+      "slaAfter": "FAIL"
+     },
+     {
+      "id": "wh-autosuspend",
+      "title": "Reduzir auto-suspend do warehouse para 60 s",
+      "why": "Warehouse suspenso não consome créditos; janelas de ociosidade longas são cobradas a cada execução ou sessão.",
+      "saving": 206.7199999999998,
+      "newMonthly": 2409.4514925900307,
+      "slaAfter": "FAIL"
+     }
+    ],
+    "finalMonthly": 2409.4514925900307,
+    "reachable": false,
+    "finalSla": "FAIL"
+   }
   }
  },
  {
@@ -1487,6 +1593,7 @@
    "crossRegionGB": 0,
    "internetGB": 0,
    "discountPct": 0,
+   "budgetMonthly": 2500,
    "slaMaxMinutes": 360,
    "freshnessHours": 30,
    "orchestration": "chained",
@@ -1963,7 +2070,60 @@
      "from": "lake",
      "to": "emr"
     }
-   ]
+   ],
+   "gate": {
+    "status": "NO-GO",
+    "budget": 2500,
+    "monthly": 2925.0366511948,
+    "headroom": -425.0366511948,
+    "usedPct": 117.00146604779201
+   },
+   "gateTight": {
+    "status": "REVIEW",
+    "budget": 2983.537384218696,
+    "monthly": 2925.0366511948,
+    "headroom": 58.50073302389592,
+    "usedPct": 98.03921568627452
+   },
+   "suggestions": {
+    "steps": [
+     {
+      "id": "wh-rightsize",
+      "title": "Reduzir o tamanho do virtual warehouse",
+      "why": "O tempo total de processamento está bem abaixo do SLA; um warehouse menor mantém o SLA a metade do custo em créditos.",
+      "saving": 405.3333333333335,
+      "newMonthly": 2519.7033178614665,
+      "slaAfter": "PASS"
+     },
+     {
+      "id": "raw-retention",
+      "title": "Reduzir a retenção da camada bruta para 90 dias",
+      "why": "Com Silver e Gold versionadas, manter a bruta por mais de um ano raramente atende a um requisito real de negócio ou compliance.",
+      "saving": 189.75,
+      "newMonthly": 2329.9533178614665,
+      "slaAfter": "PASS"
+     },
+     {
+      "id": "wh-autosuspend",
+      "title": "Reduzir auto-suspend do warehouse para 60 s",
+      "why": "Warehouse suspenso não consome créditos; janelas de ociosidade longas são cobradas a cada execução ou sessão.",
+      "saving": 121.59999999999991,
+      "newMonthly": 2208.3533178614666,
+      "slaAfter": "PASS"
+     },
+     {
+      "id": "downscale-schedule",
+      "title": "Reduzir a frequência dos estágios com folga de freshness",
+      "why": "Há folga entre a latência atual e o requisito de freshness; executar menos vezes reduz startups e mínimos de cobrança.",
+      "saving": 104.30595655679963,
+      "newMonthly": 2104.047361304667,
+      "slaAfter": "PASS"
+     }
+    ],
+    "finalMonthly": 2104.047361304667,
+    "reachable": false,
+    "finalSla": "PASS"
+   }
   }
  },
  {
@@ -1987,6 +2147,7 @@
    "crossRegionGB": 0,
    "internetGB": 0,
    "discountPct": 0,
+   "budgetMonthly": 2500,
    "slaMaxMinutes": 360,
    "freshnessHours": 30,
    "orchestration": "chained",
@@ -2451,7 +2612,44 @@
      "from": "lake",
      "to": "emr"
     }
-   ]
+   ],
+   "gate": {
+    "status": "NO-GO",
+    "budget": 2500,
+    "monthly": 3278.3850360576007,
+    "headroom": -778.3850360576007,
+    "usedPct": 131.13540144230402
+   },
+   "gateTight": {
+    "status": "REVIEW",
+    "budget": 3343.9527367787528,
+    "monthly": 3278.3850360576007,
+    "headroom": 65.56770072115205,
+    "usedPct": 98.0392156862745
+   },
+   "suggestions": {
+    "steps": [
+     {
+      "id": "wh-autosuspend",
+      "title": "Reduzir auto-suspend do warehouse para 60 s",
+      "why": "Warehouse suspenso não consome créditos; janelas de ociosidade longas são cobradas a cada execução ou sessão.",
+      "saving": 364.8000000000002,
+      "newMonthly": 2913.5850360576005,
+      "slaAfter": "PASS"
+     },
+     {
+      "id": "raw-retention",
+      "title": "Reduzir a retenção da camada bruta para 90 dias",
+      "why": "Com Silver e Gold versionadas, manter a bruta por mais de um ano raramente atende a um requisito real de negócio ou compliance.",
+      "saving": 189.75000000000045,
+      "newMonthly": 2723.8350360576,
+      "slaAfter": "PASS"
+     }
+    ],
+    "finalMonthly": 2723.8350360576,
+    "reachable": false,
+    "finalSla": "PASS"
+   }
   }
  },
  {
@@ -2475,6 +2673,7 @@
    "crossRegionGB": 0,
    "internetGB": 0,
    "discountPct": 0,
+   "budgetMonthly": 2500,
    "slaMaxMinutes": 360,
    "freshnessHours": 30,
    "orchestration": "chained",
@@ -2946,7 +3145,36 @@
      "from": "lake",
      "to": "emr"
     }
-   ]
+   ],
+   "gate": {
+    "status": "NO-GO",
+    "budget": 2500,
+    "monthly": 81374.8630883783,
+    "headroom": -78874.8630883783,
+    "usedPct": 3254.9945235351324
+   },
+   "gateTight": {
+    "status": "REVIEW",
+    "budget": 83002.36035014587,
+    "monthly": 81374.8630883783,
+    "headroom": 1627.4972617675667,
+    "usedPct": 98.0392156862745
+   },
+   "suggestions": {
+    "steps": [
+     {
+      "id": "full-to-incremental",
+      "title": "Migrar de Full Load para Incremental",
+      "why": "O delta diário é uma fração pequena da base; reprocessar tudo a cada execução multiplica compute, escrita e storage.",
+      "saving": 79571.50428828411,
+      "newMonthly": 1803.358800094189,
+      "slaAfter": "PASS"
+     }
+    ],
+    "finalMonthly": 1803.358800094189,
+    "reachable": true,
+    "finalSla": "PASS"
+   }
   }
  },
  {
@@ -2970,6 +3198,7 @@
    "crossRegionGB": 0,
    "internetGB": 0,
    "discountPct": 0,
+   "budgetMonthly": 2500,
    "slaMaxMinutes": 360,
    "freshnessHours": 30,
    "orchestration": "chained",
@@ -3397,7 +3626,36 @@
      }
     ]
    ],
-   "breakEven": []
+   "breakEven": [],
+   "gate": {
+    "status": "GO",
+    "budget": 2500,
+    "monthly": 1818.3105609856002,
+    "headroom": 681.6894390143998,
+    "usedPct": 72.732422439424
+   },
+   "gateTight": {
+    "status": "REVIEW",
+    "budget": 1854.6767722053123,
+    "monthly": 1818.3105609856002,
+    "headroom": 36.36621121971211,
+    "usedPct": 98.0392156862745
+   },
+   "suggestions": {
+    "steps": [
+     {
+      "id": "raw-retention",
+      "title": "Reduzir a retenção da camada bruta para 90 dias",
+      "why": "Com Silver e Gold versionadas, manter a bruta por mais de um ano raramente atende a um requisito real de negócio ou compliance.",
+      "saving": 189.75,
+      "newMonthly": 1628.5605609856002,
+      "slaAfter": "PASS"
+     }
+    ],
+    "finalMonthly": 1628.5605609856002,
+    "reachable": false,
+    "finalSla": "PASS"
+   }
   }
  },
  {
@@ -3421,6 +3679,7 @@
    "crossRegionGB": 0,
    "internetGB": 0,
    "discountPct": 0,
+   "budgetMonthly": 2500,
    "slaMaxMinutes": 360,
    "freshnessHours": 30,
    "orchestration": "chained",
@@ -3878,7 +4137,44 @@
      }
     ]
    ],
-   "breakEven": []
+   "breakEven": [],
+   "gate": {
+    "status": "REVIEW",
+    "budget": 2500,
+    "monthly": 2424.87355333648,
+    "headroom": 75.1264466635198,
+    "usedPct": 96.9949421334592
+   },
+   "gateTight": {
+    "status": "REVIEW",
+    "budget": 2473.37102440321,
+    "monthly": 2424.87355333648,
+    "headroom": 48.49747106672976,
+    "usedPct": 98.0392156862745
+   },
+   "suggestions": {
+    "steps": [
+     {
+      "id": "wh-autosuspend",
+      "title": "Reduzir auto-suspend do warehouse para 60 s",
+      "why": "Warehouse suspenso não consome créditos; janelas de ociosidade longas são cobradas a cada execução ou sessão.",
+      "saving": 243.20000000000027,
+      "newMonthly": 2181.67355333648,
+      "slaAfter": "PASS"
+     },
+     {
+      "id": "raw-retention",
+      "title": "Reduzir a retenção da camada bruta para 90 dias",
+      "why": "Com Silver e Gold versionadas, manter a bruta por mais de um ano raramente atende a um requisito real de negócio ou compliance.",
+      "saving": 189.74999999999955,
+      "newMonthly": 1991.9235533364804,
+      "slaAfter": "PASS"
+     }
+    ],
+    "finalMonthly": 1991.9235533364804,
+    "reachable": false,
+    "finalSla": "PASS"
+   }
   }
  },
  {
@@ -3902,6 +4198,7 @@
    "crossRegionGB": 0,
    "internetGB": 0,
    "discountPct": 0,
+   "budgetMonthly": 2500,
    "slaMaxMinutes": 360,
    "freshnessHours": 30,
    "orchestration": "chained",
@@ -4361,7 +4658,36 @@
      "from": "lake",
      "to": "emr"
     }
-   ]
+   ],
+   "gate": {
+    "status": "NO-GO",
+    "budget": 2500,
+    "monthly": 2647.8529792562445,
+    "headroom": -147.85297925624445,
+    "usedPct": 105.91411917024978
+   },
+   "gateTight": {
+    "status": "REVIEW",
+    "budget": 2700.8100388413695,
+    "monthly": 2647.8529792562445,
+    "headroom": 52.95705958512508,
+    "usedPct": 98.0392156862745
+   },
+   "suggestions": {
+    "steps": [
+     {
+      "id": "raw-retention",
+      "title": "Reduzir a retenção da camada bruta para 90 dias",
+      "why": "Com Silver e Gold versionadas, manter a bruta por mais de um ano raramente atende a um requisito real de negócio ou compliance.",
+      "saving": 246.67499999999973,
+      "newMonthly": 2401.1779792562447,
+      "slaAfter": "PASS"
+     }
+    ],
+    "finalMonthly": 2401.1779792562447,
+    "reachable": false,
+    "finalSla": "PASS"
+   }
   }
  },
  {
@@ -4385,6 +4711,7 @@
    "crossRegionGB": 0,
    "internetGB": 0,
    "discountPct": 0,
+   "budgetMonthly": 2500,
    "slaMaxMinutes": 60,
    "freshnessHours": 30,
    "orchestration": "chained",
@@ -4843,7 +5170,44 @@
      "from": "lake",
      "to": "emr"
     }
-   ]
+   ],
+   "gate": {
+    "status": "NO-GO",
+    "budget": 2500,
+    "monthly": 32645.470095287557,
+    "headroom": -30145.470095287557,
+    "usedPct": 1305.8188038115024
+   },
+   "gateTight": {
+    "status": "REVIEW",
+    "budget": 33298.37949719331,
+    "monthly": 32645.470095287557,
+    "headroom": 652.909401905752,
+    "usedPct": 98.0392156862745
+   },
+   "suggestions": {
+    "steps": [
+     {
+      "id": "raw-retention",
+      "title": "Reduzir a retenção da camada bruta para 90 dias",
+      "why": "Com Silver e Gold versionadas, manter a bruta por mais de um ano raramente atende a um requisito real de negócio ou compliance.",
+      "saving": 3162.5000000000073,
+      "newMonthly": 29482.97009528755,
+      "slaAfter": "FAIL"
+     },
+     {
+      "id": "wh-autosuspend",
+      "title": "Reduzir auto-suspend do warehouse para 60 s",
+      "why": "Warehouse suspenso não consome créditos; janelas de ociosidade longas são cobradas a cada execução ou sessão.",
+      "saving": 316.1599999999962,
+      "newMonthly": 29166.810095287554,
+      "slaAfter": "FAIL"
+     }
+    ],
+    "finalMonthly": 29166.810095287554,
+    "reachable": false,
+    "finalSla": "FAIL"
+   }
   }
  }
 ]

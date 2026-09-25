@@ -285,3 +285,12 @@ README.md               este documento
    `pipeline_stages`, com `runs_per_day`, `file_format`, `table_format` e `reduction`.
 5. Validar com três workloads (pequeno, médio, grande) e medir o erro de estimativa contra
    as calculadoras oficiais — Métrica 1 do capítulo de resultados.
+
+---
+
+## 10. Novidades da v0.3
+
+- **Go / No-Go de orçamento.** O workload ganhou o campo `budgetMonthly`. O veredito é `GO` (limite superior da faixa cabe), `REVIEW` (valor central cabe, superior estoura) ou `NO-GO` (valor central estoura). Em `NO-GO`, `gateSuggestions` aplica as regras de otimização de maior economia, uma a uma, recalculando o pipeline a cada passo, até caber. É a versão pré-execução do mecanismo No-Go do entregável 2.
+- **Front.** Sem sidebar: toda a configuração do workload fica em cards no centro da aba *Workload & pipeline*; barra de resumo fixa no topo (custo, SLA, Go/No-Go, confidence); cards maiores e coloridos.
+- **Motor em Python** (`engine/`) com testes de paridade contra o `engine.js` (`tools/gen_golden.js` → `tests/golden.json`). Rodar: `python -m pytest calculator/tests`.
+- **Pricing** via APIs públicas de AWS e Azure, com Parquet/DuckDB (`tools/fetch_pricing.py`).

@@ -7,7 +7,7 @@ const app = read('app.js');
 const defaults = app.slice(app.indexOf('const G_DEFAULTS'), app.indexOf('const G_FIELDS'));
 const code = read('pricing.js') + '\n' + read('engine.js') + '\n' + defaults + `
 this.__api = { G_DEFAULTS, STAGE_DEFAULTS, calcPipeline, scheduleSweep, VARIANTS, PROFILES, scoreVariants,
-               findOptimizations, sensitivity, breakEven };`;
+               findOptimizations, sensitivity, breakEven, budgetGate, gateSuggestions };`;
 const ctx = { structuredClone, console };
 vm.createContext(ctx); vm.runInContext(code, ctx);
 const A = ctx.__api;
@@ -54,6 +54,9 @@ const out = scenarios.map(([name, fg, fs_]) => {
       sweepGold: A.scheduleSweep(g, stages, ['gold']).map(x => [x.runsPerDay, x.monthly]),
       sensitivity: A.sensitivity(g, stages, variantIds).map(r => [r.multiplier, r.tb, r.costs]),
       breakEven: A.breakEven(g, stages, variantIds),
+      gate: A.budgetGate(base.monthly, base.range, g.budgetMonthly),
+      gateTight: A.budgetGate(base.monthly, base.range, base.monthly * 1.02),
+      suggestions: A.gateSuggestions(g, stages, base.monthly * 0.7),
     },
   };
 });

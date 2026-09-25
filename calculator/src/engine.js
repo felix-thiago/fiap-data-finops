@@ -524,3 +524,32 @@ function breakEven(g, stages, variantIds) {
   }
   return out;
 }
+
+/* ------------------------------------------------------------------ */
+/* 9. GO / NO-GO DE ORÇAMENTO                                          */
+/* ------------------------------------------------------------------ */
+/** GO: limite superior da faixa cabe no orçamento. REVIEW: o valor central
+ *  cabe, mas o limite superior estoura. NO-GO: o valor central já estoura. */
+function budgetGate(monthly, range, budget) {
+  if (!(budget > 0)) return { status: 'NONE', budget: 0, monthly, headroom: 0, usedPct: 0 };
+  const status = monthly > budget ? 'NO-GO' : range.high > budget ? 'REVIEW' : 'GO';
+  return { status, budget, monthly, headroom: budget - monthly, usedPct: monthly / budget * 100 };
+}
+
+/** Aplica, uma a uma, a regra de otimização de maior economia até o custo
+ *  caber no orçamento (recalculando o pipeline a cada passo). */
+function gateSuggestions(g, stages, budget, maxSteps = 6) {
+  let cg = g, cs = stages, cur = calcPipeline(cg, cs);
+  const steps = [], used = new Set();
+  while (cur.monthly > budget && steps.length < maxSteps) {
+    const cands = OPT_RULES.filter(r => !used.has(r.id) && r.applies(cg, cs, cur)).map(r => {
+      const [ng, ns] = r.patch(cg, cs); const a = calcPipeline(ng, ns);
+      return { r, ng, ns, a, saving: cur.monthly - a.monthly };
+    }).filter(c => c.saving > cur.monthly * 0.01).sort((x, y) => y.saving - x.saving);
+    if (!cands.length) break;
+    const c = cands[0]; used.add(c.r.id);
+    steps.push({ id: c.r.id, title: c.r.title, why: c.r.why, saving: c.saving, newMonthly: c.a.monthly, slaAfter: c.a.slaStatus });
+    cg = c.ng; cs = c.ns; cur = c.a;
+  }
+  return { steps, finalMonthly: cur.monthly, reachable: cur.monthly <= budget, finalSla: cur.slaStatus };
+}
