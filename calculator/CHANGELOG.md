@@ -62,6 +62,13 @@ Tudo o que foi entregue desde a v0.2 (protótipo em JS puro), na ordem em que en
 - **Kit de calibração testado de verdade:** `calibration/local_dryrun.py` roda `gen_data.py` e `etl_benchmark.py` com PySpark local (Java 17 + winutils, sem custo de nuvem) para pegar erro de lógica antes de rodar no Glue real; `tests/test_calibration_scripts_local.py` automatiza isso e pula sozinho em máquinas sem os pré-requisitos. Não substitui a medição real (throughput local ≠ throughput de worker Glue/EMR/Databricks).
 - 99 testes no total.
 
+### 9. Validação real: workload pequeno confirmado, preços Snowflake/Databricks confirmados
+- **Workload pequeno validado por completo** contra a AWS Pricing Calculator (Glue ETL, S3 storage/requests, Athena): erro total de **0,1%** (US$ 55,10 do modelo vs. US$ 55,05 oficial). A única linha divergente é o AWS Glue Data Catalog, dentro do free tier da AWS (que o modelo não aplica) — ver `validation/official.json` e `validation/pricing_confirmations.md`.
+- **Preços unitários do Snowflake confirmados** na calculadora oficial: US$ 2,00/crédito (Standard, AWS us-east-1) e US$ 23,00/TB-mês de storage — exatos. Achado: a calculadora distingue Warehouse **Gen 1** (1/2/4/8 créditos por XS/S/M/L, o que o motor usa) de **Gen 2** (~35% mais créditos no mesmo tamanho) — agora documentado como premissa explícita.
+- **Preços unitários do Databricks confirmados**: US$ 0,15/DBU tanto para Jobs Classic quanto para Jobs Classic Photon (o Photon não muda o preço por DBU, só o consumo de DBU/hora) e ~2,0 DBU/h para instância xlarge com Photon — bate com o multiplicador do catálogo.
+- Corrige `tools/validation_compare.py`: erro virava `nan%` quando o valor oficial é zero (ex.: free tier); agora mostra "N/A (oficial=0)" sem afetar a média.
+- Médio e grande (que somam Snowflake e, no grande, Databricks) ainda não têm um total oficial ponta a ponta: não há calculadora pública que some um workload combinado nesses provedores. As confirmações de preço unitário acima cobrem o que sustenta essas linhas.
+
 ## Como reproduzir
 
 ```bash
@@ -79,7 +86,7 @@ python calculator/calibration/local_dryrun.py           # valida os scripts de c
 ```
 
 ## Próximos passos
-1. Preencher `validation/official.json` com os totais das calculadoras oficiais (AWS, Snowflake, Databricks) e rodar a comparação.
+1. Validar médio e grande contra as calculadoras oficiais (a AWS já está confirmada para o pequeno; falta somar Snowflake/Databricks manualmente, calculadora por calculadora — ver `validation/pricing_confirmations.md`).
 2. Calibrar o throughput das engines com execuções medidas (começando pelo Glue), seguindo `calibration/README.md`.
 3. Publicar o app no GitHub Pages para a demonstração da banca.
 4. Redigir o texto do TCC: metodologia, resultados (erro de estimativa), discussão e limitações.
