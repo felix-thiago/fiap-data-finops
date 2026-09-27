@@ -58,6 +58,39 @@ python -m pytest tests             # os testes de paridade continuam valendo
 
 A saída mostra, por engine, o throughput que o modelo assumia e o medido (ex.: `glue  0.45 GB → 0.38 GB, -16%`).
 
+## Testar localmente antes de gastar na nuvem
+
+Antes de rodar no Glue de verdade (e pagar por isso), dá para testar se os scripts
+`gen_data.py` e `etl_benchmark.py` **funcionam** — sem AWS, sem custo — com Spark local.
+
+**Isto não mede throughput real** (sua máquina não representa um worker Glue/EMR/Databricks).
+Serve só para achar erro de sintaxe ou lógica antes de gastar dinheiro na nuvem.
+
+**1. Instalar** (uma vez):
+
+```bash
+winget install --id EclipseAdoptium.Temurin.17.JDK
+pip install pyspark
+```
+
+**2. Baixar o `winutils.exe` e o `hadoop.dll`** (Hadoop 3.3.x, exigidos pelo PySpark no Windows) para
+uma pasta `hadoop\bin\` qualquer, e apontar `HADOOP_HOME` para essa pasta (sem a subpasta `bin`):
+
+```
+https://github.com/cdarlint/winutils/raw/master/hadoop-3.3.6/bin/winutils.exe
+https://github.com/cdarlint/winutils/raw/master/hadoop-3.3.6/bin/hadoop.dll
+```
+
+**3. Rodar:**
+
+```bash
+python calibration/local_dryrun.py --java-home "C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot" --hadoop-home "C:\caminho\para\hadoop"
+```
+
+Se terminar com `OK`, os dois scripts estão corretos e prontos para rodar no Glue/Databricks/EMR
+de verdade. `python -m pytest calculator/tests/test_calibration_scripts_local.py` faz o mesmo
+automaticamente (e pula sozinho em qualquer máquina sem esses pré-requisitos).
+
 ## Databricks e EMR (opcional)
 
 Mesmo processo: rode `gen_data.py` (ou reaproveite o dataset no S3) e `etl_benchmark.py` como *Job* no Databricks (`engine` = `databricks`, ou `databricks_photon` se usar Photon) ou como *step* no EMR (`emr_spark`). Anote duração e startup do cluster do console do serviço.

@@ -36,7 +36,7 @@ Preços vêm de **APIs públicas** (AWS Price List e Azure Retail Prices) e o c�
 pip install requests ijson pyarrow duckdb pytest
 python calculator/tools/fetch_pricing.py    # atualiza os preços (AWS + Azure)
 python calculator/build.py                  # regera calculator/index.html
-python -m pytest calculator/tests           # 80+ testes: paridade JS x Python, preços, validação
+python -m pytest calculator/tests           # 99 testes: paridade JS x Python, preços, validação, UI, calibração
 ```
 
 ## Estrutura

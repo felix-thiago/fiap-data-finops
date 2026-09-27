@@ -250,6 +250,16 @@ tr.hl{background:#f4f6fd}
   .two{grid-template-columns:1fr}
   .bar{grid-template-columns:130px 1fr 104px}
 }
+@media (max-width:720px){
+  .sgrid{grid-template-columns:1fr}
+  header{padding:12px 14px}
+  main{padding:0 12px 56px}
+  .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;
+    margin-left:-12px;margin-right:-12px;padding-left:12px;padding-right:12px}
+  .tab{flex:0 0 auto;white-space:nowrap;padding:9px 12px;font-size:13px}
+  .wl-grid,.st-grid{grid-template-columns:1fr}
+  .kpis{grid-template-columns:1fr 1fr}
+}
 </style>
 </head>
 <body>
@@ -2020,12 +2030,14 @@ function renderSummary() {
   const g = card('sc-gate','s-'+gate.status);
   if (!g.querySelector('input')) {
     g.innerHTML = `<span class="sl">Go / No-Go</span><span class="sv"></span>
-      <span class="ss bud">orçamento US$ <input id="sumBudget" type="number" min="0" step="any" title="Orçamento mensal (USD) — editável"> /mês · <b class="used"></b></span>`;
+      <span class="ss bud">orçamento (sempre USD) US$ <input id="sumBudget" type="number" min="0" step="any" title="Orçamento mensal em USD — o modelo interno é sempre USD, independente da moeda exibida"> /mês · <b class="used"></b></span>
+      <span class="ss bud-fx"></span>`;
     g.querySelector('input').oninput = e => { G.budgetMonthly = Math.max(0, +e.target.value || 0); render(); };
   }
   g.querySelector('.sv').textContent = gate.status==='NONE' ? '—' : gate.status;
   const bi = g.querySelector('input'); if (document.activeElement !== bi) bi.value = G.budgetMonthly;
   g.querySelector('.used').textContent = gate.budget ? gate.usedPct.toFixed(0)+'% usado' : 'sem orçamento';
+  g.querySelector('.bud-fx').textContent = (gate.budget && CURRENCY!=='USD') ? `≈ ${money(gate.budget,0)} nesta cotação` : '';
 
   const c = card('sc-conf','s-conf');
   fill(c, 'Confidence', r.confidence+'%', `custo/TB ${money(r.unit.perTB,2)}`);
@@ -2050,10 +2062,10 @@ function viewSchedule() {
   const scope = SWEEP_SCOPE==='all' ? null : [SWEEP_SCOPE];
   const sweep = scheduleSweep(G, STAGES, scope);
   const cur = base();
+  const activeBatch = STAGES.filter(s=>s.enabled&&s.kind!=='serve');
   const curFreq = SWEEP_SCOPE==='all'
-    ? (STAGES.filter(s=>s.enabled&&s.kind!=='serve').every(s=>s.runsPerDay===STAGES.find(x=>x.enabled&&x.kind!=='serve').runsPerDay)
-        ? STAGES.find(s=>s.enabled&&s.kind!=='serve').runsPerDay : null)
-    : STAGES.find(s=>s.key===SWEEP_SCOPE).runsPerDay;
+    ? (activeBatch.length && activeBatch.every(s=>s.runsPerDay===activeBatch[0].runsPerDay) ? activeBatch[0].runsPerDay : null)
+    : (STAGES.find(s=>s.key===SWEEP_SCOPE)?.runsPerDay ?? null);
 
   const c = el('div','card');
   c.appendChild(el('h3',null,'Custo mensal por frequência'));
@@ -2308,9 +2320,21 @@ function viewAssumptions() {
    'Snowpipe aproximado por crédito/GB; a cobrança real inclui componente por arquivo.',
    'Manutenção de tabela estimada sobre 10% da camada ("fatia quente").',
    'Custos indiretos (orquestração, observabilidade, governança, licenças) fora do MVP.',
+   'Mesmo com volume zerado, o custo não vai a zero: mínimos de cobrança (startup, tempo mínimo faturado por execução) e custos fixos (catálogo, warehouses ociosos) continuam existindo — ver nota abaixo.',
    'A ferramenta não substitui as calculadoras oficiais dos provedores nem representa uma fatura real.',
   ].forEach(x=>ll.appendChild(el('li',null,x)));
   l.appendChild(ll); root.appendChild(l);
+
+  const z=el('div','card'); z.appendChild(el('h3',null,'Por que o custo nunca chega a zero'));
+  z.appendChild(el('p',null,'Isto não é um bug: provedores cobram um <b>mínimo por execução</b> mesmo que o volume processado seja pequeno ou nulo.'));
+  const zl=el('ul','list');
+  ['Startup e tempo mínimo faturado — o Glue cobra ao menos 1 min por job run; um cluster tem tempo de subida mesmo sem dado para processar.',
+   'Catálogo de metadados (AWS Glue Data Catalog) é cobrado pela quantidade de objetos cadastrados, não pelo volume processado.',
+   'Um warehouse Snowflake ligado consome créditos por hora ativa, mesmo em consultas triviais, até o auto-suspend atuar.',
+  ].forEach(x=>zl.appendChild(el('li',null,x)));
+  z.appendChild(zl);
+  z.appendChild(el('p','note','Esse "piso" de custo é intencional e reflete um comportamento real de FinOps: pipelines com poucas execuções e baixo volume ainda carregam custo fixo — parte do racional de otimizações como reduzir frequência ou consolidar estágios.'));
+  root.appendChild(z);
 
   const s=el('div','card'); s.appendChild(el('h3',null,'Confidence score'));
   s.appendChild(el('p',null,`Score atual: <b>${r.confidence}%</b> — faixa ${money(r.range.low,0)} a ${money(r.range.high,0)}.`));

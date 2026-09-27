@@ -53,6 +53,15 @@ Tudo o que foi entregue desde a v0.2 (protótipo em JS puro), na ordem em que en
 - **Câmbio automático:** USD→BRL/EUR via Frankfurter (taxas do BCE), gravado no `pricing.json` (`meta.fx`), com fallback para 5,40/0,92 e opção `--brl/--eur/--no-fx`. A data dos preços e o câmbio aparecem no cabeçalho, com aviso quando passam de 7 dias.
 - Testes do servidor (`tests/test_serve.py`): 85 testes no total.
 
+### 8. Correções de revisão: bug real, moeda, volume zero, mobile, testes de UI e calibração testada localmente
+- **Bug corrigido:** com todos os estágios do pipeline desligados, a aba *Schedule impact* quebrava (`Cannot read properties of undefined (reading 'runsPerDay')`). Achado pelos novos testes automatizados de UI, não em revisão manual.
+- **Moeda no card Go/No-Go:** o orçamento é sempre USD (modelo interno); agora mostra também o equivalente na moeda selecionada (ex.: "≈ R$12.952 nesta cotação") para não parecer travado ao trocar de moeda.
+- **Nota "por que o custo nunca chega a zero"** na aba Assumptions, explicando mínimos de cobrança, catálogo e warehouse ocioso — evita que pareça bug numa demonstração.
+- **Mobile:** abas em uma linha com rolagem horizontal em vez de quebrar em 3 linhas; cards do workload em coluna única abaixo de 720px.
+- **Testes automatizados de UI** (`tests/test_ui.py`, Playwright/Chromium headless): 13 testes cobrindo navegação entre abas, casos de borda (volume zero, estágios desligados, orçamento zero, falha alta), conversão de moeda, popup de ajuda, o perfil de decisão na aba Compare e o botão "Atualizar preços" sem servidor.
+- **Kit de calibração testado de verdade:** `calibration/local_dryrun.py` roda `gen_data.py` e `etl_benchmark.py` com PySpark local (Java 17 + winutils, sem custo de nuvem) para pegar erro de lógica antes de rodar no Glue real; `tests/test_calibration_scripts_local.py` automatiza isso e pula sozinho em máquinas sem os pré-requisitos. Não substitui a medição real (throughput local ≠ throughput de worker Glue/EMR/Databricks).
+- 99 testes no total.
+
 ## Como reproduzir
 
 ```bash
@@ -65,6 +74,8 @@ node calculator/tools/gen_golden.js          # regenera tests/golden.json a part
 python calculator/tools/validation_worksheet.py   # planilha de conferência (validation/worksheet.md)
 python calculator/tools/validation_compare.py     # erro vs. calculadoras oficiais (Métrica 1)
 python calculator/tools/calibrate.py              # aplica execuções medidas (calibration/measurements.csv)
+python -m pytest calculator/tests/test_ui.py           # 13 testes de UI (requer: pip install pytest-playwright && playwright install chromium)
+python calculator/calibration/local_dryrun.py           # valida os scripts de calibração sem custo de nuvem (requer Java 17 + winutils)
 ```
 
 ## Próximos passos
