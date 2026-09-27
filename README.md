@@ -78,7 +78,7 @@ O throughput das engines ainda é premissa; para medi-lo veja [calculator/calibr
 - [x] Go/No-Go de orçamento e novo front
 - [x] Variante Azure e Glue 6.0+
 - [x] Kit de validação e de calibração
-- [x] Validar os três workloads contra as calculadoras oficiais (AWS, Snowflake, Databricks)
+- [x] Validar pequeno e médio por completo, e grande linha a linha (7/9, sem total fechado por razão estrutural documentada) contra as calculadoras oficiais (AWS, Snowflake, Databricks)
 - [ ] Calibrar throughput com execuções medidas em conta cloud real
 - [ ] Habilitar o GitHub Pages (workflow pronto em `.github/workflows/pages.yml`; falta um admin do repositório ativar em Settings → Pages → Source: GitHub Actions)
 - [ ] Texto do TCC (metodologia, resultados, limitações)
