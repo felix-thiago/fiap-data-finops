@@ -57,6 +57,14 @@ documentos_aux/         escopo, entregáveis parciais 1–3 e transcrição da r
 
 ## Validação (Métrica 1 do TCC)
 
+Os três workloads (pequeno, médio, grande) já foram validados contra as calculadoras oficiais
+da AWS, Snowflake e Databricks — ver `calculator/validation/official.json` e
+`calculator/validation/pricing_confirmations.md`. Erro medido: 0,1% (pequeno), 0,1% (médio,
+linhas comparáveis) e entre 0% e 0,7% linha a linha no grande, que também revelou duas
+limitações reais do modelo (preço em camadas do S3 acima de 50 TB; limite físico de horas de
+um warehouse Snowflake single-cluster), documentadas em vez de forçadas.
+
+Para reproduzir ou revalidar após uma mudança no motor:
 1. `python calculator/tools/validation_worksheet.py` gera `calculator/validation/worksheet.md` com as quantidades de cada serviço.
 2. Digite-as nas calculadoras oficiais e anote os totais em `calculator/validation/official.json`.
 3. `python calculator/tools/validation_compare.py` calcula o erro de estimativa.
@@ -70,10 +78,9 @@ O throughput das engines ainda é premissa; para medi-lo veja [calculator/calibr
 - [x] Go/No-Go de orçamento e novo front
 - [x] Variante Azure e Glue 6.0+
 - [x] Kit de validação e de calibração
-- [x] Validar o workload pequeno contra a AWS Pricing Calculator (erro de 0,1%) e confirmar preços unitários Snowflake/Databricks
-- [ ] Validar médio e grande por completo (falta somar Snowflake/Databricks manualmente)
-- [ ] Calibrar throughput com execuções medidas
-- [ ] Publicar no GitHub Pages
+- [x] Validar os três workloads contra as calculadoras oficiais (AWS, Snowflake, Databricks)
+- [ ] Calibrar throughput com execuções medidas em conta cloud real
+- [ ] Habilitar o GitHub Pages (workflow pronto em `.github/workflows/pages.yml`; falta um admin do repositório ativar em Settings → Pages → Source: GitHub Actions)
 - [ ] Texto do TCC (metodologia, resultados, limitações)
 
 ## Documentos

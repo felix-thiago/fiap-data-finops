@@ -28,38 +28,38 @@
   },
   "medium": {
     "model_total_usd": 2725.12,
-    "official_total_usd": null,
+    "official_total_usd": 2394.14,
     "lines": {
       "glue": {
         "model_usd": 312.3,
-        "official_usd": null
+        "official_usd": 312.3
       },
       "snowflake_compute": {
         "model_usd": 829.31,
-        "official_usd": null
+        "official_usd": 827.48
       },
       "snowflake_storage": {
         "model_usd": 106.25,
-        "official_usd": null
+        "official_usd": 106.26
       },
       "s3_storage": {
         "model_usd": 1147.97,
-        "official_usd": null
+        "official_usd": 1148.08
       },
       "s3_requests": {
         "model_usd": 0.12,
-        "official_usd": null
+        "official_usd": 0.13
       },
       "catalog": {
         "model_usd": 0.5,
-        "official_usd": null
+        "official_usd": 0.0
       },
       "maintenance": {
         "model_usd": 328.65,
         "official_usd": null
       }
     },
-    "source_and_date": ""
+    "source_and_date": "AWS Pricing Calculator + Snowflake Pricing Calculator (snowflake.com/en/pricing-options/calculator), regiao us-east-1 / US East (Northern Virginia), preenchido em 2026-09-27. AWS: Glue ETL (2 DPUs, 21293 min/mes -> 709.8 DPU-h) + S3 Standard (49911.9 GB-mes; 21724 PUT; 39763 GET, arredondado para inteiro pois a calculadora nao aceita decimais em GET/SELECT). Snowflake: Standard Warehouse GEN 1 (o motor usa a tabela de creditos Gen 1 -- 1/2/4/8 creditos por XS/S/M/L -- nao a Gen 2, que custa ~35% mais credito no mesmo tamanho); DW Load em warehouse S (hours/day=0.1533, days/week=7 -> 4.66h/mes) e Serving em warehouse M (hours/day=3.3333, days/week=7 -> 101.3h/mes); storage 4.62 TB. O AWS Glue Data Catalog nao foi modelado (50.000 objetos dentro do free tier de 1.000.000). A linha de manutencao (compaction/expire) nao tem equivalente em nenhuma calculadora oficial. Erro do total comparavel (exclui manutencao, sem equivalente oficial): 2394.14 oficial vs 2396.47 modelo = 0.10%."
   },
   "large": {
     "model_total_usd": 41555.79,
@@ -67,41 +67,43 @@
     "lines": {
       "glue": {
         "model_usd": 1140.4,
-        "official_usd": null
+        "official_usd": 1140.59
       },
       "dbx": {
         "model_usd": 1183.57,
-        "official_usd": null
+        "official_usd": 1175.31
       },
       "dbx_ec2": {
         "model_usd": 757.48,
-        "official_usd": null
+        "official_usd": 757.48
       },
       "snowflake_compute": {
         "model_usd": 15171.36,
-        "official_usd": null
+        "official_usd": null,
+        "note": "Nao comparavel como um todo. Load (154.567 creditos, warehouse L) e alcancavel: official=309.13 USD (calculadora, 19.32h/mes). Serve (7431.111 creditos) implica um warehouse ativo por 928.9h/mes, acima do maximo fisico de 24h x 30.4 dias = 729.6h/mes para um warehouse single-cluster -- a calculadora oficial rejeita essa entrada (limite de 730h/mes por instancia de compute). Achado: para volumes de consulta muito altos, a heuristica de idle-time do motor (uma cauda de auto-suspend por sessao de 20 consultas) pode somar mais horas do que existem no mes; ver pricing_confirmations.md."
       },
       "snowflake_storage": {
         "model_usd": 1770.82,
-        "official_usd": null
+        "official_usd": 1770.12
       },
       "s3_storage": {
         "model_usd": 19132.91,
-        "official_usd": null
+        "official_usd": 18032.38,
+        "note": "Divergencia de 5.75% explicada pelo tiering de preco do S3 Standard acima de 50 TB (first 50TB US$0.023, next 450TB US$0.022, acima de 500TB US$0.021 por GB-mes) que a calculadora oficial aplica e o modelo nao (o modelo usa preco fixo do primeiro tier). Ver pricing_confirmations.md."
       },
       "s3_requests": {
         "model_usd": 2.07,
-        "official_usd": null
+        "official_usd": 2.07
       },
       "catalog": {
         "model_usd": 5.0,
-        "official_usd": null
+        "official_usd": 0.0
       },
       "maintenance": {
         "model_usd": 2392.18,
         "official_usd": null
       }
     },
-    "source_and_date": ""
+    "source_and_date": "AWS Pricing Calculator + Databricks Pricing Calculator (databricks.com/product/pricing/product-pricing/instance-types) + Snowflake Pricing Calculator, preenchido em 2026-09-27. AWS Glue: 42 DPUs (21 nos x 2 DPU do m5.2xlarge), 3703 min/mes. S3: 831865.7 GB-mes, 361384 PUT, 661504 GET. Databricks: Lakeflow Jobs Classic Photon, instancia m5d.2xlarge (3.973 DBU/h -- a familia real usada pela calculadora tem SSD local, 'd', enquanto o motor assume m5.2xlarge puro com 4.0 DBU/h; diferenca de 0.7% explica o gap em cada estagio) para bronze (17 instancias, 1.366h/dia, 30 dias -> 697h, 2767.83 DBU, US$415.17), silver (identico) e gold (17 instancias, 1.135h/dia, 30 dias -> 579h, 2299.77 DBU, US$344.97); EC2 dos mesmos nos via AWS Calculator (3 instancias m5.2xlarge on-demand, 657.539 horas/mes cada = 1972.617 node-horas totais). Snowflake: Standard Warehouse Gen 1, DW Load em L (19.32h/mes) e storage 76.99 TB alcancaveis; Serving em L nao alcancavel (ver nota na linha snowflake_compute). Total oficial nao calculado (official_total_usd fica null) porque a linha de maior peso (Serving, ~36% do custo do workload) nao pode ser reproduzida numa calculadora oficial com um unico warehouse -- exigiria modelar warehouses multi-cluster, fora do escopo desta calibracao manual."
   }
 }

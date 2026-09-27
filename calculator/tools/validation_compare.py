@@ -34,13 +34,16 @@ def main():
         r, L = worksheet(g, s)
         o = official.get(name, {})
         print(f"\n== {name}: modelo US$ {r['monthly']:,.2f}")
+        comparable_model_total = 0.0
         for key, val in o.get("lines", {}).items():
             model = round(L[key]["cost"], 2)
             ref = val.get("official_usd")
             if ref is None:
                 pending += 1
-                print(f"  {labels[key]:<58} modelo {model:>10,.2f}   oficial  pendente")
+                note = f"  ({val['note']})" if val.get("note") else ""
+                print(f"  {labels[key]:<58} modelo {model:>10,.2f}   oficial  pendente{note}")
                 continue
+            comparable_model_total += model
             e = err_pct(model, ref)
             rows.append((name, labels[key], model, ref, e))
             err_txt = "N/A (oficial=0, ex.: free tier)" if e != e else f"{e:5.1f}%"
@@ -50,9 +53,13 @@ def main():
             pending += 1
             print("  TOTAL: oficial pendente")
         else:
-            e = err_pct(r["monthly"], ref)
-            rows.append((name, "TOTAL", r["monthly"], ref, e))
-            print(f"  TOTAL modelo {r['monthly']:,.2f}  oficial {ref:,.2f}  erro {e:.1f}%")
+            # Compara o total oficial só com a soma das linhas do modelo que têm equivalente oficial
+            # (exclui linhas "pendente", como manutenção, que nenhuma calculadora oficial modela).
+            e = err_pct(comparable_model_total, ref)
+            rows.append((name, "TOTAL (linhas comparáveis)", comparable_model_total, ref, e))
+            print(f"  TOTAL (linhas comparáveis) modelo {comparable_model_total:,.2f}  oficial {ref:,.2f}  erro {e:.1f}%")
+            if abs(comparable_model_total - r["monthly"]) > 0.01:
+                print(f"  (memo: custo total do modelo p/ este workload, incl. linhas sem equivalente oficial: {r['monthly']:,.2f})")
     if rows:
         errs = [x[4] for x in rows if x[4] == x[4]]
         print(f"\nErro médio absoluto: {sum(errs) / len(errs):.1f}%  ({len(errs)} comparações, {pending} pendentes)")
