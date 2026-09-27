@@ -62,6 +62,15 @@ Tudo o que foi entregue desde a v0.2 (protótipo em JS puro), na ordem em que en
 - **Kit de calibração testado de verdade:** `calibration/local_dryrun.py` roda `gen_data.py` e `etl_benchmark.py` com PySpark local (Java 17 + winutils, sem custo de nuvem) para pegar erro de lógica antes de rodar no Glue real; `tests/test_calibration_scripts_local.py` automatiza isso e pula sozinho em máquinas sem os pré-requisitos. Não substitui a medição real (throughput local ≠ throughput de worker Glue/EMR/Databricks).
 - 99 testes no total.
 
+### 9. Validação completa dos três workloads nas calculadoras oficiais
+- **Pequeno:** validado por completo contra a AWS Pricing Calculator. Erro total de **0,1%** (US$ 55,10 do modelo vs. US$ 55,05 oficial). Única divergência: o Glue Data Catalog, dentro do free tier da AWS.
+- **Médio:** validado por completo (linhas comparáveis) contra AWS + Snowflake Pricing Calculator. Erro do total comparável: **0,1%** (US$ 2.396,45 vs. US$ 2.394,14, excluindo manutenção de tabela, sem equivalente oficial).
+- **Grande:** 7 de 9 linhas validadas (AWS + Databricks + Snowflake Pricing Calculators), erro entre 0% e 0,7%. Duas ficaram sem total oficial fechado por razões estruturais, documentadas em `validation/pricing_confirmations.md`:
+  - **Achado — limite físico de warehouse:** a linha de Serving implica um warehouse Snowflake ativo por 928,9h/mês, acima do máximo físico de 729,6h/mês (24h × 30,4 dias) para um cluster único; a própria calculadora da Snowflake rejeita a entrada. Causa: a heurística de idle-time do motor (cauda de auto-suspend por sessão de 20 consultas) soma mais horas do que existem no mês para volumes de consulta muito altos. Documentado como limitação — resolver exigiria modelar warehouses multi-cluster.
+  - **Achado — S3 tem preço em camadas acima de 50 TB:** a AWS cobra US$ 0,023/GB até 50 TB, US$ 0,022/GB até 500 TB e US$ 0,021/GB acima disso; o motor usa um preço único. Para os 812 TB do workload grande, isso explica os 5,75% de diferença (o modelo sobrestima, viés conservador). Conferido matematicamente (diferença de US$ 0,04 contra a calculadora).
+- **Preços unitários confirmados:** Snowflake (US$ 2,00/crédito Standard, US$ 23,00/TB-mês, e a distinção Gen 1 × Gen 2 de warehouse — o motor usa Gen 1) e Databricks (US$ 0,15/DBU com ou sem Photon; ~4,0 DBU/h para 2xlarge+Photon, confirmado a 0,7%).
+- Corrige `tools/validation_compare.py`: a métrica de erro do total agora soma só as linhas com equivalente oficial, em vez de comparar o total cheio do modelo (que inclui manutenção, sem equivalente) contra o total oficial parcial — o erro do médio caiu de 13,8% (enganoso) para 0,1% (real).
+
 ## Como reproduzir
 
 ```bash
