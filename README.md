@@ -70,7 +70,8 @@ O throughput das engines ainda é premissa; para medi-lo veja [calculator/calibr
 - [x] Go/No-Go de orçamento e novo front
 - [x] Variante Azure e Glue 6.0+
 - [x] Kit de validação e de calibração
-- [ ] Preencher a validação contra as calculadoras oficiais
+- [x] Validar o workload pequeno contra a AWS Pricing Calculator (erro de 0,1%) e confirmar preços unitários Snowflake/Databricks
+- [ ] Validar médio e grande por completo (falta somar Snowflake/Databricks manualmente)
 - [ ] Calibrar throughput com execuções medidas
 - [ ] Publicar no GitHub Pages
 - [ ] Texto do TCC (metodologia, resultados, limitações)

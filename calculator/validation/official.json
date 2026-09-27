@@ -1,30 +1,30 @@
 {
   "small": {
     "model_total_usd": 55.1,
-    "official_total_usd": null,
+    "official_total_usd": 55.05,
     "lines": {
       "glue": {
         "model_usd": 33.54,
-        "official_usd": null
+        "official_usd": 33.53
       },
       "s3_storage": {
         "model_usd": 14.08,
-        "official_usd": null
+        "official_usd": 14.08
       },
       "s3_requests": {
         "model_usd": 0.01,
-        "official_usd": null
+        "official_usd": 0.01
       },
       "athena": {
         "model_usd": 7.42,
-        "official_usd": null
+        "official_usd": 7.43
       },
       "catalog": {
         "model_usd": 0.05,
-        "official_usd": null
+        "official_usd": 0.0
       }
     },
-    "source_and_date": ""
+    "source_and_date": "AWS Pricing Calculator (calculator.aws), regiao Leste dos EUA (N. da Virginia) = us-east-1, preenchido manualmente em 2026-09-27 com as quantidades de validation/worksheet.md: AWS Glue ETL (2 DPUs, 2286 min/mes -> 76.2 DPU-h), S3 Standard (612 GB-mes; 1739 PUT+COPY+POST+LIST; 3344 GET+SELECT), Amazon Athena (50 consultas/dia, 1 GB verificado/consulta). O AWS Glue Data Catalog nao foi adicionado a estimativa (5.000 objetos fica dentro do free tier de 1.000.000 objetos-mes da AWS; official_usd=0.00 e a leitura desse free tier, nao um valor medido). Diferenca total: 0.09% (0.05 USD), integralmente explicada pelo free tier do catalogo que o modelo nao aplica."
   },
   "medium": {
     "model_total_usd": 2725.12,
