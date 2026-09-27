@@ -43,7 +43,8 @@ def main():
                 continue
             e = err_pct(model, ref)
             rows.append((name, labels[key], model, ref, e))
-            print(f"  {labels[key]:<58} modelo {model:>10,.2f}   oficial {ref:>10,.2f}   erro {e:5.1f}%")
+            err_txt = "N/A (oficial=0, ex.: free tier)" if e != e else f"{e:5.1f}%"
+            print(f"  {labels[key]:<58} modelo {model:>10,.2f}   oficial {ref:>10,.2f}   erro {err_txt}")
         ref = o.get("official_total_usd")
         if ref is None:
             pending += 1
