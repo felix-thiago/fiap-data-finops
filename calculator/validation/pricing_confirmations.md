@@ -74,11 +74,16 @@ Provider AWS, região US East (Northern Virginia), edição Standard:
 |---|---:|---:|---|
 | Preço do crédito (Standard) | US$ 2,00 | **US$ 2,00**/crédito | confirmado exato |
 | Storage (capacity) | US$ 23,00/TB-mês | **US$ 23,00**/TB-mês | confirmado exato |
-| Warehouse XS/S/M/L | 1/2/4/8 créditos/h | **1/2/4/8** (Standard Warehouse **Gen 1**) | confirmado |
+| Warehouse X-Small | 1 crédito/h | **1 crédito/h** (Standard Warehouse **Gen 1**) | confirmado |
+| Warehouse Small | 2 créditos/h | **2 créditos/h** (Gen 1) | confirmado |
+| Warehouse Medium | 4 créditos/h | **4 créditos/h** (Gen 1) | confirmado |
+| Warehouse Large | 8 créditos/h | **8 créditos/h** (Gen 1) | confirmado |
 
-A calculadora também oferece **Gen 2** (1,35/2,7/5,4/10,8..., ~35% mais créditos no mesmo
-tamanho, com melhor performance) — o motor usa Gen 1. Isso deve constar como premissa
-explícita no TCC.
+**Achado relevante:** a calculadora oferece dois esquemas de warehouse — **Gen 1** (1/2/4/8/16...
+créditos por XS/S/M/L/XL, o esquema clássico, que é o que nosso motor usa) e **Gen 2**
+(1,35/2,7/5,4/10,8..., ~35% mais créditos no mesmo tamanho, com melhor performance). Isso deve
+constar explicitamente nas premissas do TCC: **o modelo usa preços de Standard Warehouse Gen 1**,
+e migrar para Gen 2 custaria ~35% mais créditos por hora nas mesmas configurações.
 
 ### Databricks — [pricing calculator](https://www.databricks.com/product/pricing/product-pricing/instance-types)
 
@@ -88,7 +93,7 @@ Plano Premium, AWS:
 |---|---:|---:|---|
 | Jobs Compute (sem Photon) | US$ 0,15/DBU | **Lakeflow Jobs Classic — US$ 0,15/DBU** | confirmado exato |
 | Jobs Compute + Photon | US$ 0,15/DBU | **Lakeflow Jobs Classic Photon — US$ 0,15/DBU** | confirmado exato |
-| DBU/hora, xlarge + Photon | 2,0 DBU/h | **m5d.xlarge (Photon): 2,0001 DBU/h** | confirmado |
+| DBU/hora, xlarge + Photon | 2,0 DBU/h | **m5d.xlarge (Photon): 2,0001 DBU/h** | confirmado (dif. de 0,005%) |
 | DBU/hora, 2xlarge + Photon | 4,0 DBU/h | **m5d.2xlarge (Photon): 3,973 DBU/h** | diferença de 0,7% |
 
 O preço por DBU não muda com Photon — o que muda é o consumo de DBU/hora (o multiplicador

@@ -88,7 +88,7 @@ python calculator/calibration/local_dryrun.py           # valida os scripts de c
 ```
 
 ## Próximos passos
-1. Preencher `validation/official.json` com os totais das calculadoras oficiais (AWS, Snowflake, Databricks) e rodar a comparação.
+1. Validar médio e grande contra as calculadoras oficiais (a AWS já está confirmada para o pequeno; falta somar Snowflake/Databricks manualmente, calculadora por calculadora — ver `validation/pricing_confirmations.md`).
 2. Calibrar o throughput das engines com execuções medidas (começando pelo Glue), seguindo `calibration/README.md`.
 3. Publicar o app no GitHub Pages para a demonstração da banca.
 4. Redigir o texto do TCC: metodologia, resultados (erro de estimativa), discussão e limitações.
