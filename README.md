@@ -26,7 +26,7 @@ Preços vêm de **APIs públicas** (AWS Price List e Azure Retail Prices) e o c�
 
 ## Como rodar
 
-**Só usar o app** — abra `calculator/index.html` no navegador (arquivo único, sem servidor).
+**Só usar o app** — abra `calculator/index.html` (visão técnica) ou `calculator/executive.html` (painel gerencial CFO/Board) no navegador; são arquivos únicos, sem servidor, e um link no topo alterna entre os dois.
 
 **App com atualização de preços** — `python calculator/tools/serve.py` abre o app em `http://127.0.0.1:8765` e habilita o botão *Atualizar preços* (roda o coletor de AWS, Azure e câmbio e recalcula a tela).
 
@@ -35,7 +35,7 @@ Preços vêm de **APIs públicas** (AWS Price List e Azure Retail Prices) e o c�
 ```bash
 pip install requests ijson pyarrow duckdb pytest
 python calculator/tools/fetch_pricing.py    # atualiza os preços (AWS + Azure)
-python calculator/build.py                  # regera calculator/index.html
+python calculator/build.py                  # regera calculator/index.html e calculator/executive.html
 python -m pytest calculator/tests           # 99 testes: paridade JS x Python, preços, validação, UI, calibração
 ```
 
@@ -43,8 +43,9 @@ python -m pytest calculator/tests           # 99 testes: paridade JS x Python, p
 
 ```
 calculator/
-  index.html            app final (gerado por build.py)
-  src/                  front + motor em JS (engine.js, app.js, shell.html, pricing.js)
+  index.html            app técnico (gerado por build.py)
+  executive.html        painel gerencial CFO/Board (gerado por build.py; mesmo motor e preços do index.html)
+  src/                  front + motor em JS (engine.js, pricing.js, workload_default.js, app.js, executive.js, shell.html, executive_shell.html)
   engine/               motor de cálculo em Python (referência), com paridade testada contra o JS
   tools/                coleta de preços, build de golden, planilha e comparação de validação, calibração
   tests/                testes (golden.json vem do engine.js)
