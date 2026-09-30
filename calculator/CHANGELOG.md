@@ -71,13 +71,19 @@ Tudo o que foi entregue desde a v0.2 (protótipo em JS puro), na ordem em que en
 - **Preços unitários confirmados:** Snowflake (US$ 2,00/crédito Standard, US$ 23,00/TB-mês, e a distinção Gen 1 × Gen 2 de warehouse — o motor usa Gen 1) e Databricks (US$ 0,15/DBU com ou sem Photon; ~4,0 DBU/h para 2xlarge+Photon, confirmado a 0,7%).
 - Corrige `tools/validation_compare.py`: a métrica de erro do total agora soma só as linhas com equivalente oficial, em vez de comparar o total cheio do modelo (que inclui manutenção, sem equivalente) contra o total oficial parcial — o erro do médio caiu de 13,8% (enganoso) para 0,1% (real).
 
+### 10. Painel gerencial (executive.html) ligado ao motor real
+- Um colega publicou `calculator/executive.html`, um painel CFO/Board com sliders de volume/crescimento/retenção. Tinha dois problemas: (1) um bug visível — o cifrão aparecia como `R\(`/`\)` em vez de `R$`/`$` — e (2) uma tabela de preços própria, com coeficientes por GB inventados e um câmbio fixo (5,00) diferente do câmbio real do projeto (5,18), produzindo números que não têm relação com o motor validado (chegava a mostrar ROI de 441%/ano e payback de 0,7 meses).
+- Corrigido o bug de cifrão e **removida a tabela de preços paralela**. `executive.html` agora é gerado por `build.py` a partir de `src/executive_shell.html` + `src/executive.js`, reaproveitando exatamente `engine.js`/`pricing.js` (mesmo `calcPipeline`, `VARIANTS`, `price()`, `FX`) e o workload padrão, agora extraído para `src/workload_default.js` e compartilhado com `app.js` (uma só fonte de verdade para as duas telas).
+- Arquitetura "legada" e "otimizada" do painel usam variantes reais e já testadas do catálogo (`VARIANTS.asis`, `VARIANTS.dbx`, `VARIANTS.lake`, mais uma composição com o engine `databricks` sem Photon) em vez de fórmulas ad hoc; o ROI/payback fabricado foi substituído por unit economics (`unit.perTB`), faixa de confiança (`range`/`confidence`) e o gate real de **Go/No-Go de orçamento** (`budgetGate`), agora com um slider de orçamento mensal alvo. A projeção de 5 anos passou a somar mês a mês o mesmo crescimento composto, em vez de multiplicar o ano 1 por fatores fixos.
+- 99 testes continuam passando; nenhuma mudança na paridade JS×Python (só a camada de apresentação foi alterada).
+
 ## Como reproduzir
 
 ```bash
 pip install requests ijson pyarrow duckdb pytest
 python calculator/tools/fetch_pricing.py     # preços AWS + Azure + câmbio + curados
 python calculator/tools/serve.py             # app local com o botão "Atualizar preços"
-python calculator/build.py                   # gera index.html
+python calculator/build.py                   # gera index.html e executive.html
 python -m pytest calculator/tests            # paridade JS x Python, preços, validação e calibração
 node calculator/tools/gen_golden.js          # regenera tests/golden.json a partir do JS
 python calculator/tools/validation_worksheet.py   # planilha de conferência (validation/worksheet.md)

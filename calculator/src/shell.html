@@ -17,11 +17,31 @@ body{margin:0;background:var(--bg);color:var(--ink);
 h1,h2,h3{margin:0;font-weight:640;letter-spacing:-0.01em}
 code{font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;background:#eef0f5;padding:1px 4px;border-radius:4px}
 
-/* header */
+/* nav — barra de marca e alternância entre telas (igual à visão gerencial) */
+.topnav{position:sticky;top:0;z-index:30;background:rgba(16,20,35,.92);backdrop-filter:blur(6px);
+  border-bottom:1px solid #232945}
+.topnav-inner{max-width:1240px;margin:0 auto;padding:10px 22px;min-height:60px;display:flex;align-items:center;
+  justify-content:space-between;gap:14px;flex-wrap:wrap}
+.brand2{display:flex;align-items:center;gap:11px}
+.brand-logo{background:var(--accent);color:#fff;font-weight:800;font-size:15px;width:34px;height:34px;
+  border-radius:9px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.brand-name{font-weight:780;color:#fff;font-size:16px;letter-spacing:-0.01em}
+.brand-name .accent{color:#8fa0ff}
+.brand-badge{display:inline-block;margin-left:9px;font-size:10.5px;color:#9aa3bd;background:#1c2236;
+  border:1px solid #2c3450;border-radius:6px;padding:2px 7px}
+.view-switch{display:flex;align-items:center;gap:4px;background:#101423;border:1px solid #232945;
+  border-radius:11px;padding:4px}
+.view-btn{display:flex;align-items:center;gap:7px;padding:7px 13px;border-radius:8px;font-size:12px;
+  font-weight:650;color:#9aa3bd;text-decoration:none;white-space:nowrap}
+.view-btn:hover{color:#fff;background:#1c2236}
+.view-btn.on{background:var(--accent);color:#fff;box-shadow:0 2px 10px rgba(79,107,237,.35)}
+.view-btn svg{width:14px;height:14px;flex:0 0 auto}
+@media (max-width:760px){.brand-badge{display:none}.view-btn span{display:none}.view-btn{padding:7px 9px}}
+
+/* header (controles da tela) */
 header{display:flex;align-items:center;gap:18px;flex-wrap:wrap;
   padding:14px 22px;background:#101423;color:#fff;}
-header .brand h1{font-size:16px}
-header .brand p{margin:2px 0 0;font-size:11.5px;color:#9aa3bd;letter-spacing:.04em;text-transform:uppercase}
+header .brand p{margin:0;font-size:11.5px;color:#9aa3bd;letter-spacing:.04em;text-transform:uppercase}
 header .sp{flex:1}
 header label{font-size:11.5px;color:#9aa3bd;display:block;margin-bottom:3px;letter-spacing:.03em;text-transform:uppercase}
 header select{background:#1c2236;color:#fff;border:1px solid #2c3450;border-radius:7px;padding:6px 9px;font-size:13px}
@@ -34,7 +54,7 @@ header .adv input{width:16px;height:16px;accent-color:var(--c-amber)}
 main{max-width:1240px;margin:0 auto;padding:0 22px 72px}
 
 /* barra de resumo fixa */
-.summary{position:sticky;top:0;z-index:20;background:linear-gradient(var(--bg) 82%,rgba(246,247,249,0));padding:16px 0 10px}
+.summary{position:sticky;top:60px;z-index:20;background:linear-gradient(var(--bg) 82%,rgba(246,247,249,0));padding:16px 0 10px}
 .sgrid{display:grid;grid-template-columns:1.5fr 1fr 1.2fr 1fr;gap:12px}
 .scard{border-radius:14px;padding:14px 18px;color:#fff;display:flex;flex-direction:column;gap:2px;box-shadow:0 2px 10px rgba(20,22,26,.10)}
 .scard .sl{font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;opacity:.85}
@@ -263,9 +283,29 @@ tr.hl{background:#f4f6fd}
 </style>
 </head>
 <body>
+<nav class="topnav">
+  <div class="topnav-inner">
+    <div class="brand2">
+      <div class="brand-logo">DC</div>
+      <div>
+        <span class="brand-name">DataCost <span class="accent">Architect</span></span>
+        <span class="brand-badge">Visão Técnica · Engine</span>
+      </div>
+    </div>
+    <div class="view-switch">
+      <a class="view-btn on" href="index.html">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+        <span>Visão Técnica (Engine)</span>
+      </a>
+      <a class="view-btn" href="executive.html">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+        <span>Visão Gerencial (CFO/Board)</span>
+      </a>
+    </div>
+  </div>
+</nav>
 <header>
   <div class="brand">
-    <h1>DataCost Architect</h1>
     <p>FinOps Data Architecture Simulator · MVP mock v0.3 · pipeline por estágios · Go/No-Go</p>
   </div>
   <div class="sp"></div>
@@ -305,6 +345,9 @@ tr.hl{background:#f4f6fd}
 </script>
 <script>
 /*__ENGINE__*/
+</script>
+<script>
+/*__WORKLOAD__*/
 </script>
 <script>
 /*__APP__*/
