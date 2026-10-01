@@ -1658,7 +1658,8 @@ const STAGE_DEFAULTS = () => ([
     $('retentionDisplay').innerText = retentionMonths + ' Meses';
 
     const toDisp = v => v * FX[currency];
-    const fmt = v => (currency === 'BRL' ? 'R$ ' : '$ ') + toDisp(v).toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+    const CURRENCY_SYMBOL = { BRL: 'R$ ', USD: '$ ', EUR: '€ ' };
+    const fmt = v => (CURRENCY_SYMBOL[currency] || '$ ') + toDisp(v).toLocaleString('pt-BR', { maximumFractionDigits: 0 });
     $('budgetDisplay').innerText = fmt(budgetUSD);
 
     const MONTHS = 60; // 5 anos, para a projeção de longo prazo
