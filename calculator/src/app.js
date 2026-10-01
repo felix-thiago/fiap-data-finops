@@ -801,8 +801,9 @@ function viewAssumptions() {
 
   const l=el('div','card'); l.appendChild(el('h3',null,'Limitações declaradas'));
   const ll=el('ul','list');
-  ['Preço de lista, sem Savings Plans, Reserved Capacity ou acordo empresarial.',
+  ['Preço de lista, sem Savings Plans, Reserved Capacity ou acordo empresarial — simule o efeito em "Negociação e Savings Plans" abaixo.',
    'Região única (us-east-1); preços variam por região.',
+   'Transferência entre serviços/regiões/nuvens (ex.: S3 → Snowflake) só é cobrada se você preencher "Cross-region transfer" ou "Internet egress" nos parâmetros avançados — ver "Custos invisíveis" abaixo.',
    'Tempo de execução estimado por throughput teórico, não medido.',
    'Concorrência, skew de dados e fila de execução não são modelados.',
    'Snowpipe aproximado por crédito/GB; a cobrança real inclui componente por arquivo.',
@@ -812,6 +813,29 @@ function viewAssumptions() {
    'A ferramenta não substitui as calculadoras oficiais dos provedores nem representa uma fatura real.',
   ].forEach(x=>ll.appendChild(el('li',null,x)));
   l.appendChild(ll); root.appendChild(l);
+
+  const sp=el('div','card'); sp.appendChild(el('h3',null,'Negociação e Savings Plans'));
+  sp.appendChild(el('p',null,'O preço mostrado é de lista (on-demand). Projetos e empresas reais raramente pagam isso: negociam direto com o provedor ou usam planos de compromisso (AWS Savings Plans/Reserved Capacity para EC2, Snowflake Capacity storage/compute, Databricks Commitments) — tipicamente 1 ou 3 anos, com desconto crescente conforme o prazo e o quanto é pago adiantado.'));
+  sp.appendChild(el('p',null,'O campo <b>"Contractual discount"</b> (aba Network &amp; commercial) modela exatamente esse efeito: um desconto percentual único aplicado sobre o custo total de lista, para representar a negociação combinada de todos os serviços do pipeline.'));
+  const spListPrice = r.monthly;
+  const spNegotiated = calcPipeline({ ...G, discountPct: 20 }, STAGES).monthly;
+  const spTable=el('table','cmp');
+  spTable.appendChild(el('tr',null,'<th>Cenário</th><th class="r">Custo mensal</th></tr>'));
+  spTable.appendChild((()=>{ const tr=el('tr'); tr.innerHTML=`<td>Preço de lista (discountPct = 0)</td><td class="r">${money(spListPrice)}</td>`; return tr; })());
+  spTable.appendChild((()=>{ const tr=el('tr'); tr.innerHTML=`<td>Com negociação ilustrativa de 20% (discountPct = 20)</td><td class="r">${money(spNegotiated)}</td>`; return tr; })());
+  sp.appendChild(spTable);
+  sp.appendChild(el('p','note','20% é apenas ilustrativo (ordem de grandeza publicada para Savings Plans/Capacity de 1 ano) — não foi confirmado nas calculadoras oficiais por serviço e não deve ser citado como um número validado. Para um exame mais preciso, o desconto real varia por serviço: Glue e S3 não têm Savings Plans (só negociação de conta ou Reserved Capacity específica); EC2 (usado em EMR/Databricks) tem Compute Savings Plans; Snowflake e Databricks têm seus próprios programas de compromisso, fora do escopo deste MVP.'));
+  root.appendChild(sp);
+
+  const eg=el('div','card'); eg.appendChild(el('h3',null,'Custos invisíveis: transferência entre serviços/regiões'));
+  eg.appendChild(el('p',null,'Mover dados entre serviços (ex.: S3 → Snowflake via <code>COPY INTO</code>/estágio externo) não é automaticamente cobrado neste modelo — nem deveria ser, na maioria dos casos: quando a conta do Snowflake está na <b>mesma região e nuvem</b> do bucket S3, a AWS normalmente não cobra transferência. O custo aparece quando o destino está em <b>outra região ou outra nuvem</b>.'));
+  const loadRow = r.rows.find(x => x.stage.kind === 'load');
+  const loadMonthlyGB = loadRow ? loadRow.dailyOut * DAYS : 0;
+  const crossRegionCost = loadMonthlyGB * price('AWS','Network','cross-region-out');
+  const internetCost = loadMonthlyGB * price('AWS','Network','internet-out');
+  eg.appendChild(el('p',null,`Este pipeline carrega <b>${loadMonthlyGB.toLocaleString('en-US',{maximumFractionDigits:0})} GB/mês</b> no estágio de carga do warehouse. Se o Snowflake estivesse numa região AWS diferente da do S3, isso custaria aproximadamente <b>${money(crossRegionCost,2)}/mês</b> (US$ 0,02/GB, cross-region); se estivesse fora da AWS (outra nuvem) ou saindo para a internet, aproximadamente <b>${money(internetCost,2)}/mês</b> (US$ 0,09/GB, internet egress) — hoje US$ 0,00 porque assumimos mesma região/nuvem.`));
+  eg.appendChild(el('p','note','Para modelar esse custo quando ele existir de fato, preencha "Cross-region transfer" ou "Internet egress" (aba Network & commercial) com o volume mensal correspondente — o cálculo acima usa exatamente esses dois SKUs.'));
+  root.appendChild(eg);
 
   const z=el('div','card'); z.appendChild(el('h3',null,'Por que o custo nunca chega a zero'));
   z.appendChild(el('p',null,'Isto não é um bug: provedores cobram um <b>mínimo por execução</b> mesmo que o volume processado seja pequeno ou nulo.'));
@@ -828,6 +852,20 @@ function viewAssumptions() {
   s.appendChild(el('p',null,`Score atual: <b>${r.confidence}%</b> — faixa ${money(r.range.low,0)} a ${money(r.range.high,0)}.`));
   s.appendChild(el('p','note','Base 50, +2,5 por parâmetro avançado informado, +2 por estágio modelado (até 12), −8 quando há framework próprio com throughput estimado, penalidades para alta taxa de falha e CDC. Teto de 92%.'));
   root.appendChild(s);
+
+  const ue=el('div','card'); ue.appendChild(el('h3',null,'Unit economics: quando um dado "se paga"?'));
+  ue.appendChild(el('p',null,'O framework FinOps Foundation (capacidade <i>Unit Economics</i>, fase Inform) recomenda medir custo por unidade de negócio, não só o total mensal — é o que a aba <b>Result</b> já calcula: custo por TB processado, por GB ingerido, por GB armazenado, por milhão de registros e por consulta. Este MVP calcula apenas o lado do <b>custo</b> dessa equação; o lado do <b>valor</b> (receita atribuída, decisão habilitada, risco evitado) é específico de cada negócio e fica fora do escopo da ferramenta.'));
+  const ueTable=el('table','cmp');
+  ueTable.appendChild(el('tr',null,'<th>Métrica de custo (calculada)</th><th class="r">Valor atual</th></tr>'));
+  [['Custo por TB processado', money(r.unit.perTB,2)+'/TB'],
+   ['Custo por GB ingerido', money(r.unit.perGBIngested,4)+'/GB'],
+   ['Custo por milhão de registros', r.unit.perMillionRec>0 ? money(r.unit.perMillionRec,2)+'/milhão' : 'n/d (Records per day não informado)'],
+   ['Custo por consulta', r.unit.perQuery>0 ? money(r.unit.perQuery,4)+'/consulta' : 'n/d (Queries per day não informado)'],
+  ].forEach(([k,v])=>{ const tr=el('tr'); tr.innerHTML=`<td>${k}</td><td class="r">${v}</td>`; ueTable.appendChild(tr); });
+  ue.appendChild(ueTable);
+  ue.appendChild(el('p',null,'Na prática, a liderança decide se um dado "se paga" comparando essa métrica de custo com uma estimativa (feita fora desta ferramenta) do valor que ele habilita — por exemplo: <i>"este dado alimenta N decisões/relatórios por mês, cada um estimado em R$X de impacto; o custo por milhão de registros é R$Y; enquanto valor-por-decisão ÷ registros-por-decisão &gt; custo-por-registro, o dado se paga"</i>. Quando uma tabela tem consumo raro ou nenhum consumidor identificado (baixo <code>queriesPerDay</code> atribuível a ela) mas continua gerando storage/manutenção todo mês, essa é justamente a candidata a arquivamento ou remoção — o Go/No-Go e as Optimizations desta ferramenta mostram o custo; a decisão de valor é do time de dados/negócio.'));
+  root.appendChild(ue);
+
   return root;
 }
 
