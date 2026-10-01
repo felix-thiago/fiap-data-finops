@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""
-DataCost Architect — coleta de preços em APIs públicas (sem credencial)
-========================================================================
+"""Coleta de preços nas APIs públicas, sem precisar de credencial.
 
-AWS    → bulk offer files por região (pricing.us-east-1.amazonaws.com).
-         Os filtros são os mesmos de AWS_TARGETS (fetch_pricing.py), aplicados
-         localmente. O arquivo do EC2 tem ~450 MB: é baixado uma vez para
-         `.cache/` e lido em streaming (ijson).
-Azure  → Azure Retail Prices API (prices.azure.com), com retry/backoff em 429.
+Pra AWS, usamos os bulk offer files por região (pricing.us-east-1.amazonaws.com)
+e aplicamos localmente os mesmos filtros de AWS_TARGETS (em fetch_pricing.py).
+O arquivo do EC2 é grande (~450 MB), então baixamos uma vez pra `.cache/` e lemos
+em streaming com ijson em vez de carregar tudo na memória.
 
-Saída: registros no mesmo schema de fetch_pricing.py, com method="api".
+Pra Azure é a Retail Prices API (prices.azure.com), com retry/backoff quando
+toma 429.
+
+A saída segue o mesmo schema de fetch_pricing.py, sempre com method="api".
 """
 
 from __future__ import annotations
@@ -64,9 +64,7 @@ def _rec(provider, service, region, sku, metric, unit, price, source, valid_from
     }
 
 
-# ---------------------------------------------------------------------------
-# AWS
-# ---------------------------------------------------------------------------
+# --- AWS ---
 def _download(url: str, dest: pathlib.Path) -> pathlib.Path:
     if dest.exists() and dest.stat().st_size > 0:
         return dest
@@ -149,9 +147,7 @@ def fetch_aws_bulk(region: str, targets: list[tuple], today: str, verbose=True) 
     return out
 
 
-# ---------------------------------------------------------------------------
-# Azure
-# ---------------------------------------------------------------------------
+# --- Azure ---
 def _azure_query(flt: str, region: str) -> list[dict]:
     params = {"currencyCode": "USD", "$filter": f"armRegionName eq '{region}' and {flt}"}
     for attempt in range(8):
@@ -185,9 +181,7 @@ def fetch_azure(region: str, today: str, verbose=True) -> list[dict]:
     return out
 
 
-# ---------------------------------------------------------------------------
-# Câmbio (apenas camada de apresentação)
-# ---------------------------------------------------------------------------
+# --- câmbio (só camada de apresentação) ---
 FX_URL = "https://api.frankfurter.app/latest"
 
 

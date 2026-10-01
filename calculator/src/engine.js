@@ -1,36 +1,24 @@
-/* =====================================================================
-   DataCost Architect — Calculation / Recommendation / Optimization Engine
-   v0.2 — modelo por ESTÁGIOS
-   ---------------------------------------------------------------------
-   Mudanças em relação à v0.1:
-   · O pipeline deixou de ser uma etapa única e passou a ser uma lista de
-     estágios encadeados (Ingestion → Bronze → Silver → Gold → DW Load →
-     Serving). Cada estágio tem engine, tamanho, SCHEDULE PRÓPRIO, formato
-     de arquivo, formato de tabela e retenção.
-   · File format e table format são dimensões separadas (Iceberg/Delta/Hudi
-     sobre Parquet/ORC/Avro), com custo de metadados, snapshots e manutenção.
-   · Catálogo aberto de frameworks de ingestão (Glue, EMR/PySpark, Sqoop,
-     DMS, Databricks, Snowpipe, framework próprio parametrizável).
-   · Varredura de schedule: quanto custa passar de 1x/dia para 1h, 30min…
-   Depende de pricing.js (PRICING, price(), FX).
-   ===================================================================== */
+// motor de cálculo / recomendação / otimização do DataCost Architect
+//
+// v0.2 trocou o modelo de "uma etapa só" pra um pipeline de estágios encadeados
+// (ingestion -> bronze -> silver -> gold -> dw load -> serving), cada um com seu
+// próprio engine, tamanho, schedule, formato de arquivo/tabela e retenção. file
+// format e table format viraram dimensões separadas (iceberg/delta/hudi em cima
+// de parquet/orc/avro), com custo de metadados, snapshot e manutenção entrando
+// na conta. o catálogo de frameworks de ingestão também ficou mais aberto (glue,
+// emr/pyspark, sqoop, dms, databricks, snowpipe, framework próprio parametrizável),
+// e agora dá pra varrer o schedule pra ver quanto custa passar de 1x/dia pra 1h, 30min...
+//
+// depende do pricing.js (PRICING, price(), FX)
 
 const DAYS = 30.4;
 
-/* ------------------------------------------------------------------ */
-/* 1. CATÁLOGO DE ENGINES                                              */
-/* ------------------------------------------------------------------ */
-/* kind define o modelo de cobrança:
-     glue        → DPU-hora
-     ec2         → EC2 on-demand (+ uplift EMR quando emr:true)
-     dbx         → DBU (× multiplicador Photon) + EC2 do nó
-     dbx_sl      → DBU serverless, sem EC2
-     dms         → instância ligada 24×7
-     snowflake   → créditos de virtual warehouse
-     snowpipe    → créditos serverless por GB carregado
-     athena      → TB escaneados
-     dbsql       → DBU de SQL warehouse serverless
-     custom      → throughput e custo por nó-hora informados pelo usuário  */
+// catálogo de engines — "kind" é quem decide o modelo de cobrança: glue (DPU-hora),
+// ec2 (on-demand + uplift do EMR quando emr:true), dbx (DBU vezes o multiplicador
+// do Photon, mais o EC2 do nó), dbx_sl (DBU serverless, sem EC2), dms (instância
+// ligada 24x7), snowflake (créditos de virtual warehouse), snowpipe (créditos
+// serverless por GB carregado), athena (TB escaneado), dbsql (DBU de SQL warehouse
+// serverless) e custom (throughput e custo por nó-hora que o próprio usuário informa)
 const ENGINES = {
   glue:            { label:'AWS Glue (PySpark)',            kind:'glue', gbPerNodeMin:0.45, startupMin:1.5, minBillMin:1, complexity:2, roles:['ingest','transform'] },
   glue6:           { label:'AWS Glue 6.0+ (PySpark)',       kind:'glue', sku:'etl-dpu-gen2', gbPerNodeMin:0.45, startupMin:1.5, minBillMin:1, complexity:2, roles:['ingest','transform'] },
@@ -62,9 +50,7 @@ const WH_SIZES = {
   L: { label:'Large',   credits:8, gbPerMin:12.0 },
 };
 
-/* ------------------------------------------------------------------ */
-/* 2. FORMATOS: ARQUIVO × TABELA (dimensões separadas)                 */
-/* ------------------------------------------------------------------ */
+// formatos de arquivo e de tabela — são duas dimensões separadas
 const FILE_FORMATS = {
   'parquet-zstd':  { label:'Parquet + ZSTD',   ratio:0.18, columnar:true },
   'parquet-snappy':{ label:'Parquet + Snappy', ratio:0.25, columnar:true },
@@ -103,9 +89,7 @@ const FREQUENCIES = [
   { runsPerDay:288, label:'A cada 5 min' },
 ];
 
-/* ------------------------------------------------------------------ */
-/* 3. CUSTO DE COMPUTE POR ESTÁGIO                                     */
-/* ------------------------------------------------------------------ */
+// custo de compute, estágio por estágio
 function stageRuntimeMin(st, g, volPerRun) {
   const e = ENGINES[st.engine];
   if (e.kind === 'snowflake') {
@@ -181,9 +165,7 @@ function stageUsage(st, g, volPerRun, runsPerMonth, runtimeMin, retryFactor) {
   return {};
 }
 
-/* ------------------------------------------------------------------ */
-/* 4. MOTOR PRINCIPAL — pipeline por estágios                          */
-/* ------------------------------------------------------------------ */
+// o motor principal: roda o pipeline estágio por estágio
 function calcPipeline(g, stages) {
   const assumptions = [];
   const A = t => { if (!assumptions.includes(t)) assumptions.push(t); };
@@ -199,7 +181,7 @@ function calcPipeline(g, stages) {
     const runsPerDay   = st.runsPerDay;
     const runsPerMonth = runsPerDay * DAYS;
 
-    /* --- volume que ENTRA no estágio --- */
+    // volume que entra no estágio
     if (dailyIn === null) {
       if (g.ingestion === 'full') {
         dailyIn = g.sourceVolumeGB * runsPerDay;
@@ -213,16 +195,16 @@ function calcPipeline(g, stages) {
     }
     const volPerRun = dailyIn / runsPerDay;
 
-    /* --- tempo e compute (o estágio de consumo é cobrado por query, adiante) --- */
+    // tempo e compute (o estágio de consumo é cobrado por query, mais adiante)
     const runtimeMin = st.kind==='serve' ? 0 : stageRuntimeMin(st, g, volPerRun);
     const compute    = st.kind==='serve' ? 0 : stageComputeCost(st, g, volPerRun, runsPerMonth, runtimeMin, retryFactor);
     const usage      = st.kind==='serve' ? {} : stageUsage(st, g, volPerRun, runsPerMonth, runtimeMin, retryFactor);
     let putsN = 0, getsN = 0;
 
-    /* --- volume que SAI --- */
+    // e o que sai
     const dailyOut = dailyIn * st.reduction;
 
-    /* --- storage da camada produzida --- */
+    // storage da camada que esse estágio produziu
     const ff = FILE_FORMATS[st.fileFormat] || FILE_FORMATS['parquet-snappy'];
     const tf = TABLE_FORMATS[st.tableFormat] || TABLE_FORMATS['hive'];
     let storage = 0, requests = 0, maintenance = 0, storedGB = 0, filesPerRun = 0;
@@ -253,7 +235,7 @@ function calcPipeline(g, stages) {
       if (tf.snapshotMult > 1) A(`${tf.label}: storage multiplicado por ${tf.snapshotMult}× devido a snapshots retidos.`);
     }
 
-    /* --- estágio de carga no DW: storage do warehouse --- */
+    // estágio de carga no DW — storage do warehouse
     let whStorage = 0;
     if (st.kind === 'load' && g.dwStorage) {
       const prevOut = dailyOut * (FILE_FORMATS[st.fileFormat]||FILE_FORMATS['parquet-snappy']).ratio;
@@ -261,7 +243,7 @@ function calcPipeline(g, stages) {
       whStorage = (storedGB/1024) * price('Snowflake','Storage', g.snowflakeStorage==='ondemand'?'ondemand-storage':'capacity-storage');
     }
 
-    /* --- estágio de consumo --- */
+    // estágio de consumo (serving)
     let serveCost = 0, serveDetail = '';
     if (st.kind === 'serve') {
       const tfPrev = TABLE_FORMATS[st.tableFormat] || TABLE_FORMATS['hive'];
@@ -302,15 +284,15 @@ function calcPipeline(g, stages) {
     dailyIn = dailyOut;
   }
 
-  /* --- rede --- */
+  // rede
   const network = g.crossRegionGB * price('AWS','Network','cross-region-out')
                 + g.internetGB    * price('AWS','Network','internet-out');
 
-  /* --- catálogo Glue --- */
+  // catálogo do Glue
   const catalog = g.cloud === 'azure' ? 0 : (g.catalogObjects/100000) * price('AWS','Glue','catalog-objects');
   if (g.cloud === 'azure') A('Cloud Azure: storage ADLS Gen2 (Hot/Cool LRS), Databricks Premium (DBU) + VMs Dsv5/Esv5; sem custo de catálogo (Unity Catalog). Snowflake e transferência de dados mantêm os preços de lista da AWS como proxy.');
 
-  /* --- totais --- */
+  // totais
   const disc = 1 - g.discountPct/100;
   const breakdown = { Ingestion:0, Storage:0, Processing:0, Warehouse:0, Maintenance:0, Network:network, Catalog:catalog };
   rows.forEach(r => {
@@ -325,7 +307,7 @@ function calcPipeline(g, stages) {
   const monthly = Object.values(breakdown).reduce((a,b)=>a+b,0);
   if (g.discountPct>0) A(`Desconto contratual de ${g.discountPct}% aplicado sobre o preço de lista.`);
 
-  /* --- tempo, SLA e freshness --- */
+  // tempo, SLA e freshness
   const batchRows = rows.filter(r => r.stage.kind !== 'serve');
   const processingMin = batchRows.reduce((a,r)=>a + r.runtimeMin, 0);
   const latencyMin = g.orchestration === 'independent'
@@ -338,12 +320,12 @@ function calcPipeline(g, stages) {
     ? 'Estágios agendados de forma independente: latência = Σ (intervalo + tempo de execução) de cada estágio.'
     : 'Estágios encadeados numa única DAG: latência = maior intervalo de agendamento + soma dos tempos de execução.');
 
-  /* --- volumes agregados --- */
+  // volumes agregados
   const firstRow = rows[0];
   const monthlyRawGB = firstRow ? firstRow.dailyIn * DAYS : 0;
   const totalStoredGB = rows.reduce((a,r)=>a+r.storedGB,0);
 
-  /* --- confidence --- */
+  // confidence
   let conf = 50;
   const prov = g._provided || {};
   const advKeys = ['retentionDays','targetFileMB','failureRate','retries','crossRegionGB','queriesPerDay',
@@ -356,7 +338,7 @@ function calcPipeline(g, stages) {
   conf = Math.max(35, Math.min(92, Math.round(conf)));
   const spread = (100-conf)/100 * 0.9;
 
-  /* --- unit economics --- */
+  // unit economics
   const tbProcessed = monthlyRawGB/1024;
   const unit = {
     perMonth: monthly, perYear: monthly*12,
@@ -376,9 +358,7 @@ function calcPipeline(g, stages) {
   };
 }
 
-/* ------------------------------------------------------------------ */
-/* 5. VARREDURA DE SCHEDULE                                            */
-/* ------------------------------------------------------------------ */
+// varredura de schedule
 /** Aplica cada frequência do catálogo a todos os estágios (ou só aos
  *  estágios marcados em `scope`) e devolve custo, latência e SLA. */
 function scheduleSweep(g, stages, scope = null) {
@@ -398,9 +378,7 @@ function scheduleSweep(g, stages, scope = null) {
   });
 }
 
-/* ------------------------------------------------------------------ */
-/* 6. VARIANTES DE ARQUITETURA (comparação)                            */
-/* ------------------------------------------------------------------ */
+// variantes de arquitetura, pra comparação
 const swapTransforms = (stages, engine) =>
   stages.map(s => s.kind==='transform' && ENGINES[engine].roles.includes('transform') ? {...s, engine} : s);
 
@@ -471,9 +449,7 @@ function scoreVariants(results, weights) {
   }).sort((a,b)=>b.score-a.score);
 }
 
-/* ------------------------------------------------------------------ */
-/* 7. OTIMIZAÇÕES                                                      */
-/* ------------------------------------------------------------------ */
+// otimizações
 const OPT_RULES = [
   { id:'full-to-incremental', title:'Migrar de Full Load para Incremental',
     why:'O delta diário é uma fração pequena da base; reprocessar tudo a cada execução multiplica compute, escrita e storage.',
@@ -544,9 +520,7 @@ function findOptimizations(g, stages, base) {
   return out.sort((a,b)=>b.saving-a.saving);
 }
 
-/* ------------------------------------------------------------------ */
-/* 8. SENSIBILIDADE E BREAK-EVEN                                       */
-/* ------------------------------------------------------------------ */
+// sensibilidade e break-even
 const SENS_MULTIPLIERS = [0.25, 0.5, 1, 2, 4, 8, 16];
 const scaleG = (g,m) => ({...g,
   sourceVolumeGB:g.sourceVolumeGB*m, dailyDeltaGB:g.dailyDeltaGB*m,
@@ -585,9 +559,7 @@ function breakEven(g, stages, variantIds) {
   return out;
 }
 
-/* ------------------------------------------------------------------ */
-/* 9. GO / NO-GO DE ORÇAMENTO                                          */
-/* ------------------------------------------------------------------ */
+// go / no-go de orçamento
 /** GO: limite superior da faixa cabe no orçamento. REVIEW: o valor central
  *  cabe, mas o limite superior estoura. NO-GO: o valor central já estoura. */
 function budgetGate(monthly, range, budget) {

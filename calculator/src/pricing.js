@@ -1,9 +1,6 @@
-/* =====================================================================
-   DataCost Architect — PRICING DATABASE (gerado)
-   NÃO EDITAR À MÃO. Saída de tools/fetch_pricing.py.
-   method: 'api' = API pública do fornecedor | 'curated' = tabela pública
-           transcrita | 'account' = lido da própria conta.
-   ===================================================================== */
+// base de preços do DataCost Architect — gerado automaticamente, não editar à mão
+// (saída de tools/fetch_pricing.py). method: 'api' = API pública do fornecedor,
+// 'curated' = tabela pública transcrita, 'account' = lido da própria conta.
 const PRICING_META = {
   "generated_at": "2026-09-25",
   "generator": "tools/fetch_pricing.py v0.3",
@@ -536,6 +533,6 @@ const price = (provider, service, sku) => {
   return r.price;
 };
 
-/* Câmbio — camada de apresentação apenas (seção 25 do scopo.md). */
+// câmbio — é só camada de apresentação (ver seção 25 do scopo.md)
 const FX = { USD:1, BRL:5.1808, EUR:0.8797 };
 const FX_META = {"USD": 1.0, "BRL": 5.1808, "EUR": 0.87974, "source": "Frankfurter (taxas de referência do BCE)", "date": "2026-09-24", "method": "api"};

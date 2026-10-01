@@ -36,7 +36,7 @@ class RefreshJob:
         self.error = ""
         self.last_duration = self._read_last_duration()
 
-    # ---- estimativa -------------------------------------------------------
+    # estimativa
     def _last_path(self):
         return self.root / ".cache" / "last_refresh.json"
 
@@ -52,7 +52,7 @@ class RefreshJob:
         cached = (self.root / ".cache" / "AmazonEC2_us-east-1.json").exists()
         return 90 if cached else 240
 
-    # ---- execução ---------------------------------------------------------
+    # execução
     def start(self) -> bool:
         with self.lock:
             if self.state == "running":
@@ -108,7 +108,7 @@ class RefreshJob:
                     except OSError:
                         pass
 
-    # ---- estado -----------------------------------------------------------
+    # estado
     def status(self) -> dict:
         with self.lock:
             now = time.time()

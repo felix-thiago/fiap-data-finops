@@ -1,8 +1,5 @@
-/* =====================================================================
-   DataCost Architect — camada de apresentação (v0.2)
-   ===================================================================== */
-
-/* G_DEFAULTS e STAGE_DEFAULTS agora vêm de workload_default.js (compartilhado com executive.js). */
+// camada de apresentação do DataCost Architect (v0.2)
+// G_DEFAULTS e STAGE_DEFAULTS vêm de workload_default.js, compartilhado com o executive.js
 
 const G_FIELDS = [
   ['name','Workload name','text',null,false],
@@ -44,7 +41,7 @@ const G_GROUPS = [
   { title:'8 · Network & commercial', keys:['crossRegionGB','internetGB','discountPct'] },
 ];
 
-/* ---------- estado ---------- */
+// estado global da tela
 let G = structuredClone(G_DEFAULTS);
 let STAGES = STAGE_DEFAULTS();
 let VARIANT_SEL = ['asis','glue6','dbx','emr','lake','elt','azure'];
@@ -54,7 +51,7 @@ let SHOW_ADV = false;
 let TAB = 'pipeline';
 let SWEEP_SCOPE = 'all';
 
-/* ---------- helpers ---------- */
+// helpers
 const $ = s => document.querySelector(s);
 const el = (t,c,h) => { const e=document.createElement(t); if(c)e.className=c; if(h!=null)e.innerHTML=h; return e; };
 const fx = v => v*FX[CURRENCY];
@@ -68,9 +65,7 @@ const slaCls = s => s==='PASS'?'ok':s==='PARTIAL'?'warn':'bad';
 
 const base = () => calcPipeline(G, STAGES);
 
-/* ==================================================================== */
-/* WORKLOAD (painel central)                                            */
-/* ==================================================================== */
+// workload — o painel central
 function workloadPanel() {
   const root = el('div');
   root.appendChild(el('div','wl-head','<h2>Workload</h2>'));
@@ -105,9 +100,7 @@ function gField(def) {
   return w;
 }
 
-/* ==================================================================== */
-/* AJUDA: descrição de camadas, campos e opções                         */
-/* ==================================================================== */
+// textos de ajuda: descrição de camadas, campos e opções
 const STAGE_INFO = {
   raw:    'Camada de aterrissagem: cópia fiel da fonte, sem transformação. Preserva o dado original para reprocessamento e auditoria.',
   bronze: 'Dado bruto já tipado e gravado em formato de tabela (Iceberg/Delta/Hudi). Padroniza schema e tipos e adiciona metadados de carga; ainda sem regra de negócio.',
@@ -195,9 +188,7 @@ const helpFor = (key) => {
 };
 const optHelp = (key, value) => (OPTION_HELP[key] || {})[value] || '';
 
-/* ==================================================================== */
-/* TAB: PIPELINE (editor de estágios)                                   */
-/* ==================================================================== */
+// aba pipeline — o editor de estágios
 function viewPipeline() {
   const root = el('div');
   root.appendChild(workloadPanel());
@@ -353,9 +344,7 @@ function inp(label,type,value,unit,onchange,key) {
   return w;
 }
 
-/* ==================================================================== */
-/* TAB: RESULT                                                          */
-/* ==================================================================== */
+// aba result
 function viewResult() {
   const r = base(); const root = el('div');
   root.appendChild(el('div','lead',`<h2>${G.name}</h2><p>${r.rows.map(x=>x.stage.name).join(' → ')}</p>`));
@@ -457,9 +446,7 @@ function barList(pairs, total) {
 function kpi(l,v,s){ const d=el('div','kpi'); d.appendChild(el('span','k-l',l)); d.appendChild(el('span','k-v',v)); if(s)d.appendChild(el('span','k-s',s)); return d; }
 function kvTable(rows){ const t=el('table','kv'); rows.forEach(([a,b])=>{const tr=el('tr');tr.appendChild(el('td',null,a));tr.appendChild(el('td','r',b));t.appendChild(tr);}); return t; }
 
-/* ==================================================================== */
-/* TAB: GO / NO-GO                                                      */
-/* ==================================================================== */
+// aba go/no-go
 const GATE_TEXT = {
   'GO':     'O limite superior da estimativa cabe no orçamento. Pode executar.',
   'REVIEW': 'O valor central cabe no orçamento, mas o limite superior da faixa de estimativa o estoura. Revise antes de executar.',
@@ -499,9 +486,7 @@ function viewGate() {
   return root;
 }
 
-/* ==================================================================== */
-/* BARRA DE RESUMO (fixa)                                               */
-/* ==================================================================== */
+// a barra de resumo fixa no topo
 function renderSummary() {
   const { r, gate } = gateNow(); const box = $('#summary');
   const card = (id,cls,l,v,sub) => {
@@ -532,9 +517,7 @@ function renderSummary() {
   c.insertAdjacentHTML('beforeend',`<span class="meter"><span style="width:${r.confidence}%"></span></span>`);
 }
 
-/* ==================================================================== */
-/* TAB: SCHEDULE IMPACT                                                 */
-/* ==================================================================== */
+// aba schedule impact
 function viewSchedule() {
   const root = el('div');
   root.appendChild(el('div','lead',
@@ -619,9 +602,7 @@ function freqChart(sweep, curFreq) {
   const w=el('div','chartwrap'); w.innerHTML=g; return w;
 }
 
-/* ==================================================================== */
-/* TAB: COMPARE                                                         */
-/* ==================================================================== */
+// aba compare scenarios
 function viewCompare() {
   const root = el('div');
   root.appendChild(el('div','lead','<h2>Scenario comparison</h2><p>Variantes da mesma arquitetura, calculadas sobre o mesmo workload e o mesmo schedule.</p>'));
@@ -683,9 +664,7 @@ function viewCompare() {
   return root;
 }
 
-/* ==================================================================== */
-/* TAB: OPTIMIZE                                                        */
-/* ==================================================================== */
+// aba optimize
 function viewOptimize() {
   const root = el('div'); const b = base();
   const opts = findOptimizations(G, STAGES, b);
@@ -713,9 +692,7 @@ function viewOptimize() {
   return root;
 }
 
-/* ==================================================================== */
-/* TAB: SENSITIVITY                                                     */
-/* ==================================================================== */
+// aba sensitivity
 function viewSensitivity() {
   const root = el('div');
   root.appendChild(el('div','lead','<h2>Sensitivity &amp; break-even</h2><p>Como cada variante reage ao crescimento do volume, mantendo o schedule fixo.</p>'));
@@ -767,9 +744,7 @@ function lineChart(rows, ids) {
   const w=el('div','chartwrap'); w.innerHTML=g; return w;
 }
 
-/* ==================================================================== */
-/* TAB: ASSUMPTIONS                                                     */
-/* ==================================================================== */
+// aba assumptions
 function viewAssumptions() {
   const r = base(); const root=el('div');
   root.appendChild(el('div','lead','<h2>Assumptions, pricing &amp; limitations</h2><p>Cada estimativa registra suas premissas e a versão de preço usada.</p>'));
@@ -869,9 +844,7 @@ function viewAssumptions() {
   return root;
 }
 
-/* ==================================================================== */
-/* RENDER / BOOT                                                        */
-/* ==================================================================== */
+// render / boot
 const VIEWS = { pipeline:viewPipeline, result:viewResult, gate:viewGate, schedule:viewSchedule,
                 compare:viewCompare, optimize:viewOptimize, sensitivity:viewSensitivity,
                 assumptions:viewAssumptions };
@@ -894,9 +867,7 @@ function render() {
   window.scrollTo(0, scroll);
 }
 
-/* ==================================================================== */
-/* ATUALIZAÇÃO DE PREÇOS (usa o servidor local: python tools/serve.py)   */
-/* ==================================================================== */
+// atualização de preços (usa o servidor local: python tools/serve.py)
 const PRICE_API = { status:'/api/prices/status', prices:'/api/prices', refresh:'/api/prices/refresh' };
 let PRICE_POLL = null;
 const fmtDur = s => s >= 90 ? `${Math.floor(s/60)} min ${String(Math.round(s%60)).padStart(2,'0')} s` : `${Math.round(s)} s`;

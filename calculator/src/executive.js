@@ -1,10 +1,7 @@
-/* =====================================================================
-   DataCost Architect — Painel Gerencial (CFO/Board)
-   Usa o MESMO motor de custo da visão técnica (calcPipeline, VARIANTS,
-   ENGINES, price/FX de pricing.js) sobre o workload padrão compartilhado
-   (workload_default.js). Não há nenhuma tabela de preço própria aqui —
-   os números vêm da mesma fonte validada em validation/official.json.
-   ===================================================================== */
+// painel gerencial (CFO/Board) — usa o mesmo motor de custo da visão técnica
+// (calcPipeline, VARIANTS, ENGINES, price/FX do pricing.js) em cima do workload
+// padrão compartilhado (workload_default.js). sem tabela de preço própria aqui:
+// os números vêm da mesma fonte validada em validation/official.json
 
 (function () {
   const $ = id => document.getElementById(id);

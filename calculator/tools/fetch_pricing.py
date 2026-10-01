@@ -1,38 +1,34 @@
 #!/usr/bin/env python3
-"""
-DataCost Architect — coletor de preços
-=======================================
+"""Coletor de preços do DataCost Architect.
 
-Gera `pricing.json` e `pricing.js` (consumido pelo protótipo) a partir das
-fontes de cada fornecedor. Cada registro carrega `valid_from`, `retrieved_at`,
-`source` e `method`, para que qualquer estimativa do TCC seja reproduzível.
+Gera `pricing.json` e `pricing.js` (é o que o protótipo consome) a partir das
+fontes de cada fornecedor. Cada registro guarda `valid_from`, `retrieved_at`,
+`source` e `method` pra qualquer estimativa do TCC poder ser reproduzida depois.
 
-Métodos de coleta, por fornecedor
----------------------------------
-AWS        → API pública. Duas rotas:
-             1. (padrão) Bulk offer files em pricing.us-east-1.amazonaws.com —
-                públicos, sem credencial (ver public_prices.py). O EC2 tem
-                ~450 MB: baixado uma vez para .cache/ e lido em streaming.
-             2. (--aws-boto3) AWS Price List Query API, com credencial.
-Azure      → Azure Retail Prices API (pública, sem credencial).
-Snowflake  → NÃO há API pública de preços. A tabela abaixo transcreve a
-             Credit Consumption Table / Storage Pricing publicadas no site.
-             Com `--snowflake-account`, lê a taxa real da própria conta em
-             SNOWFLAKE.ORGANIZATION_USAGE.RATE_SHEET_DAILY.
-Databricks → NÃO há API pública de preços. Tabela abaixo transcreve a página
-             de pricing. Com `--databricks-account`, lê
-             system.billing.list_prices do próprio workspace (Unity Catalog).
+Como cada fornecedor é coletado:
+- AWS: API pública. Por padrão lemos os bulk offer files em
+  pricing.us-east-1.amazonaws.com (públicos, sem credencial — ver
+  public_prices.py; o do EC2 tem uns 450 MB, então baixamos uma vez pra
+  .cache/ e lemos em streaming). Com --aws-boto3 dá pra usar a Price List
+  Query API em vez disso, mas aí precisa de credencial.
+- Azure: Azure Retail Prices API, também pública e sem credencial.
+- Snowflake: não tem API pública de preço. A tabela aqui embaixo é uma
+  transcrição da Credit Consumption Table / Storage Pricing do site deles.
+  Com --snowflake-account dá pra ler a taxa real da própria conta em
+  SNOWFLAKE.ORGANIZATION_USAGE.RATE_SHEET_DAILY.
+- Databricks: mesma história — sem API pública, tabela transcrita da página
+  de pricing. Com --databricks-account lê system.billing.list_prices do
+  workspace (Unity Catalog).
 
-Uso
----
+Uso:
     pip install requests ijson pyarrow duckdb
     python tools/fetch_pricing.py                      # AWS + Azure + curadas
-    python tools/fetch_pricing.py --no-aws             # só curadas
-    python tools/fetch_pricing.py --snowflake-account  # + taxa real Snowflake
-    python tools/fetch_pricing.py --databricks-account # + preços reais DBX
-    python build.py                                    # regera index.html
+    python tools/fetch_pricing.py --no-aws              # só as curadas
+    python tools/fetch_pricing.py --snowflake-account   # + taxa real Snowflake
+    python tools/fetch_pricing.py --databricks-account  # + preços reais DBX
+    python build.py                                     # regera index.html
 
-Nenhuma credencial é lida de arquivo: use variáveis de ambiente.
+Nenhuma credencial é lida de arquivo — usa variável de ambiente mesmo.
 """
 
 from __future__ import annotations
@@ -46,10 +42,7 @@ TODAY = datetime.date.today().isoformat()
 REGION_AWS = "us-east-1"
 REGION_SF_DBX = "aws-us-east-1"
 
-# ---------------------------------------------------------------------------
-# 1. O QUE COLETAR NA AWS
-#    (service_code, filtros da Price List Query API, sku interno, métrica, unidade)
-# ---------------------------------------------------------------------------
+# o que coletar na AWS: (service_code, filtros da Price List Query API, sku interno, métrica, unidade)
 AWS_TARGETS = [
     ("AmazonS3", {"volumeType": "Standard", "storageClass": "General Purpose"},
      "S3", "standard-storage", "Storage", "GB-month"),
@@ -82,12 +75,11 @@ AWS_TARGETS = [
      "DMS", "dms.c5.large", "Compute", "instance-hour"),
 ]
 
-# ---------------------------------------------------------------------------
-# 2. TABELAS CURADAS (fornecedores sem API pública de preços)
-#    Atualize os valores conferindo as páginas oficiais e ajuste `valid_from`.
-# ---------------------------------------------------------------------------
-# Fallback da AWS: usado quando --no-aws é passado ou a consulta falha.
-# Sempre perde para o preço vindo da API (ver dedupe()).
+# tabelas curadas, pros fornecedores sem API pública de preços — pra atualizar,
+# confere nas páginas oficiais e ajusta o valid_from
+#
+# isso aqui é o fallback da AWS (usado com --no-aws ou se a consulta falhar);
+# sempre perde pro preço vindo da API de verdade, ver dedupe()
 AWS_FALLBACK = [
     ("S3",      "standard-storage",    "Storage",  "GB-month",          0.023,  "AWS S3 Pricing (página pública)"),
     ("S3",      "ia-storage",          "Storage",  "GB-month",          0.0125, "AWS S3 Pricing (página pública)"),
@@ -128,7 +120,7 @@ CURATED = [
      "Databricks Pricing — SQL Serverless (AWS)"),
 ]
 
-# ---------------------------------------------------------------------------
+
 def rec(provider, service, region, sku, metric, unit, price, source, method,
         valid_from=None):
     return {
@@ -282,12 +274,9 @@ def dedupe(records: list[dict]) -> list[dict]:
     return sorted(best.values(), key=lambda r: (order.get(r["provider"], 9), r["service"], r["sku"]))
 
 
-JS_TEMPLATE = '''/* =====================================================================
-   DataCost Architect — PRICING DATABASE (gerado)
-   NÃO EDITAR À MÃO. Saída de tools/fetch_pricing.py.
-   method: 'api' = API pública do fornecedor | 'curated' = tabela pública
-           transcrita | 'account' = lido da própria conta.
-   ===================================================================== */
+JS_TEMPLATE = '''// base de preços do DataCost Architect — gerado automaticamente, não editar à mão
+// (saída de tools/fetch_pricing.py). method: 'api' = API pública do fornecedor,
+// 'curated' = tabela pública transcrita, 'account' = lido da própria conta.
 const PRICING_META = %(meta)s;
 
 const PRICING = %(rows)s;
@@ -298,7 +287,7 @@ const price = (provider, service, sku) => {
   return r.price;
 };
 
-/* Câmbio — camada de apresentação apenas (seção 25 do scopo.md). */
+// câmbio — é só camada de apresentação (ver seção 25 do scopo.md)
 const FX = { USD:1, BRL:%(brl).4f, EUR:%(eur).4f };
 const FX_META = %(fxmeta)s;
 '''

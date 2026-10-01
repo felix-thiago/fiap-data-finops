@@ -1,11 +1,9 @@
-/* =====================================================================
-   DataCost Architect — Workload padrão (cenário do enunciado)
-   Compartilhado entre a visão técnica (app.js) e a visão gerencial
-   (executive.js), para que as duas nunca usem premissas diferentes.
-   Depende de nada; é consumido por engine.js (ENGINES) via calcPipeline.
-   ===================================================================== */
+// o workload padrão (o cenário do enunciado), compartilhado entre a visão técnica
+// (app.js) e a gerencial (executive.js) pra garantir que as duas nunca partam de
+// premissas diferentes. não depende de nada — quem consome isso é o engine.js
+// (ENGINES) via calcPipeline.
 
-/* ---------- workload global ---------- */
+// workload global
 const G_DEFAULTS = {
   name:'Oracle → Lakehouse → Snowflake', environment:'Production', criticality:'High',
   sourceType:'Oracle', sourceVolumeGB:4096, dailyDeltaGB:120, recordsPerDay:60_000_000,
@@ -21,7 +19,7 @@ const G_DEFAULTS = {
               catalogObjects:1, scanPerQueryGB:1, avgQuerySec:1 },
 };
 
-/* ---------- pipeline padrão: o cenário do enunciado ---------- */
+// pipeline padrão — o cenário do enunciado
 const STAGE_DEFAULTS = () => ([
   { key:'raw',    name:'Ingestion → Raw',  kind:'ingest',    enabled:true, engine:'glue',
     workers:4, workerType:'m5.xlarge', runsPerDay:1, reduction:1.00,
