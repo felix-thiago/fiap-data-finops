@@ -12,6 +12,9 @@
 // depende do pricing.js (PRICING, price(), FX)
 
 const DAYS = 30.4;
+const MONTH_H = DAYS * 24;            // horas que existem num mês (729,6): teto de um warehouse single-cluster
+const CATALOG_FREE_OBJECTS = 1e6;     // free tier do Glue Data Catalog (objetos armazenados/mês)
+const S3_TIER_GB = [51200, 512000];   // faixas do S3 Standard: 50 TB e 500 TB
 
 // catálogo de engines — "kind" é quem decide o modelo de cobrança: glue (DPU-hora),
 // ec2 (on-demand + uplift do EMR quando emr:true), dbx (DBU vezes o multiplicador
@@ -49,6 +52,23 @@ const WH_SIZES = {
   M: { label:'Medium',  credits:4, gbPerMin:6.0 },
   L: { label:'Large',   credits:8, gbPerMin:12.0 },
 };
+
+// geração do warehouse Snowflake: Gen 2 consome ~35% mais créditos por hora no mesmo
+// tamanho (confirmado na calculadora oficial). o throughput é mantido igual, a validar.
+const WH_GENS = {
+  gen1: { label:'Gen 1 (padrão)', creditMult:1.00 },
+  gen2: { label:'Gen 2',          creditMult:1.35 },
+};
+const whCreditMult = g => (WH_GENS[g.snowflakeWhGen] || WH_GENS.gen1).creditMult;
+
+/** Horas cobradas de um warehouse no mês. O idle de auto-suspend não pode empurrar um
+ *  cluster único além das horas do mês; se só o trabalho já passa disso, é preciso
+ *  multi-cluster e a cobrança é pelo trabalho (vários clusters em paralelo). */
+function whBilledHours(workH, idleH) {
+  if (workH >= MONTH_H) return { hours: workH, clusters: Math.ceil(workH / MONTH_H), capped: false };
+  const hours = Math.min(workH + idleH, MONTH_H);
+  return { hours, clusters: 1, capped: workH + idleH > MONTH_H };
+}
 
 // formatos de arquivo e de tabela — são duas dimensões separadas
 const FILE_FORMATS = {
@@ -130,7 +150,7 @@ function stageComputeCost(st, g, volPerRun, runsPerMonth, runtimeMin, retryFacto
     case 'snowflake': {
       const sz = WH_SIZES[st.whSize || 'S'];
       const idleH = (st.autoSuspendSec || 0)/3600 * runsPerMonth;
-      const credits = (billedH * runsPerMonth + idleH) * sz.credits;
+      const credits = whBilledHours(billedH * runsPerMonth, idleH).hours * sz.credits * whCreditMult(g);
       return credits * price('Snowflake','Warehouse', g.snowflakeEdition==='enterprise'?'credit-enterprise':'credit-standard');
     }
     case 'snowpipe': {
@@ -159,7 +179,7 @@ function stageUsage(st, g, volPerRun, runsPerMonth, runtimeMin, retryFactor) {
   if (e.kind === 'dms') return { nodeHours: 730 };
   if (e.kind === 'snowflake') {
     const idleH = (st.autoSuspendSec || 0) / 3600 * runsPerMonth;
-    return { credits: (billedH * runsPerMonth + idleH) * WH_SIZES[st.whSize || 'S'].credits };
+    return { credits: whBilledHours(billedH * runsPerMonth, idleH).hours * WH_SIZES[st.whSize || 'S'].credits * whCreditMult(g) };
   }
   if (e.kind === 'snowpipe') return { credits: volPerRun * runsPerMonth * 0.06 };
   return {};
@@ -167,8 +187,9 @@ function stageUsage(st, g, volPerRun, runsPerMonth, runtimeMin, retryFactor) {
 
 // o motor principal: roda o pipeline estágio por estágio
 function calcPipeline(g, stages) {
-  const assumptions = [];
+  const assumptions = [], warnings = [];
   const A = t => { if (!assumptions.includes(t)) assumptions.push(t); };
+  const W = t => { if (!warnings.includes(t)) warnings.push(t); };
   const retryFactor = 1 + (g.failureRate/100) * g.retries;
   if (retryFactor > 1) A(`Retries: multiplicador de ${retryFactor.toFixed(3)}× sobre compute e requests.`);
 
@@ -200,6 +221,12 @@ function calcPipeline(g, stages) {
     const compute    = st.kind==='serve' ? 0 : stageComputeCost(st, g, volPerRun, runsPerMonth, runtimeMin, retryFactor);
     const usage      = st.kind==='serve' ? {} : stageUsage(st, g, volPerRun, runsPerMonth, runtimeMin, retryFactor);
     let putsN = 0, getsN = 0;
+    if (st.kind !== 'serve' && e.kind !== 'dms' && runtimeMin > 1440/runsPerDay)
+      W(`${st.name}: cada execução leva ${Math.round(runtimeMin)} min, mais que o intervalo entre execuções (${Math.round(1440/runsPerDay)} min) — o job não termina antes da próxima. Aumente os workers ou reduza a frequência.`);
+    if (st.kind !== 'serve' && e.kind === 'snowflake') {
+      const wh = whBilledHours(Math.max(runtimeMin, e.minBillMin || 0)/60 * runsPerMonth, (st.autoSuspendSec || 0)/3600 * runsPerMonth);
+      if (wh.clusters > 1) W(`${st.name}: o warehouse precisaria de ${wh.hours.toFixed(0)} h/mês, acima das ${MONTH_H.toFixed(1)} h de um cluster — exige multi-cluster (~${wh.clusters} clusters).`);
+    }
 
     // e o que sai
     const dailyOut = dailyIn * st.reduction;
@@ -207,7 +234,7 @@ function calcPipeline(g, stages) {
     // storage da camada que esse estágio produziu
     const ff = FILE_FORMATS[st.fileFormat] || FILE_FORMATS['parquet-snappy'];
     const tf = TABLE_FORMATS[st.tableFormat] || TABLE_FORMATS['hive'];
-    let storage = 0, requests = 0, maintenance = 0, storedGB = 0, filesPerRun = 0;
+    let storage = 0, requests = 0, maintenance = 0, storedGB = 0, filesPerRun = 0, s3StdGB = 0;
 
     if (st.kind !== 'serve' && st.kind !== 'load') {
       const dailyWritten = dailyOut * ff.ratio * tf.writeAmp;
@@ -217,6 +244,7 @@ function calcPipeline(g, stages) {
       const az = g.cloud === 'azure';
       storage = storedGB * (az ? price('Azure','ADLS', st.storageClass === 'standard' || !st.storageClass ? 'standard-storage' : 'ia-storage')
                                : price('AWS','S3', sku));
+      if (!az && sku === 'standard-storage') s3StdGB = storedGB;
 
       filesPerRun = Math.max(1, Math.ceil((dailyOut/runsPerDay * ff.ratio * 1024) / g.targetFileMB));
       const puts = filesPerRun * runsPerMonth * retryFactor * tf.writeAmp;
@@ -257,7 +285,10 @@ function calcPipeline(g, stages) {
         const sz = WH_SIZES[st.whSize || 'S'];
         const queryH = g.queriesPerDay * DAYS * g.avgQuerySec / 3600;
         const idleH  = (st.autoSuspendSec||0)/3600 * g.queriesPerDay * DAYS / 20; // agrupa queries em sessões
-        const credits = (queryH + idleH) * sz.credits;
+        const wh = whBilledHours(queryH, idleH);
+        if (wh.capped) A(`${st.name}: horas do warehouse limitadas a ${MONTH_H.toFixed(1)} h/mês (um cluster não fica ligado mais que o mês inteiro).`);
+        if (wh.clusters > 1) W(`${st.name}: ${queryH.toFixed(0)} h/mês de consulta não cabem num warehouse single-cluster (${MONTH_H.toFixed(1)} h/mês) — exige multi-cluster (~${wh.clusters} clusters).`);
+        const credits = wh.hours * sz.credits * whCreditMult(g);
         usage.credits = credits;
         serveCost = credits * price('Snowflake','Warehouse', g.snowflakeEdition==='enterprise'?'credit-enterprise':'credit-standard');
         serveDetail = `${credits.toFixed(1)} créditos/mês (warehouse ${st.whSize})`;
@@ -274,7 +305,7 @@ function calcPipeline(g, stages) {
       stage: st, engineLabel: e.label,
       runsPerDay, runsPerMonth, volPerRun, dailyIn, dailyOut,
       runtimeMin, intervalMin: 1440/runsPerDay,
-      filesPerRun, storedGB,
+      filesPerRun, storedGB, s3StdGB,
       usage: { ...usage, puts: putsN, gets: getsN, dwStorageTb: st.kind==='load' ? storedGB/1024 : 0 },
       cost: { compute, storage: storage + whStorage, requests, maintenance, serve: serveCost },
       total: compute + storage + whStorage + requests + maintenance + serveCost,
@@ -284,12 +315,29 @@ function calcPipeline(g, stages) {
     dailyIn = dailyOut;
   }
 
+  // faixas de volume do S3 Standard: o preço cai acima de 50 TB e de 500 TB no total da
+  // conta, então o desconto é calculado sobre a soma das camadas e rateado entre elas
+  const s3Total = rows.reduce((a,r)=>a+r.s3StdGB, 0);
+  if (s3Total > S3_TIER_GB[0]) {
+    const p0 = price('AWS','S3','standard-storage'), p1 = price('AWS','S3','standard-storage-50tb'), p2 = price('AWS','S3','standard-storage-500tb');
+    const tiered = Math.min(s3Total, S3_TIER_GB[0]) * p0
+                 + Math.max(0, Math.min(s3Total, S3_TIER_GB[1]) - S3_TIER_GB[0]) * p1
+                 + Math.max(0, s3Total - S3_TIER_GB[1]) * p2;
+    const factor = tiered / (s3Total * p0);
+    rows.forEach(r => { const d = r.s3StdGB * p0 * (1 - factor); r.cost.storage -= d; r.total -= d; });
+    A(`S3 Standard em faixas: ${(s3Total/1024).toFixed(1)} TB armazenados, preço médio de US$ ${(tiered/s3Total).toFixed(4)}/GB-mês (US$ ${p0} até 50 TB, ${p1} até 500 TB, ${p2} acima).`);
+  }
+
   // rede
   const network = g.crossRegionGB * price('AWS','Network','cross-region-out')
                 + g.internetGB    * price('AWS','Network','internet-out');
 
   // catálogo do Glue
-  const catalog = g.cloud === 'azure' ? 0 : (g.catalogObjects/100000) * price('AWS','Glue','catalog-objects');
+  const catalogBillable = g.catalogFreeTier ? Math.max(0, g.catalogObjects - CATALOG_FREE_OBJECTS) : g.catalogObjects;
+  const catalog = g.cloud === 'azure' ? 0 : (catalogBillable/100000) * price('AWS','Glue','catalog-objects');
+  if (g.cloud !== 'azure' && g.catalogFreeTier) A('Glue Data Catalog: o primeiro 1 milhão de objetos/mês é gratuito (free tier por conta AWS).');
+  if (whCreditMult(g) !== 1 && active.some(s => ENGINES[s.engine].kind === 'snowflake'))
+    A(`Snowflake ${WH_GENS[g.snowflakeWhGen].label}: ${whCreditMult(g)}× créditos por hora no mesmo tamanho de warehouse, com o mesmo throughput do Gen 1 (premissa).`);
   if (g.cloud === 'azure') A('Cloud Azure: storage ADLS Gen2 (Hot/Cool LRS), Databricks Premium (DBU) + VMs Dsv5/Esv5; sem custo de catálogo (Unity Catalog). Snowflake e transferência de dados mantêm os preços de lista da AWS como proxy.');
 
   // totais
@@ -335,6 +383,7 @@ function calcPipeline(g, stages) {
   if (active.some(s => ENGINES[s.engine].kind==='custom')) conf -= 8;
   if (g.failureRate > 5) conf -= 5;
   if (g.ingestion === 'cdc') conf -= 3;
+  if (active.some(s => ENGINES[s.engine].measured)) conf += 5;   // throughput medido (calibration.json)
   conf = Math.max(35, Math.min(92, Math.round(conf)));
   const spread = (100-conf)/100 * 0.9;
 
@@ -353,7 +402,7 @@ function calcPipeline(g, stages) {
   return {
     rows, breakdown, monthly, range:{low:monthly*(1-spread), high:monthly*(1+spread)},
     confidence:conf, processingMin, latencyMin, slaStatus, slaTimeOk, freshnessOk,
-    monthlyRawGB, totalStoredGB, tbProcessed, unit, assumptions,
+    monthlyRawGB, totalStoredGB, tbProcessed, unit, assumptions, warnings,
     complexity: rows.reduce((a,r)=>a+ENGINES[r.stage.engine].complexity + (TABLE_FORMATS[r.stage.tableFormat]?.complexity||0), 0),
   };
 }

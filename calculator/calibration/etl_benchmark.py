@@ -16,10 +16,18 @@ def arg(name, default=""):
 
 
 def dir_size_gb(spark, path):
-    jvm = spark._jvm
-    p = jvm.org.apache.hadoop.fs.Path(path)
-    fs = p.getFileSystem(spark._jsc.hadoopConfiguration())
-    return fs.getContentSummary(p).getLength() / 1024 ** 3
+    """Tamanho do diretório em GB. Usa o Hadoop FS da JVM (Glue, EMR, Databricks clássico); no
+    Databricks serverless (Spark Connect, sem JVM) soma os arquivos de um Volume (/Volumes/...)."""
+    try:
+        jvm = spark._jvm
+        p = jvm.org.apache.hadoop.fs.Path(path)
+        fs = p.getFileSystem(spark._jsc.hadoopConfiguration())
+        return fs.getContentSummary(p).getLength() / 1024 ** 3
+    except Exception:                                               # noqa: BLE001
+        import os
+        if not path.startswith("/Volumes/"):
+            raise
+        return sum(os.path.getsize(os.path.join(d, f)) for d, _, files in os.walk(path) for f in files) / 1024 ** 3
 
 
 def main():

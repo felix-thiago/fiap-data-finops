@@ -3,9 +3,7 @@
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const root = path.join(__dirname, '..');
 const read = f => fs.readFileSync(path.join(root, 'src', f), 'utf8');
-const app = read('app.js');
-const defaults = app.slice(app.indexOf('const G_DEFAULTS'), app.indexOf('const G_FIELDS'));
-const code = read('pricing.js') + '\n' + read('calibration.js') + '\n' + read('engine.js') + '\n' + defaults + `
+const code = read('pricing.js') + '\n' + read('calibration.js') + '\n' + read('engine.js') + '\n' + read('workload_default.js') + `
 this.__api = { G_DEFAULTS, STAGE_DEFAULTS, calcPipeline, scheduleSweep, VARIANTS, PROFILES, scoreVariants,
                findOptimizations, sensitivity, breakEven, budgetGate, gateSuggestions };`;
 const ctx = { structuredClone, console };
@@ -31,6 +29,11 @@ const scenarios = [
   ['glue_g2x_workers', g => g, s => s.map(x => x.kind === 'ingest' || x.key === 'bronze' ? { ...x, workerType: 'm5.2xlarge' } : x)],
   ['big_volume_wh_large', g => ({ ...g, dailyDeltaGB: 2000, sourceVolumeGB: 90000, slaMaxMinutes: 60 }),
     s => s.map(x => x.kind === 'load' ? { ...x, whSize: 'L', autoSuspendSec: 600 } : x)],
+  ['s3_tiers_gen2', g => ({ ...g, dailyDeltaGB: 6000, snowflakeWhGen: 'gen2', catalogFreeTier: false, catalogObjects: 2500000 }),
+    s => s.map(x => x.kind === 'transform' || x.kind === 'ingest' ? { ...x, workers: 40 } : x)],
+  ['serve_multicluster', g => ({ ...g, queriesPerDay: 4000, avgQuerySec: 30 }), s => s],
+  ['serve_idle_capped', g => ({ ...g, queriesPerDay: 2500, avgQuerySec: 10 }),
+    s => s.map(x => x.kind === 'serve' ? { ...x, autoSuspendSec: 600 } : x)],
 ];
 
 const out = scenarios.map(([name, fg, fs_]) => {
@@ -47,7 +50,7 @@ const out = scenarios.map(([name, fg, fs_]) => {
       monthly: base.monthly, breakdown: base.breakdown, slaStatus: base.slaStatus,
       processingMin: base.processingMin, latencyMin: base.latencyMin, confidence: base.confidence,
       range: base.range, unit: base.unit, complexity: base.complexity,
-      assumptions: base.assumptions,
+      assumptions: base.assumptions, warnings: base.warnings,
       stageTotals: base.rows.map(r => [r.stage.key, r.total, r.runtimeMin]),
       usage: base.rows.map(r => [r.stage.key, r.usage]),
       variants, scored,

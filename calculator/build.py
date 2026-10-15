@@ -3,6 +3,8 @@
 
 Ambos compartilham pricing.js, calibration.js, engine.js e workload_default.js —
 só a camada de apresentação (app.js vs. executive.js) muda entre as duas telas.
+O CSS do painel executivo (src/executive.tailwind.css) é gerado com `npm run build:css`
+e versionado, então o build não precisa de Node.
 """
 import pathlib
 d = pathlib.Path(__file__).parent
@@ -12,11 +14,13 @@ src = d / 'src'
 def build(shell_name, app_token, app_file, out_name):
     html = (src / shell_name).read_text(encoding='utf-8')
     for token, fname in (
+        ('/*__I18N__*/', 'i18n.js'),
         ('/*__PRICING__*/', 'pricing.js'),
         ('/*__CALIBRATION__*/', 'calibration.js'),
         ('/*__ENGINE__*/', 'engine.js'),
         ('/*__WORKLOAD__*/', 'workload_default.js'),
         (app_token, app_file),
+        ('/*__TAILWIND__*/', 'executive.tailwind.css'),   # gerado por `npm run build:css`
     ):
         html = html.replace(token, (src / fname).read_text(encoding='utf-8'))
     (d / out_name).write_text(html, encoding='utf-8')

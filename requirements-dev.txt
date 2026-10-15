@@ -1,0 +1,5 @@
+# Opcionais. Testes de UI: depois de instalar, rode `playwright install chromium`.
+# Dry-run local da calibração: precisa também de Java 17 e winutils (ver calculator/calibration/README.md).
+-r requirements.txt
+pytest-playwright
+pyspark

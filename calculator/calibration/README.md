@@ -26,7 +26,7 @@ Cerca de **US$ 3 a 8** no total para o Glue (dataset de ~20 GB, 4 execuções cu
 - Console Glue → *ETL jobs* → *Script editor* → cole `calibration/gen_data.py`.
 - Em *Job details*: Glue version **4.0**, worker type **G.1X**, **4 workers**.
 - *Job parameters*: `--rows` = `200000000` e `--out` = `s3://SEU-BUCKET/bench/input`.
-- Rode. Ao final, no log (CloudWatch → *Output logs*) procure a linha `DATACOST_GEN ... gb_written=XX.XX`. **Esse XX.XX é o `gb_processed`.**
+- Rode. Ao final, no log (CloudWatch → *Output logs*) procure a linha `DATACOST_GEN ... gb_logical=XX.XX gb_written=YY.YY`. **O `gb_logical` (XX.XX) é o `gb_processed`**: o motor mede volume como dado lógico, do jeito que sai da fonte, e não como Parquet comprimido (`gb_written`, só informativo).
 
 **3. Rodar o benchmark (4 execuções, ~US$ 0,5 cada)**
 - Crie outro job com o script `calibration/etl_benchmark.py`.
@@ -51,12 +51,71 @@ Dica: `worker_type` `m5.xlarge` equivale ao Glue **G.1X** (1 DPU); `m5.2xlarge` 
 **5. Calibrar**
 
 ```bash
-python tools/calibrate.py          # mostra modelo atual x medido e grava calibration.json
-python build.py                    # regera o index.html com os novos valores
-python -m pytest tests             # os testes de paridade continuam valendo
+python calculator/tools/calibrate.py   # mostra modelo atual x medido e grava calibration.json
+python calculator/build.py             # regera os dois HTML com os novos valores
+node calculator/tools/gen_golden.js    # o golden passa a refletir a calibração
+python -m pytest calculator/tests      # os testes de paridade continuam valendo
 ```
 
 A saída mostra, por engine, o throughput que o modelo assumia e o medido (ex.: `glue  0.45 GB → 0.38 GB, -16%`).
+
+## Sem conta AWS: o que dá para calibrar de graça
+
+Nenhuma das três rotas abaixo substitui medir o Glue, a engine padrão. Mas elas trocam premissa por
+medição em partes do modelo que pesam no custo, sem gastar nada. Ofertas conferidas em 2026-10-15;
+confira as condições atuais antes de criar a conta.
+
+| Rota | Custo | O que calibra | Precisa de cartão? |
+|---|---|---|---|
+| **1. Snowflake trial** (30 dias, US$ 400 de uso) | grátis | throughput dos warehouses XS, S e M (`snowflake_wh`): carga no DW, ELT e a variante "ELT dentro do Snowflake" | não |
+| **2. Databricks Free Edition** | grátis | throughput do Databricks **serverless** (`databricks_sl`), como limite inferior | a página de cadastro não diz; é uma edição gratuita, sem plano pago |
+| **3. Conta AWS nova com créditos** (US$ 100 na criação, até US$ 200) | grátis dentro dos créditos | Glue (`glue`, `glue6`), a engine padrão | **sim** |
+
+**Recomendação:** faça a rota 1, que é a mais barata e confiável. Faça a 2 se sobrar tempo. A 3 vale
+se alguém do grupo topar cadastrar um cartão. Para o Glue, sem medição, o TCC usa a análise de
+sensibilidade ao throughput de `validation/metrics.md`: ela mostra quanto o custo e o SLA mudam se o
+throughput real for metade ou o dobro do assumido. Isso transforma a limitação em um número.
+
+### Rota 1 — Snowflake trial (recomendada)
+
+1. Crie o trial em `signup.snowflake.com`: edição **Standard**, nuvem **AWS**, região **US East
+   (N. Virginia)**, que é a mesma do modelo. Essas escolhas não podem ser trocadas depois.
+2. Abra uma *SQL Worksheet* e rode `calibration/snowflake_benchmark.sql`, que já vem pronto. Ele
+   usa a tabela `LINEITEM` do TPC-H (~600 milhões de linhas) do banco de exemplo, então não há
+   dado para carregar.
+3. Rode a transformação **2 vezes em cada tamanho** (XSMALL, SMALL e MEDIUM), trocando o tamanho
+   na linha indicada. O script suspende o warehouse antes, para medir "a frio".
+4. O último `SELECT` do script devolve uma linha por execução **já no formato do
+   `measurements.csv`**. Copie as linhas para o CSV.
+5. `python calculator/tools/calibrate.py` e `python calculator/build.py`.
+
+Gasto estimado: alguns créditos, bem dentro dos US$ 400 do trial.
+
+### Rota 2 — Databricks Free Edition
+
+O Free Edition só tem compute **serverless**, com tamanho limitado e sem escolha de instância.
+Por isso a medição vale como **limite inferior** do `databricks_sl`, não para `databricks`/Photon
+com cluster dedicado. Declare isso nas notas.
+
+1. Crie a conta em `databricks.com/learn/free-edition`.
+2. Em *Catalog*, crie um volume (ex.: `workspace.default.bench`).
+3. Suba `gen_data.py` e `etl_benchmark.py` para o workspace e crie um *Job* com uma tarefa
+   *Python script* para cada um:
+   - `gen_data.py` com `["--rows", "20000000", "--out", "/Volumes/workspace/default/bench/input"]`
+     (20 milhões de linhas: o Free Edition tem cota diária de compute);
+   - `etl_benchmark.py` com `["--in", "/Volumes/workspace/default/bench/input", "--out", "/Volumes/workspace/default/bench/output"]`.
+   Os dois scripts detectam o serverless (sem JVM) e medem o tamanho somando os arquivos do volume.
+4. Rode o benchmark 2–3 vezes e registre `engine=databricks_sl`, `workers=1`,
+   `gb_processed` = `gb_logical` do `gen_data.py` e `duration_min` = duração da tarefa no Job.
+
+### Rota 3 — Conta AWS nova
+
+O plano gratuito da AWS (contas criadas a partir de jul/2025) dá US$ 100 de crédito na criação e
+até US$ 100 a mais por atividades. Ele **exige cartão** e restringe alguns serviços; não encontrei
+confirmação de que o Glue esteja liberado no plano *Free*. No plano *Paid*, os créditos valem para
+os serviços elegíveis. Confira na conta antes de rodar. O passo a passo é o da seção "AWS Glue"
+acima (~US$ 3–8). Vale também perguntar à coordenação da FIAP se há ambiente acadêmico AWS
+disponível para alunos.
 
 ## Testar localmente antes de gastar na nuvem
 
@@ -84,7 +143,7 @@ https://github.com/cdarlint/winutils/raw/master/hadoop-3.3.6/bin/hadoop.dll
 **3. Rodar:**
 
 ```bash
-python calibration/local_dryrun.py --java-home "C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot" --hadoop-home "C:\caminho\para\hadoop"
+python calculator/calibration/local_dryrun.py --java-home "C:\Program Files\Eclipse Adoptium\<pasta-do-jdk-17>" --hadoop-home "C:\caminho\para\hadoop"
 ```
 
 Se terminar com `OK`, os dois scripts estão corretos e prontos para rodar no Glue/Databricks/EMR
@@ -108,4 +167,4 @@ Rode uma carga/transformação conhecida em warehouses de tamanhos diferentes (X
 
 ## O que acontece com o resultado
 
-`tools/calibrate.py` grava `calibration.json` (motor Python) e `src/calibration.js` (front). Os dois motores aplicam os valores por cima das premissas do catálogo, e a engine passa a constar como **medida** (`measured`). Sem medições, os arquivos ficam vazios e nada muda.
+`tools/calibrate.py` grava `calibration.json` (motor Python) e `src/calibration.js` (front). Os dois motores aplicam os valores por cima das premissas do catálogo, e a engine passa a constar como **medida** (`measured`), o que soma 5 pontos ao confidence score e estreita a faixa da estimativa. Sem medições, os arquivos ficam vazios e nada muda.

@@ -8,6 +8,9 @@ from __future__ import annotations
 import copy
 
 DAYS = 30.4
+MONTH_H = DAYS * 24            # horas que existem num mês (729,6): teto de um warehouse single-cluster
+CATALOG_FREE_OBJECTS = 1e6     # free tier do Glue Data Catalog (objetos armazenados/mês)
+S3_TIER_GB = (51200, 512000)   # faixas do S3 Standard: 50 TB e 500 TB
 
 # kind: glue | ec2 | dbx | dbx_sl | dms | snowflake | snowpipe | athena | dbsql | custom
 ENGINES = {
@@ -39,6 +42,12 @@ WH_SIZES = {
     "S":  dict(label="Small", credits=2, gb_per_min=3.0),
     "M":  dict(label="Medium", credits=4, gb_per_min=6.0),
     "L":  dict(label="Large", credits=8, gb_per_min=12.0),
+}
+
+# geração do warehouse Snowflake: Gen 2 consome ~35% mais créditos/h no mesmo tamanho
+WH_GENS = {
+    "gen1": dict(label="Gen 1 (padrão)", credit_mult=1.00),
+    "gen2": dict(label="Gen 2", credit_mult=1.35),
 }
 
 FILE_FORMATS = {
@@ -87,7 +96,8 @@ G_DEFAULTS = dict(
     failure_rate=2, retries=2,
     cross_region_gb=0, internet_gb=0, discount_pct=0,
     budget_monthly=2500, sla_max_minutes=360, freshness_hours=30, orchestration="chained",
-    snowflake_edition="standard", snowflake_storage="capacity", dw_storage=True,
+    snowflake_edition="standard", snowflake_storage="capacity", snowflake_wh_gen="gen1", dw_storage=True,
+    catalog_free_tier=True,
     custom_gb_per_node_min=0.5, custom_cost_per_node_hour=0.30,
     provided=["target_file_mb", "failure_rate", "retries", "queries_per_day",
               "records_per_day", "catalog_objects", "scan_per_query_gb", "avg_query_sec"],

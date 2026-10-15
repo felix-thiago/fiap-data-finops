@@ -3,12 +3,25 @@
 from __future__ import annotations
 import math
 
-from .catalog import (DAYS, ENGINES, WORKER_TYPES, WH_SIZES, FILE_FORMATS, TABLE_FORMATS)
+from .catalog import (DAYS, MONTH_H, CATALOG_FREE_OBJECTS, S3_TIER_GB, ENGINES, WORKER_TYPES,
+                      WH_SIZES, WH_GENS, FILE_FORMATS, TABLE_FORMATS)
 from .pricing import price
 
 ADV_KEYS = ["retention_days", "target_file_mb", "failure_rate", "retries", "cross_region_gb",
             "queries_per_day", "discount_pct", "records_per_day", "catalog_objects",
             "scan_per_query_gb", "avg_query_sec"]
+
+
+def wh_credit_mult(g: dict) -> float:
+    return WH_GENS.get(g.get("snowflake_wh_gen"), WH_GENS["gen1"])["credit_mult"]
+
+
+def wh_billed_hours(work_h: float, idle_h: float) -> dict:
+    """Horas cobradas de um warehouse no mês. O idle não empurra um cluster único além das
+    horas do mês; se só o trabalho já passa disso, exige multi-cluster e cobra o trabalho."""
+    if work_h >= MONTH_H:
+        return dict(hours=work_h, clusters=math.ceil(work_h / MONTH_H), capped=False)
+    return dict(hours=min(work_h + idle_h, MONTH_H), clusters=1, capped=work_h + idle_h > MONTH_H)
 
 
 def stage_runtime_min(st: dict, g: dict, vol_per_run: float) -> float:
@@ -51,7 +64,7 @@ def stage_compute_cost(st, g, vol_per_run, runs_per_month, runtime_min, retry_fa
     if kind == "snowflake":
         sz = WH_SIZES[st.get("wh_size") or "S"]
         idle_h = (st.get("auto_suspend_sec") or 0) / 3600 * runs_per_month
-        credits = (billed_h * runs_per_month + idle_h) * sz["credits"]
+        credits = wh_billed_hours(billed_h * runs_per_month, idle_h)["hours"] * sz["credits"] * wh_credit_mult(g)
         sku = "credit-enterprise" if g["snowflake_edition"] == "enterprise" else "credit-standard"
         return credits * price("Snowflake", "Warehouse", sku)
     if kind == "snowpipe":
@@ -79,7 +92,8 @@ def stage_usage(st, g, vol_per_run, runs_per_month, runtime_min, retry_factor) -
         return {"node_hours": 730.0}
     if kind == "snowflake":
         idle_h = (st.get("auto_suspend_sec") or 0) / 3600 * runs_per_month
-        return {"credits": (billed_h * runs_per_month + idle_h) * WH_SIZES[st.get("wh_size") or "S"]["credits"]}
+        return {"credits": wh_billed_hours(billed_h * runs_per_month, idle_h)["hours"]
+                * WH_SIZES[st.get("wh_size") or "S"]["credits"] * wh_credit_mult(g)}
     if kind == "snowpipe":
         return {"credits": vol_per_run * runs_per_month * 0.06}
     return {}
@@ -87,10 +101,15 @@ def stage_usage(st, g, vol_per_run, runs_per_month, runtime_min, retry_factor) -
 
 def calc_pipeline(g: dict, stages: list[dict]) -> dict:
     assumptions: list[str] = []
+    warnings: list[str] = []
 
     def A(t):
         if t not in assumptions:
             assumptions.append(t)
+
+    def W(t):
+        if t not in warnings:
+            warnings.append(t)
 
     retry_factor = 1 + (g["failure_rate"] / 100) * g["retries"]
     if retry_factor > 1:
@@ -120,11 +139,22 @@ def calc_pipeline(g: dict, stages: list[dict]) -> dict:
         runtime_min = 0.0 if is_serve else stage_runtime_min(st, g, vol_per_run)
         compute = 0.0 if is_serve else stage_compute_cost(st, g, vol_per_run, runs_per_month, runtime_min, retry_factor)
 
+        interval = 1440 / runs_per_day
+        if not is_serve and e["kind"] != "dms" and runtime_min > interval:
+            W(f"{st['name']}: cada execução leva {_js_round(runtime_min)} min, mais que o intervalo entre execuções "
+              f"({_js_round(interval)} min) — o job não termina antes da próxima. Aumente os workers ou reduza a frequência.")
+        if not is_serve and e["kind"] == "snowflake":
+            wh = wh_billed_hours(max(runtime_min, e.get("min_bill_min", 0)) / 60 * runs_per_month,
+                                 (st.get("auto_suspend_sec") or 0) / 3600 * runs_per_month)
+            if wh["clusters"] > 1:
+                W(f"{st['name']}: o warehouse precisaria de {wh['hours']:.0f} h/mês, acima das {MONTH_H:.1f} h de um cluster "
+                  f"— exige multi-cluster (~{wh['clusters']} clusters).")
+
         daily_out = daily_in * st["reduction"]
 
         ff = FILE_FORMATS.get(st["file_format"], FILE_FORMATS["parquet-snappy"])
         tf = TABLE_FORMATS.get(st["table_format"], TABLE_FORMATS["hive"])
-        storage = requests = maintenance = stored_gb = files_per_run = 0.0
+        storage = requests = maintenance = stored_gb = files_per_run = s3_std_gb = 0.0
         puts = gets = 0.0
         usage = {} if is_serve else stage_usage(st, g, vol_per_run, runs_per_month, runtime_min, retry_factor)
 
@@ -139,6 +169,8 @@ def calc_pipeline(g: dict, stages: list[dict]) -> dict:
                 storage = stored_gb * price("Azure", "ADLS", "standard-storage" if st["storage_class"] == "standard" else "ia-storage")
             else:
                 storage = stored_gb * price("AWS", "S3", sku)
+                if sku == "standard-storage":
+                    s3_std_gb = stored_gb
 
             files_per_run = max(1, math.ceil((daily_out / runs_per_day * ff["ratio"] * 1024) / g["target_file_mb"]))
             puts = files_per_run * runs_per_month * retry_factor * tf["write_amp"]
@@ -177,7 +209,13 @@ def calc_pipeline(g: dict, stages: list[dict]) -> dict:
                 sz = WH_SIZES[st.get("wh_size") or "S"]
                 query_h = g["queries_per_day"] * DAYS * g["avg_query_sec"] / 3600
                 idle_h = (st.get("auto_suspend_sec") or 0) / 3600 * g["queries_per_day"] * DAYS / 20
-                credits = (query_h + idle_h) * sz["credits"]
+                wh = wh_billed_hours(query_h, idle_h)
+                if wh["capped"]:
+                    A(f"{st['name']}: horas do warehouse limitadas a {MONTH_H:.1f} h/mês (um cluster não fica ligado mais que o mês inteiro).")
+                if wh["clusters"] > 1:
+                    W(f"{st['name']}: {query_h:.0f} h/mês de consulta não cabem num warehouse single-cluster ({MONTH_H:.1f} h/mês) "
+                      f"— exige multi-cluster (~{wh['clusters']} clusters).")
+                credits = wh["hours"] * sz["credits"] * wh_credit_mult(g)
                 usage["credits"] = credits
                 sku = "credit-enterprise" if g["snowflake_edition"] == "enterprise" else "credit-standard"
                 serve_cost = credits * price("Snowflake", "Warehouse", sku)
@@ -194,18 +232,40 @@ def calc_pipeline(g: dict, stages: list[dict]) -> dict:
         rows.append(dict(
             stage=st, engine_label=e["label"], runs_per_day=runs_per_day, runs_per_month=runs_per_month,
             vol_per_run=vol_per_run, daily_in=daily_in, daily_out=daily_out,
-            runtime_min=runtime_min, interval_min=1440 / runs_per_day,
-            files_per_run=files_per_run, stored_gb=stored_gb,
+            runtime_min=runtime_min, interval_min=interval,
+            files_per_run=files_per_run, stored_gb=stored_gb, s3_std_gb=s3_std_gb,
             usage={**usage, "puts": puts, "gets": gets, "dw_storage_tb": (stored_gb / 1024) if st["kind"] == "load" else 0.0},
             cost=dict(compute=compute, storage=storage + wh_storage, requests=requests,
                       maintenance=maintenance, serve=serve_cost),
             total=total, serve_detail=serve_detail))
         daily_in = daily_out
 
+    s3_total = sum(r["s3_std_gb"] for r in rows)
+    if s3_total > S3_TIER_GB[0]:
+        p0 = price("AWS", "S3", "standard-storage")
+        p1 = price("AWS", "S3", "standard-storage-50tb")
+        p2 = price("AWS", "S3", "standard-storage-500tb")
+        tiered = min(s3_total, S3_TIER_GB[0]) * p0 \
+            + max(0, min(s3_total, S3_TIER_GB[1]) - S3_TIER_GB[0]) * p1 \
+            + max(0, s3_total - S3_TIER_GB[1]) * p2
+        factor = tiered / (s3_total * p0)
+        for r in rows:
+            d = r["s3_std_gb"] * p0 * (1 - factor)
+            r["cost"]["storage"] -= d
+            r["total"] -= d
+        A(f"S3 Standard em faixas: {s3_total / 1024:.1f} TB armazenados, preço médio de US$ {tiered / s3_total:.4f}/GB-mês "
+          f"(US$ {_js_num(p0)} até 50 TB, {_js_num(p1)} até 500 TB, {_js_num(p2)} acima).")
+
     network = g["cross_region_gb"] * price("AWS", "Network", "cross-region-out") \
         + g["internet_gb"] * price("AWS", "Network", "internet-out")
     azure = g.get("cloud") == "azure"
-    catalog = 0.0 if azure else (g["catalog_objects"] / 100000) * price("AWS", "Glue", "catalog-objects")
+    billable = max(0, g["catalog_objects"] - CATALOG_FREE_OBJECTS) if g.get("catalog_free_tier") else g["catalog_objects"]
+    catalog = 0.0 if azure else (billable / 100000) * price("AWS", "Glue", "catalog-objects")
+    if not azure and g.get("catalog_free_tier"):
+        A("Glue Data Catalog: o primeiro 1 milhão de objetos/mês é gratuito (free tier por conta AWS).")
+    if wh_credit_mult(g) != 1 and any(ENGINES[s["engine"]]["kind"] == "snowflake" for s in active):
+        A(f"Snowflake {WH_GENS[g['snowflake_wh_gen']]['label']}: {_js_num(wh_credit_mult(g))}× créditos por hora no mesmo "
+          "tamanho de warehouse, com o mesmo throughput do Gen 1 (premissa).")
     if azure:
         A("Cloud Azure: storage ADLS Gen2 (Hot/Cool LRS), Databricks Premium (DBU) + VMs Dsv5/Esv5; sem custo de catálogo (Unity Catalog). Snowflake e transferência de dados mantêm os preços de lista da AWS como proxy.")
 
@@ -255,6 +315,8 @@ def calc_pipeline(g: dict, stages: list[dict]) -> dict:
         conf -= 5
     if g["ingestion"] == "cdc":
         conf -= 3
+    if any(ENGINES[s["engine"]].get("measured") for s in active):
+        conf += 5  # throughput medido (calibration.json)
     conf = max(35, min(92, _js_round(conf)))
     spread = (100 - conf) / 100 * 0.9
 
@@ -274,9 +336,14 @@ def calc_pipeline(g: dict, stages: list[dict]) -> dict:
         confidence=conf, processing_min=processing_min, latency_min=latency_min,
         sla_status=sla_status, sla_time_ok=sla_time_ok, freshness_ok=freshness_ok,
         monthly_raw_gb=monthly_raw_gb, total_stored_gb=total_stored_gb, tb_processed=tb,
-        unit=unit, assumptions=assumptions,
+        unit=unit, assumptions=assumptions, warnings=warnings,
         complexity=sum(ENGINES[r["stage"]["engine"]]["complexity"]
                        + TABLE_FORMATS.get(r["stage"]["table_format"], {}).get("complexity", 0) for r in rows))
+
+
+def _js_num(x: float) -> str:
+    """Number → string como o JS imprime em template string (0.023, 1.35, 2)."""
+    return str(int(x)) if float(x).is_integer() else repr(float(x))
 
 
 def _js_round(x: float) -> int:

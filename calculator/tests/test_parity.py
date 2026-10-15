@@ -46,6 +46,7 @@ def test_base(case):
     assert r["range"]["low"] == approx(exp["range"]["low"]) and r["range"]["high"] == approx(exp["range"]["high"])
     assert r["complexity"] == exp["complexity"]
     assert r["assumptions"] == exp["assumptions"]
+    assert r["warnings"] == exp["warnings"]
     for camel, py in [("perMonth", "per_month"), ("perYear", "per_year"), ("perTB", "per_tb"),
                       ("perGBIngested", "per_gb_ingested"), ("perGBStored", "per_gb_stored"),
                       ("perMillionRec", "per_million_rec"), ("perQuery", "per_query"), ("perRunSet", "per_run_set")]:

@@ -46,6 +46,11 @@ REGION_SF_DBX = "aws-us-east-1"
 AWS_TARGETS = [
     ("AmazonS3", {"volumeType": "Standard", "storageClass": "General Purpose"},
      "S3", "standard-storage", "Storage", "GB-month"),
+    # faixas de volume do S3 Standard (a chave "_begin" escolhe a dimensão pelo beginRange, em GB)
+    ("AmazonS3", {"volumeType": "Standard", "storageClass": "General Purpose", "_begin": "51200"},
+     "S3", "standard-storage-50tb", "Storage", "GB-month"),
+    ("AmazonS3", {"volumeType": "Standard", "storageClass": "General Purpose", "_begin": "512000"},
+     "S3", "standard-storage-500tb", "Storage", "GB-month"),
     ("AmazonS3", {"volumeType": "Standard - Infrequent Access", "storageClass": "Infrequent Access"},
      "S3", "ia-storage", "Storage", "GB-month"),
     ("AmazonS3", {"usagetype": "TimedStorage-GIR-ByteHrs"},
@@ -82,6 +87,8 @@ AWS_TARGETS = [
 # sempre perde pro preço vindo da API de verdade, ver dedupe()
 AWS_FALLBACK = [
     ("S3",      "standard-storage",    "Storage",  "GB-month",          0.023,  "AWS S3 Pricing (página pública)"),
+    ("S3",      "standard-storage-50tb","Storage", "GB-month",          0.022,  "AWS S3 Pricing (página pública) — 50 a 500 TB"),
+    ("S3",      "standard-storage-500tb","Storage","GB-month",          0.021,  "AWS S3 Pricing (página pública) — acima de 500 TB"),
     ("S3",      "ia-storage",          "Storage",  "GB-month",          0.0125, "AWS S3 Pricing (página pública)"),
     ("S3",      "glacier-ir",          "Storage",  "GB-month",          0.004,  "AWS S3 Pricing (página pública)"),
     ("S3",      "put-requests",        "Requests", "1k requests",       0.005,  "AWS S3 Pricing (página pública)"),
@@ -150,6 +157,8 @@ def fetch_aws(region: str, verbose=True) -> list[dict]:
     client = boto3.client("pricing", region_name="us-east-1")
     out = []
     for service_code, filters, service, sku, metric, unit in AWS_TARGETS:
+        if "_begin" in filters:
+            continue  # faixas de volume: a Query API não filtra por beginRange; fica o fallback curado
         flt = [{"Type": "TERM_MATCH", "Field": "regionCode", "Value": region}]
         flt += [{"Type": "TERM_MATCH", "Field": k, "Value": v} for k, v in filters.items()]
         try:

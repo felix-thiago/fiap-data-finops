@@ -14,6 +14,8 @@ import re
 
 import pytest
 
+pytest.importorskip("pytest_playwright", reason="pytest-playwright não instalado (ver requirements-dev.txt)")
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 INDEX_URL = ROOT.joinpath("index.html").resolve().as_uri()
 
@@ -57,7 +59,7 @@ def test_no_console_errors_across_tabs(app):
 def test_default_scenario_matches_engine(app):
     _click_tab(app, "result")
     text = _body_text(app)
-    assert "$2,725" in app.inner_text("#summary")
+    assert "$2.725" in app.inner_text("#summary")   # padrão pt-BR: separador de milhar é ponto
     assert "PASS" in app.inner_text("#summary")
 
 
@@ -99,10 +101,10 @@ def test_editing_budget_input_keeps_focus_and_updates_gate(app):
 
 def test_help_popup_opens_and_closes(app):
     _click_tab(app, "pipeline")
-    btn = app.locator('.card.stage .fld:has-text("Table format") .info').first
+    btn = app.locator('.card.stage .fld:has-text("Formato de tabela") .info').first
     btn.click()
     assert app.locator(".pop").count() == 1
-    assert "Table format" in app.inner_text(".pop .pop-t")
+    assert "Formato de tabela" in app.inner_text(".pop .pop-t")
     app.mouse.click(5, 5)
     assert app.locator(".pop").count() == 0
 
@@ -138,3 +140,73 @@ def test_mobile_tabs_scroll_instead_of_wrapping(app):
     assert box["scrollable"] is True
     assert box["height"] < 60  # uma linha só, não quebra em várias
     app.set_viewport_size({"width": 1280, "height": 900})
+
+
+def test_language_switch_translates_ui_and_engine_texts_and_persists(app):
+    assert "CUSTO MENSAL ESTIMADO" in app.inner_text("#summary").upper()
+    app.select_option("#lang", "en")
+    summary = app.inner_text("#summary")
+    assert "ESTIMATED MONTHLY COST" in summary.upper()
+    assert "$2,725" in summary
+    _click_tab(app, "assumptions")
+    body = _body_text(app)
+    assert "ASSUMPTIONS APPLIED" in body.upper() and "PREMISSAS APLICADAS" not in body.upper()
+    assert "multiplier on compute and requests" in body   # premissa vinda do motor, traduzida
+    app.reload()
+    app.wait_for_selector("#summary .scard")
+    assert app.eval_on_selector("#lang", "e => e.value") == "en"  # escolha lembrada
+    app.select_option("#lang", "pt")
+
+
+# --- painel executivo ---
+EXEC_URL = ROOT.joinpath("executive.html").resolve().as_uri()
+
+
+@pytest.fixture()
+def exec_page(page):
+    external = []
+    page.on("request", lambda req: external.append(req.url) if req.url.startswith("http") else None)
+    errors = []
+    page.on("pageerror", lambda exc: errors.append(str(exc)))
+    page.goto(EXEC_URL)
+    page.wait_for_function("document.getElementById('slaLegacy').innerText !== '—'")
+    page.external, page.errors = external, errors
+    return page
+
+
+def _set_slider(page, sel, value):
+    page.eval_on_selector(sel, "(el, v) => { el.value = v; el.dispatchEvent(new Event('input')); }", value)
+    page.wait_for_timeout(250)  # debounce do painel
+
+
+def test_executive_opens_offline_without_errors(exec_page):
+    assert exec_page.external == []          # nada de CDN: abre sem internet
+    assert exec_page.errors == []
+    assert not BROKEN_VALUE_RE.search(exec_page.inner_text("body"))
+
+
+@pytest.mark.parametrize("currency,symbol", [("BRL", "R$"), ("USD", "$"), ("EUR", "€")])
+def test_executive_currency_symbol(exec_page, currency, symbol):
+    exec_page.select_option("#currencySelect", currency)
+    text = exec_page.inner_text("#monthlyOptimizedTotal")
+    assert text.startswith(symbol) and "\\" not in text
+
+
+def test_executive_language_switch(exec_page):
+    exec_page.select_option("#langSelect", "en")
+    assert "Operating Parameters".upper() in exec_page.inner_text("body").upper()
+    assert "TB / day" in exec_page.inner_text("#volumeDisplay")
+    assert "of processing" in exec_page.inner_text("#slaLegacy")
+    exec_page.select_option("#langSelect", "pt")
+    assert "TB / dia" in exec_page.inner_text("#volumeDisplay")
+
+
+def test_executive_sizes_pipeline_for_sla_and_flags_when_impossible(exec_page):
+    _set_slider(exec_page, "#momGrowth", "0")
+    _set_slider(exec_page, "#dailyVolume", "2.5")
+    assert exec_page.inner_text("#slaLegacy").startswith("PASS")
+    assert exec_page.inner_text("#slaOptimized").startswith("PASS")
+    _set_slider(exec_page, "#dailyVolume", "20")
+    assert exec_page.inner_text("#slaLegacy").startswith("FAIL")
+    assert "mês 1" in exec_page.inner_text("#slaNote")
+    assert not BROKEN_VALUE_RE.search(exec_page.inner_text("body"))
