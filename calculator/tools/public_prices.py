@@ -65,8 +65,27 @@ def _rec(provider, service, region, sku, metric, unit, price, source, valid_from
 
 
 # --- AWS ---
-def _download(url: str, dest: pathlib.Path) -> pathlib.Path:
-    if dest.exists() and dest.stat().st_size > 0:
+AWS_HOST = "https://pricing.us-east-1.amazonaws.com"
+AWS_REGION_INDEX = AWS_HOST + "/offers/v1.0/aws/{code}/current/region_index.json"
+
+
+def _current_version_url(code: str, region: str) -> str | None:
+    """URL da versão publicada agora (region_index.json, poucos KB). None se não der pra consultar."""
+    try:
+        r = requests.get(AWS_REGION_INDEX.format(code=code), timeout=30)
+        r.raise_for_status()
+        return AWS_HOST + r.json()["regions"][region]["currentVersionUrl"]
+    except Exception as exc:                                        # noqa: BLE001
+        print(f"! AWS {code}: não consegui ler a versão publicada ({exc}); usando o cache", file=sys.stderr)
+        return None
+
+
+def _download(url: str, dest: pathlib.Path, version: str | None = None) -> pathlib.Path:
+    """Baixa para o cache. Com `version`, só rebaixa quando a versão publicada mudou —
+    sem isso o cache nunca expirava e a AWS ficava congelada no primeiro download."""
+    marker = dest.with_suffix(".version")
+    cached = dest.exists() and dest.stat().st_size > 0
+    if cached and (version is None or (marker.exists() and marker.read_text(encoding="utf-8") == version)):
         return dest
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = dest.with_suffix(".part")
@@ -77,15 +96,17 @@ def _download(url: str, dest: pathlib.Path) -> pathlib.Path:
             for chunk in r.iter_content(1 << 20):
                 f.write(chunk)
     tmp.replace(dest)
+    if version:
+        marker.write_text(version, encoding="utf-8")
     return dest
 
 
-def _on_demand_prices(terms_od: dict) -> list[float]:
-    """Preços USD > 0 da primeira faixa (beginRange 0) de um SKU."""
+def _on_demand_prices(terms_od: dict, begin: str = "0") -> list[float]:
+    """Preços USD > 0 da faixa que começa em `begin` (padrão: a primeira, beginRange 0) de um SKU."""
     out = []
     for term in terms_od.values():
         for dim in term["priceDimensions"].values():
-            if dim.get("beginRange", "0") not in ("0", 0):
+            if str(dim.get("beginRange", "0")) != begin:
                 continue
             usd = float(dim["pricePerUnit"].get("USD", 0))
             if usd > 0:
@@ -121,19 +142,21 @@ def fetch_aws_bulk(region: str, targets: list[tuple], today: str, verbose=True) 
 
     out = []
     for code, items in by_offer.items():
-        url = AWS_BASE.format(code=code, region=region)
+        version_url = _current_version_url(code, region)
+        url = version_url or AWS_BASE.format(code=code, region=region)
         try:
-            path = _download(url, CACHE / f"{code}_{region}.json")
+            path = _download(url, CACHE / f"{code}_{region}.json", version_url)
         except requests.RequestException as exc:
             print(f"! AWS {code}: {exc}", file=sys.stderr)
             continue
-        filters = [f for _, f, *_ in items]
+        attrs_of = lambda flt: {k: v for k, v in flt.items() if not k.startswith("_")}
+        filters = [attrs_of(f) for _, f, *_ in items]
         matches = lambda a: any(all(a.get(k) == v for k, v in flt.items()) for flt in filters)
         skus, terms, pub = _load_offer(path, matches)
         for _, flt, service, sku, metric, unit in items:
             prices = [p for s, prod in skus.items()
-                      if all(prod["attributes"].get(k) == v for k, v in flt.items())
-                      for p in _on_demand_prices(terms.get(s, {}))]
+                      if all(prod["attributes"].get(k) == v for k, v in attrs_of(flt).items())
+                      for p in _on_demand_prices(terms.get(s, {}), flt.get("_begin", "0"))]
             if not prices:
                 print(f"! AWS sem preço: {code} {sku}", file=sys.stderr)
                 continue
