@@ -13,6 +13,7 @@ O engenheiro de dados descreve um pipeline (fonte, volume, ingestão, camadas ra
 |---|---|
 | Pipeline por estágios com engine, schedule, formato de arquivo/tabela e retenção próprios | aba *Workload & pipeline* |
 | Custo mensal/anual com faixa de estimativa e confidence score | barra de resumo e aba *Result* |
+| Avisos de viabilidade (job que não termina antes da próxima execução, warehouse além de um cluster) | barra de resumo e *Result* |
 | Breakdown por categoria e por estágio, unit economics (custo/TB, /GB, /query) | *Result* |
 | Uso físico por estágio (DPU-h, DBU, créditos, GB-mês, requests) para conferir nas calculadoras oficiais | *Result* |
 | **Go / No-Go de orçamento**, com o caminho de otimizações para caber no orçamento | *Go / No-Go* |
@@ -26,17 +27,19 @@ Preços vêm de **APIs públicas** (AWS Price List e Azure Retail Prices) e o c�
 
 ## Como rodar
 
-**Só usar o app** — abra `calculator/index.html` (visão técnica) ou `calculator/executive.html` (painel gerencial CFO/Board) no navegador; são arquivos únicos, sem servidor, e um link no topo alterna entre os dois.
+O projeto roda **localmente** (não há versão publicada na web).
+
+**Só usar o app** — abra `calculator/index.html` (visão técnica) ou `calculator/executive.html` (painel gerencial CFO/Board) no navegador; são arquivos únicos, sem servidor e sem internet, e um link no topo alterna entre os dois.
 
 **App com atualização de preços** — `python calculator/tools/serve.py` abre o app em `http://127.0.0.1:8765` e habilita o botão *Atualizar preços* (roda o coletor de AWS, Azure e câmbio e recalcula a tela).
 
-**Desenvolvimento** (Python 3.12, Node 20+ opcional):
+**Desenvolvimento** (Python 3.12; Node 20+ para regerar o golden e o CSS do painel gerencial):
 
 ```bash
-pip install requests ijson pyarrow duckdb pytest
-python calculator/tools/fetch_pricing.py    # atualiza os preços (AWS + Azure)
+pip install -r requirements.txt             # requirements-dev.txt para testes de UI e PySpark
+python calculator/tools/fetch_pricing.py    # atualiza os preços (AWS + Azure + câmbio)
 python calculator/build.py                  # regera calculator/index.html e calculator/executive.html
-python -m pytest calculator/tests           # 99 testes: paridade JS x Python, preços, validação, UI, calibração
+python -m pytest calculator/tests           # paridade JS x Python, preços, validação, métricas, UI
 ```
 
 ## Estrutura
@@ -49,21 +52,29 @@ calculator/
   engine/               motor de cálculo em Python (referência), com paridade testada contra o JS
   tools/                coleta de preços, build de golden, planilha e comparação de validação, calibração
   tests/                testes (golden.json vem do engine.js)
-  validation/           3 workloads de validação e planilha de conferência com calculadoras oficiais
+  validation/           3 workloads de validação, conferência com as calculadoras oficiais e métricas 2–5
   calibration/          kit para medir o throughput real das engines (Glue, Databricks, EMR, Snowflake)
   data/                 snapshot de preços em Parquet
   README.md, CHANGELOG.md   documentação técnica e histórico
 documentos_aux/         escopo, entregáveis parciais 1–3 e transcrição da reunião do time
+docs/revisao/           revisão do projeto (pendências, backlog, melhorias)
+docs/tcc/               rascunho do texto do TCC
 ```
 
-## Validação (Métrica 1 do TCC)
+## Validação e métricas do TCC
 
-Os três workloads (pequeno, médio, grande) já foram validados contra as calculadoras oficiais
-da AWS, Snowflake e Databricks — ver `calculator/validation/official.json` e
-`calculator/validation/pricing_confirmations.md`. Erro medido: 0,1% (pequeno), 0,1% (médio,
-linhas comparáveis) e entre 0% e 0,7% linha a linha no grande, que também revelou duas
-limitações reais do modelo (preço em camadas do S3 acima de 50 TB; limite físico de horas de
-um warehouse Snowflake single-cluster), documentadas em vez de forçadas.
+**Métrica 1 (erro de estimativa).** Os três workloads (pequeno, médio, grande) foram validados
+contra as calculadoras oficiais da AWS, Snowflake e Databricks — ver
+`calculator/validation/official.json` e `calculator/validation/pricing_confirmations.md`. Erro
+atual: 0,0% (pequeno), 0,1% (médio, linhas comparáveis) e entre 0% e 0,7% linha a linha no
+grande. A validação revelou duas limitações do modelo, ambas tratadas na v0.4: o preço em
+faixas do S3 acima de 50 TB (implementado; a linha passou a bater exato) e o limite de horas de
+um warehouse Snowflake single-cluster (teto de 729,6 h/mês e aviso de multi-cluster; falta
+refazer essa linha na calculadora oficial para fechar o total do grande).
+
+**Métricas 2 a 5 e Etapa 5 da metodologia.** `python calculator/tools/metrics_report.py` gera
+`calculator/validation/metrics.md` (tempo de resposta, capacidade de comparação, otimizações,
+classificação de SLA e ranking por perfil).
 
 Para reproduzir ou revalidar após uma mudança no motor:
 1. `python calculator/tools/validation_worksheet.py` gera `calculator/validation/worksheet.md` com as quantidades de cada serviço.
@@ -79,16 +90,20 @@ O throughput das engines ainda é premissa; para medi-lo veja [calculator/calibr
 - [x] Go/No-Go de orçamento e novo front
 - [x] Variante Azure e Glue 6.0+
 - [x] Kit de validação e de calibração
-- [x] Validar pequeno e médio por completo, e grande linha a linha (7/9, sem total fechado por razão estrutural documentada) contra as calculadoras oficiais (AWS, Snowflake, Databricks)
+- [x] Validar pequeno e médio por completo, e grande linha a linha contra as calculadoras oficiais (AWS, Snowflake, Databricks)
+- [x] Faixas do S3, teto do warehouse Snowflake, Gen 2, free tier do catálogo e avisos de viabilidade
+- [x] Métricas 2 a 5 (`validation/metrics.md`)
+- [ ] Fechar o total oficial do workload grande (Serving a 729,6 h/mês na calculadora do Snowflake)
+- [ ] Etapa 5: registrar a escolha do especialista em `validation/metrics.md`
 - [ ] Calibrar throughput com execuções medidas em conta cloud real
-- [ ] Habilitar o GitHub Pages (workflow pronto em `.github/workflows/pages.yml`; falta um admin do repositório ativar em Settings → Pages → Source: GitHub Actions)
-- [ ] Texto do TCC (metodologia, resultados, limitações)
+- [ ] Texto do TCC — rascunho em [docs/tcc/](docs/tcc/README.md)
 
 ## Documentos
 
 - Escopo completo: [documentos_aux/scopo.md](documentos_aux/scopo.md)
 - Documentação técnica do modelo: [calculator/README.md](calculator/README.md)
 - Histórico de entregas: [calculator/CHANGELOG.md](calculator/CHANGELOG.md)
+- Revisão do projeto (2026-10-15): [docs/revisao/](docs/revisao/README.md)
 
 ## Equipe
 

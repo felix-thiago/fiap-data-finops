@@ -51,9 +51,10 @@ Dica: `worker_type` `m5.xlarge` equivale ao Glue **G.1X** (1 DPU); `m5.2xlarge` 
 **5. Calibrar**
 
 ```bash
-python tools/calibrate.py          # mostra modelo atual x medido e grava calibration.json
-python build.py                    # regera o index.html com os novos valores
-python -m pytest tests             # os testes de paridade continuam valendo
+python calculator/tools/calibrate.py   # mostra modelo atual x medido e grava calibration.json
+python calculator/build.py             # regera os dois HTML com os novos valores
+node calculator/tools/gen_golden.js    # o golden passa a refletir a calibração
+python -m pytest calculator/tests      # os testes de paridade continuam valendo
 ```
 
 A saída mostra, por engine, o throughput que o modelo assumia e o medido (ex.: `glue  0.45 GB → 0.38 GB, -16%`).
@@ -84,7 +85,7 @@ https://github.com/cdarlint/winutils/raw/master/hadoop-3.3.6/bin/hadoop.dll
 **3. Rodar:**
 
 ```bash
-python calibration/local_dryrun.py --java-home "C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot" --hadoop-home "C:\caminho\para\hadoop"
+python calculator/calibration/local_dryrun.py --java-home "C:\Program Files\Eclipse Adoptium\<pasta-do-jdk-17>" --hadoop-home "C:\caminho\para\hadoop"
 ```
 
 Se terminar com `OK`, os dois scripts estão corretos e prontos para rodar no Glue/Databricks/EMR
@@ -108,4 +109,4 @@ Rode uma carga/transformação conhecida em warehouses de tamanhos diferentes (X
 
 ## O que acontece com o resultado
 
-`tools/calibrate.py` grava `calibration.json` (motor Python) e `src/calibration.js` (front). Os dois motores aplicam os valores por cima das premissas do catálogo, e a engine passa a constar como **medida** (`measured`). Sem medições, os arquivos ficam vazios e nada muda.
+`tools/calibrate.py` grava `calibration.json` (motor Python) e `src/calibration.js` (front). Os dois motores aplicam os valores por cima das premissas do catálogo, e a engine passa a constar como **medida** (`measured`), o que soma 5 pontos ao confidence score e estreita a faixa da estimativa. Sem medições, os arquivos ficam vazios e nada muda.

@@ -46,6 +46,12 @@ Serving — ele estima créditos totais corretamente do ponto de vista de "traba
 mas não verifica se esse trabalho é fisicamente realizável em um único warehouse por mês, e
 não modela o custo de configurar múltiplos clusters para viabilizá-lo.
 
+**Atualização 2026-10-15 (v0.4):** o motor passou a limitar as horas cobradas de um warehouse
+single-cluster a 729,6 h/mês (o idle de auto-suspend não passa do mês inteiro) e a emitir um aviso
+quando só o trabalho já excede isso (exige multi-cluster). Para o workload grande, Serving passa a
+729,6 h × 8 créditos (L). Falta refazer essa linha na calculadora da Snowflake para fechar o total
+oficial do grande.
+
 ### Achado 2 — S3: a AWS aplica preços em camadas (tiers) acima de 50 TB
 
 Para o workload grande, o modelo estima US$ 19.132,91 de storage S3 (831.865,7 GB × preço
@@ -63,6 +69,11 @@ praticamente idêntico ao valor da calculadora (diferença de US$ 0,04, arredond
 em volumes grandes (viés conservador, não perigoso para uma estimativa, mas mensurável).
 Modelar os tiers exigiria uma tabela de faixas por SKU em vez de um preço único; fica como
 trabalho futuro.
+
+**Atualização 2026-10-15 (v0.4):** implementado. O coletor lê as três faixas da AWS Price List
+(`standard-storage`, `standard-storage-50tb`, `standard-storage-500tb`) e o motor aplica as
+faixas sobre o total de S3 Standard do pipeline. O modelo passa a dar US$ 18.032,38, igual à
+calculadora.
 
 ## Confirmações de preço unitário (Snowflake e Databricks)
 

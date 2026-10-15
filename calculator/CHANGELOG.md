@@ -1,6 +1,62 @@
 # Changelog — DataCost Architect
 
-Tudo o que foi entregue desde a v0.2 (protótipo em JS puro), na ordem em que entrou.
+Tudo o que foi entregue desde a v0.2 (protótipo em JS puro), mais recente primeiro.
+
+## v0.4 — 2026-10-15 (revisão geral, branch `fix/revisao-2026-10`)
+
+Feita a partir da revisão em `docs/revisao/`.
+
+### Execução local e infraestrutura
+- **GitHub Pages abandonado:** o projeto passa a rodar só localmente; workflow do Pages removido.
+- **Bug corrigido:** `tools/gen_golden.js` lia o workload padrão do `app.js`, de onde ele tinha saído
+  para `workload_default.js` na seção 10 da v0.3 — o golden não podia mais ser regerado.
+- CI de testes (`.github/workflows/tests.yml`): confere se golden, HTMLs e CSS gerado estão em dia
+  com o código-fonte e roda a suíte.
+- `requirements.txt` e `requirements-dev.txt`; os testes de UI pulam sozinhos sem Playwright.
+
+### Motor (JS e Python, com paridade)
+- **Faixas de volume do S3 Standard** (US$ 0,023 até 50 TB, 0,022 até 500 TB, 0,021 acima),
+  coletadas da AWS Price List. Fecha o achado 2 da validação: storage do workload grande passa
+  de 5,75% acima da calculadora oficial para exato.
+- **Teto de 729,6 h/mês por warehouse Snowflake:** o idle de auto-suspend não passa do mês
+  inteiro; se o trabalho sozinho passa disso, o motor avisa que é preciso multi-cluster.
+  Trata o achado 1 da validação.
+- **Snowflake Gen 1 / Gen 2** (Gen 2 = 1,35× créditos por hora).
+- **Free tier do Glue Data Catalog** (1 milhão de objetos), desligável. O workload pequeno vai a
+  0,0% de erro total.
+- **Avisos de viabilidade** (`warnings`): estágio que não termina antes da próxima execução e
+  warehouse que exige multi-cluster.
+- Confidence +5 quando há engine com throughput medido pela calibração.
+- Golden com 14 cenários (3 novos: faixas do S3 + Gen 2, multi-cluster, idle limitado).
+
+### Preços
+- **Bug corrigido:** o cache dos arquivos da AWS nunca expirava, então o *Atualizar preços* só
+  atualizava Azure e câmbio. Agora o coletor confere a versão publicada (`region_index.json`) e
+  só baixa de novo quando ela muda.
+- Preços e câmbio atualizados em 2026-10-15: nenhum preço unitário mudou; câmbio USD→BRL
+  5,18 → 5,06 e USD→EUR 0,880 → 0,892.
+
+### Interface
+- **Painel gerencial dimensionado pelo SLA:** com os workers fixos do padrão, o painel abria
+  (2,5 TB/dia) mostrando o custo de um pipeline diário que levava dias para rodar. Agora cada
+  estágio é dimensionado para caber em 90% do SLA, e um card mostra a viabilidade das duas
+  arquiteturas e o mês em que o crescimento deixa de caber.
+- Painel gerencial sem CDN: Tailwind gerado localmente (`npm run build:css`) e embutido pelo
+  `build.py`; abre sem internet. TB→GB com 1024 como no motor, debounce nos sliders, IDs
+  renomeados, testes de UI próprios.
+- Visão técnica: campos Gen 1/Gen 2 e free tier do catálogo, card de avisos na aba *Result* e
+  contador na barra de resumo; corrigida divisão por zero com custo total zero.
+
+### Métricas e documentação
+- `tools/metrics_report.py` → `validation/metrics.md`: Métricas 2 a 5 e Etapa 5 da metodologia
+  (tempo de resposta, capacidade de comparação, otimizações, concordância do SLA 168/168 e ranking
+  por perfil para comparar com um especialista).
+- `README.md` técnico reescrito para a versão atual; READMEs e guias com caminhos a partir da raiz.
+- Rascunho do texto do TCC em `docs/tcc/`.
+
+## v0.3.1 — 2026-09-30
+- Painel gerencial: moeda EUR (contribuição do Thiago, levada para a fonte e com o símbolo
+  corrigido) e revisão dos comentários do código.
 
 ## v0.3 — 2026-09-24/25 (PRs #5, #6 e #7)
 
@@ -80,21 +136,20 @@ Tudo o que foi entregue desde a v0.2 (protótipo em JS puro), na ordem em que en
 ## Como reproduzir
 
 ```bash
-pip install requests ijson pyarrow duckdb pytest
-python calculator/tools/fetch_pricing.py     # preços AWS + Azure + câmbio + curados
-python calculator/tools/serve.py             # app local com o botão "Atualizar preços"
-python calculator/build.py                   # gera index.html e executive.html
-python -m pytest calculator/tests            # paridade JS x Python, preços, validação e calibração
-node calculator/tools/gen_golden.js          # regenera tests/golden.json a partir do JS
+pip install -r requirements.txt
+python calculator/tools/fetch_pricing.py          # preços AWS + Azure + câmbio + curados
+python calculator/tools/serve.py                  # app local com o botão "Atualizar preços"
+python calculator/build.py                        # gera index.html e executive.html
+python -m pytest calculator/tests                 # paridade JS x Python, preços, validação, métricas, UI
+node calculator/tools/gen_golden.js               # regenera tests/golden.json a partir do JS
 python calculator/tools/validation_worksheet.py   # planilha de conferência (validation/worksheet.md)
 python calculator/tools/validation_compare.py     # erro vs. calculadoras oficiais (Métrica 1)
+python calculator/tools/metrics_report.py         # Métricas 2 a 5 e Etapa 5 (validation/metrics.md)
 python calculator/tools/calibrate.py              # aplica execuções medidas (calibration/measurements.csv)
-python -m pytest calculator/tests/test_ui.py           # 13 testes de UI (requer: pip install pytest-playwright && playwright install chromium)
-python calculator/calibration/local_dryrun.py           # valida os scripts de calibração sem custo de nuvem (requer Java 17 + winutils)
 ```
 
 ## Próximos passos
-1. Validar médio e grande contra as calculadoras oficiais (a AWS já está confirmada para o pequeno; falta somar Snowflake/Databricks manualmente, calculadora por calculadora — ver `validation/pricing_confirmations.md`).
-2. Calibrar o throughput das engines com execuções medidas (começando pelo Glue), seguindo `calibration/README.md`.
-3. Publicar o app no GitHub Pages para a demonstração da banca.
-4. Redigir o texto do TCC: metodologia, resultados (erro de estimativa), discussão e limitações.
+1. Calibrar o throughput das engines com execuções medidas (começando pelo Glue), seguindo `calibration/README.md`.
+2. Refazer a linha de Serving do workload grande na calculadora do Snowflake (729,6 h/mês, warehouse L) e fechar o total oficial.
+3. Preencher a coluna "Escolha do especialista" em `validation/metrics.md` (Etapa 5).
+4. Finalizar o texto do TCC a partir do rascunho em `docs/tcc/`.
