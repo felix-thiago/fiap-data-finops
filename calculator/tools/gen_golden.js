@@ -3,9 +3,7 @@
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const root = path.join(__dirname, '..');
 const read = f => fs.readFileSync(path.join(root, 'src', f), 'utf8');
-const app = read('app.js');
-const defaults = app.slice(app.indexOf('const G_DEFAULTS'), app.indexOf('const G_FIELDS'));
-const code = read('pricing.js') + '\n' + read('calibration.js') + '\n' + read('engine.js') + '\n' + defaults + `
+const code = read('pricing.js') + '\n' + read('calibration.js') + '\n' + read('engine.js') + '\n' + read('workload_default.js') + `
 this.__api = { G_DEFAULTS, STAGE_DEFAULTS, calcPipeline, scheduleSweep, VARIANTS, PROFILES, scoreVariants,
                findOptimizations, sensitivity, breakEven, budgetGate, gateSuggestions };`;
 const ctx = { structuredClone, console };

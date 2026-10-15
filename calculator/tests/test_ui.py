@@ -14,6 +14,8 @@ import re
 
 import pytest
 
+pytest.importorskip("pytest_playwright", reason="pytest-playwright não instalado (ver requirements-dev.txt)")
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 INDEX_URL = ROOT.joinpath("index.html").resolve().as_uri()
 

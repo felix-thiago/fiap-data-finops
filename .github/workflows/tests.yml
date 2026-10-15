@@ -1,0 +1,28 @@
+name: Testes
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: pip install -r requirements.txt
+      - name: Golden em dia com o engine.js
+        run: |
+          node calculator/tools/gen_golden.js
+          git diff --exit-code calculator/tests/golden.json
+      - name: HTML gerado em dia com src/
+        run: |
+          python calculator/build.py
+          git diff --exit-code calculator/index.html calculator/executive.html
+      - name: Testes (UI e Spark local pulam sem os pré-requisitos)
+        run: python -m pytest calculator/tests -q

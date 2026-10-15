@@ -1,0 +1,6 @@
+# Python 3.12. Núcleo: coleta de preços, motor de referência e testes.
+requests
+ijson
+pyarrow
+duckdb
+pytest
