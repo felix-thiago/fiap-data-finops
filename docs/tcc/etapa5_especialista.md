@@ -96,7 +96,7 @@ Nome · perfil profissional · anos de experiência · data:
 3. Em `calculator/validation/metrics.md`, a seção da Etapa 5 passa a mostrar a escolha da maioria,
    se ela coincide com o 1º lugar da ferramenta, a **concordância no 1º lugar** e **entre os 3
    primeiros**, e a concordância entre avaliadores.
-4. Leve esses números e as justificativas para a seção 3.6 do rascunho do TCC.
+4. Leve esses números e as justificativas para as seções 4.7, 5.4 e 7 de `docs/tcc/tcc.md`.
 
 **Como ler o resultado.** Não é preciso 100% de concordância. Divergências bem explicadas são
 um resultado válido: mostram o que o modelo não captura. Um exemplo provável é o workload grande,

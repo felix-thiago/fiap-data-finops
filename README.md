@@ -21,7 +21,8 @@ O engenheiro de dados descreve um pipeline (fonte, volume, ingestão, camadas ra
 | Comparação de variantes: as-is, Glue 6.0+, Databricks Photon, EMR, lake/Athena, ELT no Snowflake, **Azure** | *Compare scenarios* |
 | Otimizações automáticas com efeito em SLA e latência | *Optimization* |
 | Sensibilidade ao volume e break-even entre arquiteturas | *Sensitivity & break-even* |
-| Premissas, fonte e versão de cada preço, limitações | *Assumptions* |
+| Premissas, fonte e versão de cada preço, limitações | *Premissas* |
+| Interface em português (BR) ou inglês, e moeda em USD, BRL ou EUR | topo das duas telas |
 
 Preços vêm de **APIs públicas** (AWS Price List e Azure Retail Prices) e o câmbio do BCE via Frankfurter, com versionamento em Parquet/DuckDB. Snowflake e Databricks não têm API pública de preços e usam tabela curada.
 
@@ -58,7 +59,7 @@ calculator/
   README.md, CHANGELOG.md   documentação técnica e histórico
 documentos_aux/         escopo, entregáveis parciais 1–3 e transcrição da reunião do time
 docs/revisao/           revisão do projeto (pendências, backlog, melhorias)
-docs/tcc/               rascunho do texto do TCC
+docs/tcc/               texto do TCC e formulário da Etapa 5
 ```
 
 ## Validação e métricas do TCC
@@ -66,15 +67,15 @@ docs/tcc/               rascunho do texto do TCC
 **Métrica 1 (erro de estimativa).** Os três workloads (pequeno, médio, grande) foram validados
 contra as calculadoras oficiais da AWS, Snowflake e Databricks — ver
 `calculator/validation/official.json` e `calculator/validation/pricing_confirmations.md`. Erro
-atual: 0,0% (pequeno), 0,1% (médio, linhas comparáveis) e entre 0% e 0,7% linha a linha no
-grande. A validação revelou duas limitações do modelo, ambas tratadas na v0.4: o preço em
+atual no total comparável: 0,0% (pequeno), 0,1% (médio) e 0,1% (grande); entre 0% e 0,7% linha a
+linha. A validação revelou duas limitações do modelo, ambas tratadas na v0.4: o preço em
 faixas do S3 acima de 50 TB (implementado; a linha passou a bater exato) e o limite de horas de
-um warehouse Snowflake single-cluster (teto de 729,6 h/mês e aviso de multi-cluster; falta
-refazer essa linha na calculadora oficial para fechar o total do grande).
+um warehouse Snowflake single-cluster (teto de 729,6 h/mês e aviso de multi-cluster; refeita na
+calculadora oficial, a linha ficou a 0,2% e o total comparável do grande a 0,1%).
 
 **Métricas 2 a 5 e Etapa 5 da metodologia.** `python calculator/tools/metrics_report.py` gera
 `calculator/validation/metrics.md` (tempo de resposta, capacidade de comparação, otimizações,
-classificação de SLA e ranking por perfil).
+classificação de SLA, sensibilidade ao throughput e concordância com especialistas).
 
 Para reproduzir ou revalidar após uma mudança no motor:
 1. `python calculator/tools/validation_worksheet.py` gera `calculator/validation/worksheet.md` com as quantidades de cada serviço.
@@ -93,10 +94,10 @@ O throughput das engines ainda é premissa; para medi-lo veja [calculator/calibr
 - [x] Validar pequeno e médio por completo, e grande linha a linha contra as calculadoras oficiais (AWS, Snowflake, Databricks)
 - [x] Faixas do S3, teto do warehouse Snowflake, Gen 2, free tier do catálogo e avisos de viabilidade
 - [x] Métricas 2 a 5 (`validation/metrics.md`)
-- [ ] Fechar o total oficial do workload grande (Serving a 729,6 h/mês na calculadora do Snowflake)
-- [ ] Etapa 5: registrar a escolha do especialista em `validation/metrics.md`
+- [ ] Etapa 5: aplicar o formulário `docs/tcc/etapa5_especialista.md` e registrar em `validation/expert_choices.json`
 - [ ] Calibrar throughput com execuções medidas em conta cloud real
-- [ ] Texto do TCC — rascunho em [docs/tcc/](docs/tcc/README.md)
+- [x] Fechar o total oficial do workload grande (0,1% de erro)
+- [ ] Texto do TCC — completo em [docs/tcc/tcc.md](docs/tcc/tcc.md), faltam os trechos [PREENCHER]
 
 ## Documentos
 

@@ -4,6 +4,23 @@ Tudo o que foi entregue desde a v0.2 (protótipo em JS puro), mais recente prime
 
 ## v0.4 — 2026-10-15 (revisão geral, branch `fix/revisao-2026-10`)
 
+### Segunda rodada (mesmo dia)
+- **Idioma:** seletor português (BR) / inglês nas duas telas, ao lado da moeda; textos do motor
+  traduzidos na apresentação, números no formato do idioma, escolha lembrada no navegador.
+- **Métrica 1 completa:** Serving do workload grande refeito na Snowflake Pricing Calculator
+  (US$ 11.648,00 contra 11.673,60 do modelo); total comparável do grande com 0,1% de erro.
+- **Etapa 5:** formulário cego para avaliadores (`docs/tcc/etapa5_especialista.md`),
+  `validation/expert_choices.json` e cálculo de concordância no `metrics_report.py`.
+- **Calibração sem conta AWS:** `calibration/snowflake_benchmark.sql` (trial do Snowflake),
+  scripts PySpark compatíveis com o Databricks serverless (Free Edition) e guia de rotas.
+- **Correção no kit de calibração:** o guia mandava anotar o tamanho do Parquet comprimido, mas o
+  motor mede volume lógico; `gen_data.py` passa a imprimir `gb_logical`.
+- **Sensibilidade ao throughput** (0,5×–2×) no relatório de métricas.
+- **Texto do TCC** completo em `docs/tcc/tcc.md`, com introdução, referencial teórico e
+  referências em ABNT (o rascunho foi incorporado).
+
+### Primeira rodada
+
 Feita a partir da revisão em `docs/revisao/`.
 
 ### Execução local e infraestrutura
@@ -52,7 +69,7 @@ Feita a partir da revisão em `docs/revisao/`.
   (tempo de resposta, capacidade de comparação, otimizações, concordância do SLA 168/168 e ranking
   por perfil para comparar com um especialista).
 - `README.md` técnico reescrito para a versão atual; READMEs e guias com caminhos a partir da raiz.
-- Rascunho do texto do TCC em `docs/tcc/`.
+- Rascunho do texto do TCC em `docs/tcc/` (depois incorporado em `docs/tcc/tcc.md`).
 
 ## v0.3.1 — 2026-09-30
 - Painel gerencial: moeda EUR (contribuição do Thiago, levada para a fonte e com o símbolo
@@ -150,6 +167,5 @@ python calculator/tools/calibrate.py              # aplica execuções medidas (
 
 ## Próximos passos
 1. Calibrar o throughput das engines com execuções medidas (começando pelo Glue), seguindo `calibration/README.md`.
-2. Refazer a linha de Serving do workload grande na calculadora do Snowflake (729,6 h/mês, warehouse L) e fechar o total oficial.
-3. Preencher a coluna "Escolha do especialista" em `validation/metrics.md` (Etapa 5).
-4. Finalizar o texto do TCC a partir do rascunho em `docs/tcc/`.
+2. Aplicar o formulário da Etapa 5 (`docs/tcc/etapa5_especialista.md`) e registrar as respostas em `validation/expert_choices.json`.
+3. Fechar os trechos [PREENCHER] de `docs/tcc/tcc.md` (Etapa 5 e, se feita, calibração).

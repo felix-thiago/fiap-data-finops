@@ -50,21 +50,22 @@ horas do warehouse Snowflake).
 
 | Item | Status |
 |---|---|
-| P0-1 Texto do TCC | Rascunho em [docs/tcc/](../tcc/README.md); faltam os trechos **[PREENCHER]** |
+| P0-1 Texto do TCC | Texto completo em [docs/tcc/tcc.md](../tcc/tcc.md); faltam os trechos **[PREENCHER]** (Etapa 5, orientador, calibração opcional) |
 | P0-2 Métricas 2 a 5 | Feito: `calculator/tools/metrics_report.py` → `calculator/validation/metrics.md` |
-| P0-3 Etapa 5 | Ranking gerado; falta a equipe registrar a escolha do especialista |
-| P1-4 Calibração em conta real | Pendente (precisa de conta AWS; o confidence agora reconhece engine medida) |
+| P0-3 Etapa 5 | Formulário e cálculo de concordância prontos; falta aplicar aos avaliadores |
+| P1-4 Calibração em conta real | Pendente; há rotas sem conta AWS (Snowflake trial, Databricks Free Edition) e a sensibilidade ao throughput quantifica a limitação |
 | P1-5 GitHub Pages | **Descartado**: o projeto roda só localmente; workflow removido |
 | P1-6 Preços | Atualizados em 2026-10-15 (só o câmbio mudou); bug do cache da AWS corrigido |
-| P1-7 Desvio de arquitetura | Justificado no rascunho (seção 4.3) e no README técnico |
-| P1-8 "Por que não o ChatGPT" | No rascunho (seção 4.1) |
+| P1-7 Desvio de arquitetura | Justificado no texto do TCC (`docs/tcc/tcc.md`, seção 3.2) e no README técnico |
+| P1-8 "Por que não o ChatGPT" | No texto do TCC (seção 5.3) |
 | P2-9 Documentação | Feito (README técnico reescrito, CHANGELOG, guias) |
 | P2-10 Branches mergeadas | **Não feito**: apagar branches é com a equipe (`git branch --merged main`) |
 | B1–B5, B14 | Feitos (faixas do S3, teto do Snowflake, Gen 2, free tier, avisos, confidence) |
 | B6–B13, B15–B21 | Backlog / trabalho futuro |
 | M1–M7, M10–M13 | Feitos |
 | M8 Motor duplicado | Regra documentada no README técnico §10; CI confere o golden |
-| M9 Idioma da interface | **Não feito**: aguarda decisão da equipe |
+| M9 Idioma da interface | Feito: seletor português (BR) / inglês nas duas telas |
+| Total oficial do workload grande | Feito: Serving refeito na calculadora do Snowflake; 0,1% de erro no total |
 
 Encontrados durante as correções: o `tools/gen_golden.js` estava quebrado desde a seção 10 da
 v0.3, e o cache dos arquivos da AWS nunca expirava. Os dois foram corrigidos.

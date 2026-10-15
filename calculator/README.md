@@ -38,7 +38,8 @@ Ele sobe em `http://127.0.0.1:8765`, roda o coletor de preços e regera os HTMLs
   (DPU-h, DBU, créditos, GB-mês, requests) e **avisos de viabilidade**.
 - **Go / No-Go**, **Schedule impact**, **Compare scenarios** (com o perfil de decisão),
   **Optimization**, **Sensitivity & break-even**, **Assumptions**.
-- **Moeda** no topo: camada de apresentação; o modelo interno é sempre USD.
+- **Idioma** (português BR ou inglês) e **moeda** no topo: camada de apresentação. O modelo
+  interno é sempre USD e escreve premissas e avisos em português; `src/i18n.js` traduz na tela.
 
 ---
 
@@ -231,11 +232,12 @@ crescimento deixa de caber.
 
 | Métrica (scopo §50) | Como reproduzir | Resultado |
 |---|---|---|
-| 1 — Erro de estimativa | `python calculator/tools/validation_compare.py` | 0,0% a 0,7% por linha contra as calculadoras oficiais (a exceção são os requests do médio: US$ 0,12 contra 0,13, 7,7% de um valor de centavos); ver `validation/official.json` e `validation/pricing_confirmations.md` |
+| 1 — Erro de estimativa | `python calculator/tools/validation_compare.py` | até 0,1% no total comparável de cada workload; 0,0% a 0,7% por linha contra as calculadoras oficiais (a exceção são os requests do médio: US$ 0,12 contra 0,13, 7,7% de um valor de centavos); ver `validation/official.json` e `validation/pricing_confirmations.md` |
 | 2 a 5 e Etapa 5 | `python calculator/tools/metrics_report.py` | `validation/metrics.md` |
 
 `tools/validation_worksheet.py` gera `validation/worksheet.md` com as quantidades a digitar
-nas calculadoras oficiais.
+nas calculadoras oficiais. A Etapa 5 lê as escolhas de especialistas de
+`validation/expert_choices.json` (formulário em `docs/tcc/etapa5_especialista.md`).
 
 ## 9. Limitações declaradas
 
@@ -273,7 +275,7 @@ calculator/
   index.html, executive.html   gerados por build.py (não editar à mão)
   build.py                     concatena src/*_shell.html + pricing + engine + app + CSS
   src/                         engine.js, pricing.js (gerado), calibration.js (gerado),
-                               workload_default.js, app.js, executive.js, shells, Tailwind
+                               workload_default.js, i18n.js, app.js, executive.js, shells, Tailwind
   engine/                      motor Python de referência (catalog, core, analysis, pricing)
   tools/                       fetch_pricing, public_prices, serve, gen_golden, calibrate,
                                validation_worksheet, validation_compare, metrics_report
