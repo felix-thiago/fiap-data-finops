@@ -1,0 +1,46 @@
+{
+  "_como_preencher": [
+    "Uma entrada em 'avaliadores' por pessoa. Cada uma preenche sozinha, sem ver o ranking da ferramenta (ver docs/tcc/etapa5_especialista.md).",
+    "Valores aceitos em 'escolhas': asis, glue6, dbx, emr, lake, azure, elt (ou null se nao souber).",
+    "Depois rode: python calculator/tools/metrics_report.py"
+  ],
+  "variantes": {
+    "asis": "As-is (configuracao atual)",
+    "glue6": "AWS Glue 6.0+",
+    "dbx": "Databricks Photon nas transformacoes",
+    "emr": "PySpark em EMR",
+    "lake": "Servir do lake (Athena), sem DW",
+    "azure": "Azure: Databricks + ADLS",
+    "elt": "ELT dentro do Snowflake"
+  },
+  "avaliadores": [
+    {
+      "nome": null,
+      "perfil_profissional": null,
+      "anos_experiencia": null,
+      "data": null,
+      "escolhas": {
+        "small": {
+          "cost": null,
+          "balanced": null,
+          "performance": null
+        },
+        "medium": {
+          "cost": null,
+          "balanced": null,
+          "performance": null
+        },
+        "large": {
+          "cost": null,
+          "balanced": null,
+          "performance": null
+        }
+      },
+      "justificativas": {
+        "small": null,
+        "medium": null,
+        "large": null
+      }
+    }
+  ]
+}

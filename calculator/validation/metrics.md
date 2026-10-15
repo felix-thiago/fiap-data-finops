@@ -8,9 +8,9 @@ Mediana de várias execuções na mesma máquina. *Um cálculo* = custo, SLA e c
 
 | Workload | Python — um cálculo | Python — análise completa | JS (navegador) — um cálculo | JS — análise completa |
 |---|---:|---:|---:|---:|
-| Pequeno | 0,02 ms | 12,68 ms | 0,01 ms | 4,53 ms |
-| Médio | 0,03 ms | 19,39 ms | 0,01 ms | 8,30 ms |
-| Grande | 0,04 ms | 21,19 ms | 0,02 ms | 8,50 ms |
+| Pequeno | 0,02 ms | 14,89 ms | 0,01 ms | 4,84 ms |
+| Médio | 0,03 ms | 23,96 ms | 0,02 ms | 9,58 ms |
+| Grande | 0,04 ms | 24,19 ms | 0,02 ms | 9,67 ms |
 
 ## Métrica 3 — Capacidade de comparação
 
@@ -62,16 +62,18 @@ Grade de 7 volumes × 8 frequências × 3 workloads = 168 cenários. Em cada um,
 
 ## Etapa 5 — A ferramenta recomenda a alternativa adequada?
 
-Primeiro lugar do ranking em cada perfil de decisão. Para fechar a etapa, a equipe registra na última coluna a arquitetura que um especialista escolheria para o workload (com a justificativa no texto do TCC) e calcula a concordância.
+Três primeiros do ranking em cada perfil de decisão, comparados com a escolha de especialistas registrada em `validation/expert_choices.json` (protocolo em `docs/tcc/etapa5_especialista.md`). Com mais de um avaliador, vale a escolha da maioria.
 
-| Workload | Perfil | 1º lugar | 2º lugar | 3º lugar | Escolha do especialista |
-|---|---|---|---|---|---|
-| Pequeno | Cost Optimized | AWS Glue 6.0+ (US$ 44,99, PASS) | Databricks Photon nas transformações (US$ 48,74, PASS) | PySpark em EMR (US$ 45,96, PASS) | *preencher* |
-| Pequeno | Balanced | AWS Glue 6.0+ (US$ 44,99, PASS) | Databricks Photon nas transformações (US$ 48,74, PASS) | PySpark em EMR (US$ 45,96, PASS) | *preencher* |
-| Pequeno | Performance Optimized | Databricks Photon nas transformações (US$ 48,74, PASS) | ELT dentro do Snowflake (US$ 60,94, PASS) | AWS Glue 6.0+ (US$ 44,99, PASS) | *preencher* |
-| Médio | Cost Optimized | Servir do lake (Athena), sem DW (US$ 1.869,21, PASS) | Databricks Photon nas transformações (US$ 2.469,01, PASS) | Azure: Databricks + ADLS (US$ 2.436,12, PASS) | *preencher* |
-| Médio | Balanced | Servir do lake (Athena), sem DW (US$ 1.869,21, PASS) | Databricks Photon nas transformações (US$ 2.469,01, PASS) | Azure: Databricks + ADLS (US$ 2.436,12, PASS) | *preencher* |
-| Médio | Performance Optimized | Databricks Photon nas transformações (US$ 2.469,01, PASS) | ELT dentro do Snowflake (US$ 2.802,92, PASS) | Servir do lake (Athena), sem DW (US$ 1.869,21, PASS) | *preencher* |
-| Grande | Cost Optimized | Servir do lake (Athena), sem DW (US$ 27.070,58, PASS) | AWS Glue 6.0+ (US$ 36.919,52, PASS) | As-is (configuração atual) (US$ 37.261,64, PASS) | *preencher* |
-| Grande | Balanced | Servir do lake (Athena), sem DW (US$ 27.070,58, PASS) | AWS Glue 6.0+ (US$ 36.919,52, PASS) | As-is (configuração atual) (US$ 37.261,64, PASS) | *preencher* |
-| Grande | Performance Optimized | Servir do lake (Athena), sem DW (US$ 27.070,58, PASS) | AWS Glue 6.0+ (US$ 36.919,52, PASS) | As-is (configuração atual) (US$ 37.261,64, PASS) | *preencher* |
+| Workload | Perfil | 1º lugar | 2º lugar | 3º lugar | Especialista | Concorda? |
+|---|---|---|---|---|---|---|
+| Pequeno | Cost Optimized | AWS Glue 6.0+ (US$ 44,99, PASS) | Databricks Photon nas transformações (US$ 48,74, PASS) | PySpark em EMR (US$ 45,96, PASS) | *pendente* | — |
+| Pequeno | Balanced | AWS Glue 6.0+ (US$ 44,99, PASS) | Databricks Photon nas transformações (US$ 48,74, PASS) | PySpark em EMR (US$ 45,96, PASS) | *pendente* | — |
+| Pequeno | Performance Optimized | Databricks Photon nas transformações (US$ 48,74, PASS) | ELT dentro do Snowflake (US$ 60,94, PASS) | AWS Glue 6.0+ (US$ 44,99, PASS) | *pendente* | — |
+| Médio | Cost Optimized | Servir do lake (Athena), sem DW (US$ 1.869,21, PASS) | Databricks Photon nas transformações (US$ 2.469,01, PASS) | Azure: Databricks + ADLS (US$ 2.436,12, PASS) | *pendente* | — |
+| Médio | Balanced | Servir do lake (Athena), sem DW (US$ 1.869,21, PASS) | Databricks Photon nas transformações (US$ 2.469,01, PASS) | Azure: Databricks + ADLS (US$ 2.436,12, PASS) | *pendente* | — |
+| Médio | Performance Optimized | Databricks Photon nas transformações (US$ 2.469,01, PASS) | ELT dentro do Snowflake (US$ 2.802,92, PASS) | Servir do lake (Athena), sem DW (US$ 1.869,21, PASS) | *pendente* | — |
+| Grande | Cost Optimized | Servir do lake (Athena), sem DW (US$ 27.070,58, PASS) | AWS Glue 6.0+ (US$ 36.919,52, PASS) | As-is (configuração atual) (US$ 37.261,64, PASS) | *pendente* | — |
+| Grande | Balanced | Servir do lake (Athena), sem DW (US$ 27.070,58, PASS) | AWS Glue 6.0+ (US$ 36.919,52, PASS) | As-is (configuração atual) (US$ 37.261,64, PASS) | *pendente* | — |
+| Grande | Performance Optimized | Servir do lake (Athena), sem DW (US$ 27.070,58, PASS) | AWS Glue 6.0+ (US$ 36.919,52, PASS) | As-is (configuração atual) (US$ 37.261,64, PASS) | *pendente* | — |
+
+Nenhuma escolha de especialista registrada ainda.

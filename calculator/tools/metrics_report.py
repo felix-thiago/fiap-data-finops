@@ -143,6 +143,45 @@ def independent_sla(g, stages):
     return "PASS" if time_ok and fresh_ok else ("PARTIAL" if time_ok or fresh_ok else "FAIL")
 
 
+# ---------- Etapa 5: escolha de especialistas ----------
+def load_raters(path):
+    """Avaliadores de validation/expert_choices.json com pelo menos uma escolha preenchida."""
+    if not path.exists():
+        return []
+    data = json.loads(path.read_text(encoding="utf-8"))
+    raters = []
+    for r in data.get("avaliadores", []):
+        picks = {(w, p): v for w, prof in (r.get("escolhas") or {}).items() for p, v in (prof or {}).items() if v}
+        bad = [v for v in picks.values() if v not in VARIANTS]
+        if bad:
+            raise SystemExit(f"expert_choices.json: variante desconhecida {bad} (use {', '.join(VARIANTS)})")
+        if picks:
+            raters.append(picks)
+    return raters
+
+
+def consensus(raters, workload, profile):
+    """Escolha da maioria (empate: a que aparece primeiro) e o placar de votos."""
+    votes = [r[(workload, profile)] for r in raters if (workload, profile) in r]
+    if not votes:
+        return None, ""
+    best = max(dict.fromkeys(votes), key=votes.count)
+    return best, f"{votes.count(best)}/{len(votes)}"
+
+
+def inter_rater(raters):
+    """Fração de pares de avaliadores que escolheram a mesma variante, sobre todas as células."""
+    pairs = agree = 0
+    cells = {c for r in raters for c in r}
+    for c in cells:
+        votes = [r[c] for r in raters if c in r]
+        for i in range(len(votes)):
+            for j in range(i + 1, len(votes)):
+                pairs += 1
+                agree += votes[i] == votes[j]
+    return agree / pairs if pairs else None
+
+
 # ---------- relatório ----------
 def money(v):
     return f"US$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
@@ -161,6 +200,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--no-js", action="store_true")
     ap.add_argument("--out", default=str(OUT))
+    ap.add_argument("--experts", default=str(ROOT / "validation" / "expert_choices.json"))
     args = ap.parse_args()
 
     cases = {k: fn() for k, fn in WORKLOADS.items()}
@@ -252,12 +292,14 @@ def main():
           "que ainda é premissa até a calibração com execuções reais (`calibration/README.md`).", ""]
 
     # Etapa 5
+    raters = load_raters(pathlib.Path(args.experts))
     L += ["## Etapa 5 — A ferramenta recomenda a alternativa adequada?", "",
-          "Primeiro lugar do ranking em cada perfil de decisão. Para fechar a etapa, a equipe registra "
-          "na última coluna a arquitetura que um especialista escolheria para o workload (com a "
-          "justificativa no texto do TCC) e calcula a concordância.", "",
-          "| Workload | Perfil | 1º lugar | 2º lugar | 3º lugar | Escolha do especialista |",
-          "|---|---|---|---|---|---|"]
+          "Três primeiros do ranking em cada perfil de decisão, comparados com a escolha de especialistas "
+          "registrada em `validation/expert_choices.json` (protocolo em `docs/tcc/etapa5_especialista.md`). "
+          "Com mais de um avaliador, vale a escolha da maioria.", "",
+          "| Workload | Perfil | 1º lugar | 2º lugar | 3º lugar | Especialista | Concorda? |",
+          "|---|---|---|---|---|---|---|"]
+    top1 = top3 = judged = 0
     for k, (g, s) in cases.items():
         results = []
         for vid, v in VARIANTS.items():
@@ -266,8 +308,27 @@ def main():
         for pid, p in PROFILES.items():
             top = score_variants(results, p["w"])[:3]
             cells = [f"{VARIANTS[r['variant']]['name']} ({money(r['monthly'])}, {r['sla_status']})" for r in top]
-            L.append(f"| {LABEL[k]} | {p['label']} | " + " | ".join(cells) + " | *preencher* |")
+            choice, votes = consensus(raters, k, pid)
+            if choice is None:
+                expert, verdict = "*pendente*", "—"
+            else:
+                judged += 1
+                ids = [r["variant"] for r in top]
+                top1 += ids[0] == choice
+                top3 += choice in ids
+                expert = VARIANTS[choice]["name"] + (f" ({votes})" if len(raters) > 1 else "")
+                verdict = "sim (1º)" if ids[0] == choice else ("no top 3" if choice in ids else "não")
+            L.append(f"| {LABEL[k]} | {p['label']} | " + " | ".join(cells) + f" | {expert} | {verdict} |")
     L.append("")
+    if judged:
+        L += [f"- **Concordância no 1º lugar: {top1}/{judged} ({pct(top1 / judged * 100)})**",
+              f"- Escolha do especialista entre os 3 primeiros: {top3}/{judged} ({pct(top3 / judged * 100)})"]
+        agreement = inter_rater(raters)
+        if agreement is not None:
+            L.append(f"- Concordância entre avaliadores (pares que escolheram igual): {pct(agreement * 100)}")
+        L.append("")
+    else:
+        L += ["Nenhuma escolha de especialista registrada ainda.", ""]
 
     pathlib.Path(args.out).write_text("\n".join(L), encoding="utf-8")
     print(f"gravado: {args.out}")

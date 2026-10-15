@@ -65,7 +65,7 @@
   },
   "large": {
     "model_total_usd": 41555.79,
-    "official_total_usd": null,
+    "official_total_usd": 34835.08,
     "lines": {
       "glue": {
         "model_usd": 1140.4,
@@ -81,8 +81,8 @@
       },
       "snowflake_compute": {
         "model_usd": 15171.36,
-        "official_usd": null,
-        "note": "Nao comparavel como um todo. Load (154.567 creditos, warehouse L) e alcancavel: official=309.13 USD (calculadora, 19.32h/mes). Serve (7431.111 creditos) implica um warehouse ativo por 928.9h/mes, acima do maximo fisico de 24h x 30.4 dias = 729.6h/mes para um warehouse single-cluster -- a calculadora oficial rejeita essa entrada (limite de 730h/mes por instancia de compute). Achado: para volumes de consulta muito altos, a heuristica de idle-time do motor (uma cauda de auto-suspend por sessao de 20 consultas) pode somar mais horas do que existem no mes; ver pricing_confirmations.md. | 2026-10-15: o motor passou a limitar as horas de um warehouse single-cluster a 729.6 h/mes (o idle de auto-suspend nao passa do mes inteiro). Serving agora = 729.6 h x 8 creditos (L) = 5836.8 creditos; com isso a linha volta a ser digitavel na calculadora oficial (<= 730 h/mes). Pendente: refazer Serving na Snowflake Pricing Calculator (warehouse L, Standard, Gen 1, 729.6 h/mes) e preencher official_usd = Load + Serving."
+        "official_usd": 11957.13,
+        "note": "Nao comparavel como um todo. Load (154.567 creditos, warehouse L) e alcancavel: official=309.13 USD (calculadora, 19.32h/mes). Serve (7431.111 creditos) implica um warehouse ativo por 928.9h/mes, acima do maximo fisico de 24h x 30.4 dias = 729.6h/mes para um warehouse single-cluster -- a calculadora oficial rejeita essa entrada (limite de 730h/mes por instancia de compute). Achado: para volumes de consulta muito altos, a heuristica de idle-time do motor (uma cauda de auto-suspend por sessao de 20 consultas) pode somar mais horas do que existem no mes; ver pricing_confirmations.md. | 2026-10-15: o motor passou a limitar as horas de um warehouse single-cluster a 729.6 h/mes (o idle de auto-suspend nao passa do mes inteiro). Serving agora = 729.6 h x 8 creditos (L) = 5836.8 creditos; com isso a linha volta a ser digitavel na calculadora oficial (<= 730 h/mes). Pendente: refazer Serving na Snowflake Pricing Calculator (warehouse L, Standard, Gen 1, 729.6 h/mes) e preencher official_usd = Load + Serving. | 2026-10-15: Serving refeito na Snowflake Pricing Calculator (AWS, US East (Northern Virginia), Standard, Standard Warehouse Gen 1, L - 8 credits/hour, 24 hours/day x 7 days/week): US$ 11,648.00/mes. A calculadora agora pede horas/dia e dias/semana e converte o mes como 52/12 semanas = 728 h; o modelo usa 30.4 dias = 729.6 h (diferenca de 0.22%). official_usd = Load 309.13 + Serving 11,648.00."
       },
       "snowflake_storage": {
         "model_usd": 1770.82,
@@ -107,7 +107,7 @@
         "official_usd": null
       }
     },
-    "source_and_date": "AWS Pricing Calculator + Databricks Pricing Calculator (databricks.com/product/pricing/product-pricing/instance-types) + Snowflake Pricing Calculator, preenchido em 2026-09-27. AWS Glue: 42 DPUs (21 nos x 2 DPU do m5.2xlarge), 3703 min/mes. S3: 831865.7 GB-mes, 361384 PUT, 661504 GET. Databricks: Lakeflow Jobs Classic Photon, instancia m5d.2xlarge (3.973 DBU/h -- a familia real usada pela calculadora tem SSD local, 'd', enquanto o motor assume m5.2xlarge puro com 4.0 DBU/h; diferenca de 0.7% explica o gap em cada estagio) para bronze (17 instancias, 1.366h/dia, 30 dias -> 697h, 2767.83 DBU, US$415.17), silver (identico) e gold (17 instancias, 1.135h/dia, 30 dias -> 579h, 2299.77 DBU, US$344.97); EC2 dos mesmos nos via AWS Calculator (3 instancias m5.2xlarge on-demand, 657.539 horas/mes cada = 1972.617 node-horas totais). Snowflake: Standard Warehouse Gen 1, DW Load em L (19.32h/mes) e storage 76.99 TB alcancaveis; Serving em L nao alcancavel (ver nota na linha snowflake_compute). Total oficial nao calculado (official_total_usd fica null) porque a linha de maior peso (Serving, ~36% do custo do workload) nao pode ser reproduzida numa calculadora oficial com um unico warehouse -- exigiria modelar warehouses multi-cluster, fora do escopo desta calibracao manual.",
+    "source_and_date": "AWS Pricing Calculator + Databricks Pricing Calculator (databricks.com/product/pricing/product-pricing/instance-types) + Snowflake Pricing Calculator, preenchido em 2026-09-27. AWS Glue: 42 DPUs (21 nos x 2 DPU do m5.2xlarge), 3703 min/mes. S3: 831865.7 GB-mes, 361384 PUT, 661504 GET. Databricks: Lakeflow Jobs Classic Photon, instancia m5d.2xlarge (3.973 DBU/h -- a familia real usada pela calculadora tem SSD local, 'd', enquanto o motor assume m5.2xlarge puro com 4.0 DBU/h; diferenca de 0.7% explica o gap em cada estagio) para bronze (17 instancias, 1.366h/dia, 30 dias -> 697h, 2767.83 DBU, US$415.17), silver (identico) e gold (17 instancias, 1.135h/dia, 30 dias -> 579h, 2299.77 DBU, US$344.97); EC2 dos mesmos nos via AWS Calculator (3 instancias m5.2xlarge on-demand, 657.539 horas/mes cada = 1972.617 node-horas totais). Snowflake: Standard Warehouse Gen 1, DW Load em L (19.32h/mes) e storage 76.99 TB alcancaveis; Serving em L nao alcancavel (ver nota na linha snowflake_compute). Total oficial nao calculado (official_total_usd fica null) porque a linha de maior peso (Serving, ~36% do custo do workload) nao pode ser reproduzida numa calculadora oficial com um unico warehouse -- exigiria modelar warehouses multi-cluster, fora do escopo desta calibracao manual. Serving refeito em 2026-10-15 (ver nota em snowflake_compute).",
     "model_values_as_of": "2026-09-27 (valores do modelo no dia da conferencia; rode tools/validation_compare.py para os atuais)"
   }
 }
