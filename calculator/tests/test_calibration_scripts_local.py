@@ -37,7 +37,7 @@ def test_gen_data_and_etl_benchmark_run_end_to_end(tmp_path, capsys):
 
     run_script(ROOT / "calibration" / "gen_data.py", ["--rows", "500000", "--out", input_uri])
     gen_out = capsys.readouterr().out
-    assert "DATACOST_GEN" in gen_out and "gb_written=" in gen_out
+    assert "DATACOST_GEN" in gen_out and "gb_logical=" in gen_out and "gb_written=" in gen_out
 
     run_script(ROOT / "calibration" / "etl_benchmark.py", ["--in", input_uri, "--out", output_uri])
     bench_out = capsys.readouterr().out

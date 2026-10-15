@@ -143,6 +143,29 @@ def independent_sla(g, stages):
     return "PASS" if time_ok and fresh_ok else ("PARTIAL" if time_ok or fresh_ok else "FAIL")
 
 
+# ---------- sensibilidade ao throughput ----------
+from contextlib import contextmanager
+
+
+@contextmanager
+def scaled_throughput(factor):
+    """Multiplica temporariamente o throughput de todas as engines e tamanhos de warehouse."""
+    saved = ({k: e.get("gb_per_node_min") for k, e in ENGINES.items()}, {k: w["gb_per_min"] for k, w in WH_SIZES.items()})
+    try:
+        for e in ENGINES.values():
+            if e.get("gb_per_node_min"):
+                e["gb_per_node_min"] *= factor
+        for w in WH_SIZES.values():
+            w["gb_per_min"] *= factor
+        yield
+    finally:
+        for k, v in saved[0].items():
+            if v is not None:
+                ENGINES[k]["gb_per_node_min"] = v
+        for k, v in saved[1].items():
+            WH_SIZES[k]["gb_per_min"] = v
+
+
 # ---------- Etapa 5: escolha de especialistas ----------
 def load_raters(path):
     """Avaliadores de validation/expert_choices.json com pelo menos uma escolha preenchida."""
@@ -290,6 +313,34 @@ def main():
           "**Limite desta métrica:** ela confirma que o motor classifica o SLA de acordo com o "
           "próprio modelo de tempo. Se o *tempo* em si está certo depende do throughput das engines, "
           "que ainda é premissa até a calibração com execuções reais (`calibration/README.md`).", ""]
+
+    # Sensibilidade ao throughput: o que acontece se a premissa estiver errada
+    factors = [0.5, 0.75, 1, 1.5, 2]
+    L += ["## Sensibilidade ao throughput (premissa ainda não calibrada)", "",
+          "O tempo de cada estágio depende do throughput assumido por engine (GB por nó-minuto e, no "
+          "Snowflake, GB por minuto de warehouse). Enquanto ele não é medido, a tabela mostra o custo "
+          "mensal e o SLA se o throughput real de **todas** as engines for uma fração ou um múltiplo do "
+          "assumido.", "",
+          "| Workload | " + " | ".join(f"{f:g}× throughput".replace(".", ",") for f in factors) + " |",
+          "|---|" + "---:|" * len(factors)]
+    for k, (g, s) in cases.items():
+        cells = []
+        base_cost = None
+        for f in factors:
+            with scaled_throughput(f):
+                r = calc_pipeline(g, s)
+            if f == 1:
+                base_cost = r["monthly"]
+            cells.append((r["monthly"], r["sla_status"]))
+        L.append(f"| {LABEL[k]} | " + " | ".join(
+            f"{money(c)} ({'+' if c >= base_cost else '−'}{pct(abs(c / base_cost - 1) * 100)}), {st}" for c, st in cells) + " |")
+    L += ["", "Leitura: com o número de workers fixo, o custo de compute é proporcional ao tempo de "
+          "execução, então um throughput menor encarece o compute na mesma proporção. Storage, requests "
+          "e consumo não dependem do throughput. Por isso o efeito no total depende do peso do compute: "
+          "é maior no workload pequeno (quase só compute) e menor no grande (dominado por storage). "
+          "O SLA também depende do throughput: um workload que já opera perto do limite (como o médio, "
+          "~321 de 360 min) deixa de atender o SLA com um throughput apenas 25% menor que o assumido. "
+          "É isso que a calibração resolve.", ""]
 
     # Etapa 5
     raters = load_raters(pathlib.Path(args.experts))

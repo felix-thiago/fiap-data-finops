@@ -8,9 +8,9 @@ Mediana de várias execuções na mesma máquina. *Um cálculo* = custo, SLA e c
 
 | Workload | Python — um cálculo | Python — análise completa | JS (navegador) — um cálculo | JS — análise completa |
 |---|---:|---:|---:|---:|
-| Pequeno | 0,02 ms | 14,89 ms | 0,01 ms | 4,84 ms |
-| Médio | 0,03 ms | 23,96 ms | 0,02 ms | 9,58 ms |
-| Grande | 0,04 ms | 24,19 ms | 0,02 ms | 9,67 ms |
+| Pequeno | 0,02 ms | 14,11 ms | 0,01 ms | 4,80 ms |
+| Médio | 0,03 ms | 22,63 ms | 0,01 ms | 9,41 ms |
+| Grande | 0,04 ms | 23,95 ms | 0,02 ms | 9,61 ms |
 
 ## Métrica 3 — Capacidade de comparação
 
@@ -59,6 +59,18 @@ Grade de 7 volumes × 8 frequências × 3 workloads = 168 cenários. Em cada um,
 - Distribuição dos cenários: FAIL 18, PARTIAL 16, PASS 134
 
 **Limite desta métrica:** ela confirma que o motor classifica o SLA de acordo com o próprio modelo de tempo. Se o *tempo* em si está certo depende do throughput das engines, que ainda é premissa até a calibração com execuções reais (`calibration/README.md`).
+
+## Sensibilidade ao throughput (premissa ainda não calibrada)
+
+O tempo de cada estágio depende do throughput assumido por engine (GB por nó-minuto e, no Snowflake, GB por minuto de warehouse). Enquanto ele não é medido, a tabela mostra o custo mensal e o SLA se o throughput real de **todas** as engines for uma fração ou um múltiplo do assumido.
+
+| Workload | 0,5× throughput | 0,75× throughput | 1× throughput | 1,5× throughput | 2× throughput |
+|---|---:|---:|---:|---:|---:|
+| Pequeno | US$ 84,42 (+53,3%), PASS | US$ 64,84 (+17,8%), PASS | US$ 55,05 (+0,0%), PASS | US$ 45,26 (−17,8%), PASS | US$ 40,37 (−26,7%), PASS |
+| Médio | US$ 3.374,96 (+23,9%), FAIL | US$ 2.941,40 (+8,0%), FAIL | US$ 2.724,62 (+0,0%), PASS | US$ 2.507,84 (−8,0%), PASS | US$ 2.399,45 (−11,9%), PASS |
+| Grande | US$ 42.619,71 (+14,4%), PASS | US$ 39.047,66 (+4,8%), PASS | US$ 37.261,64 (+0,0%), PASS | US$ 35.475,62 (−4,8%), PASS | US$ 34.582,60 (−7,2%), PASS |
+
+Leitura: com o número de workers fixo, o custo de compute é proporcional ao tempo de execução, então um throughput menor encarece o compute na mesma proporção. Storage, requests e consumo não dependem do throughput. Por isso o efeito no total depende do peso do compute: é maior no workload pequeno (quase só compute) e menor no grande (dominado por storage). O SLA também depende do throughput: um workload que já opera perto do limite (como o médio, ~321 de 360 min) deixa de atender o SLA com um throughput apenas 25% menor que o assumido. É isso que a calibração resolve.
 
 ## Etapa 5 — A ferramenta recomenda a alternativa adequada?
 
