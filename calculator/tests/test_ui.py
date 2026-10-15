@@ -140,3 +140,48 @@ def test_mobile_tabs_scroll_instead_of_wrapping(app):
     assert box["scrollable"] is True
     assert box["height"] < 60  # uma linha só, não quebra em várias
     app.set_viewport_size({"width": 1280, "height": 900})
+
+
+# --- painel executivo ---
+EXEC_URL = ROOT.joinpath("executive.html").resolve().as_uri()
+
+
+@pytest.fixture()
+def exec_page(page):
+    external = []
+    page.on("request", lambda req: external.append(req.url) if req.url.startswith("http") else None)
+    errors = []
+    page.on("pageerror", lambda exc: errors.append(str(exc)))
+    page.goto(EXEC_URL)
+    page.wait_for_function("document.getElementById('slaLegacy').innerText !== '—'")
+    page.external, page.errors = external, errors
+    return page
+
+
+def _set_slider(page, sel, value):
+    page.eval_on_selector(sel, "(el, v) => { el.value = v; el.dispatchEvent(new Event('input')); }", value)
+    page.wait_for_timeout(250)  # debounce do painel
+
+
+def test_executive_opens_offline_without_errors(exec_page):
+    assert exec_page.external == []          # nada de CDN: abre sem internet
+    assert exec_page.errors == []
+    assert not BROKEN_VALUE_RE.search(exec_page.inner_text("body"))
+
+
+@pytest.mark.parametrize("currency,symbol", [("BRL", "R$"), ("USD", "$"), ("EUR", "€")])
+def test_executive_currency_symbol(exec_page, currency, symbol):
+    exec_page.select_option("#currencySelect", currency)
+    text = exec_page.inner_text("#monthlyOptimizedTotal")
+    assert text.startswith(symbol) and "\\" not in text
+
+
+def test_executive_sizes_pipeline_for_sla_and_flags_when_impossible(exec_page):
+    _set_slider(exec_page, "#momGrowth", "0")
+    _set_slider(exec_page, "#dailyVolume", "2.5")
+    assert exec_page.inner_text("#slaLegacy").startswith("PASS")
+    assert exec_page.inner_text("#slaOptimized").startswith("PASS")
+    _set_slider(exec_page, "#dailyVolume", "20")
+    assert exec_page.inner_text("#slaLegacy").startswith("FAIL")
+    assert "mês 1" in exec_page.inner_text("#slaNote")
+    assert not BROKEN_VALUE_RE.search(exec_page.inner_text("body"))

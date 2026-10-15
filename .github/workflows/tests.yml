@@ -16,6 +16,12 @@ jobs:
         with:
           node-version: "20"
       - run: pip install -r requirements.txt
+      - name: CSS do painel executivo em dia com o Tailwind
+        working-directory: calculator
+        run: |
+          npm ci --no-fund --no-audit
+          npm run build:css
+          git diff --exit-code src/executive.tailwind.css
       - name: Golden em dia com o engine.js
         run: |
           node calculator/tools/gen_golden.js

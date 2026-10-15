@@ -1,0 +1,11 @@
+{
+  "name": "datacost-architect",
+  "private": true,
+  "description": "Gera o CSS do painel executivo (Tailwind) para o build.py embutir no executive.html",
+  "scripts": {
+    "build:css": "tailwindcss -c tailwind.config.js -i src/tailwind.in.css -o src/executive.tailwind.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}

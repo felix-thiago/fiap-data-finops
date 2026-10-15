@@ -4,11 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DataCost Architect - Painel Gerencial & Scorecard FinOps</title>
-    <!-- tailwind via CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- CSS do Tailwind gerado localmente (npm run build:css) e embutido pelo build.py: abre sem internet -->
     <style>
-        body { font-family: 'Inter', sans-serif; }
+/*__TAILWIND__*/
+    </style>
+    <style>
+        body { font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
         .gauge-needle { transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); transform-origin: 50px 50px; }
         .gauge-arc { transition: stroke-dashoffset 0.6s ease-in-out; }
     </style>
@@ -193,13 +194,29 @@
                             <div class="flex justify-between items-center">
                                 <div>
                                     <span class="text-[10px] font-bold text-purple-400 uppercase tracking-wider">Go / No-Go de Orçamento</span>
-                                    <div id="roiVal" class="text-lg font-black text-white mt-0.5">—</div>
+                                    <div id="gateVal" class="text-lg font-black text-white mt-0.5">—</div>
                                 </div>
                                 <div class="text-right">
                                     <span class="text-[10px] text-slate-400 font-bold uppercase block">Arquitetura Recomendada</span>
                                     <span id="recommendedStackName" class="text-xs font-extrabold text-emerald-400 block">—</span>
                                 </div>
                             </div>
+                        </div>
+
+                        <!-- viabilidade: o custo só vale se o pipeline termina dentro do SLA -->
+                        <div class="bg-slate-900/90 border border-amber-500/30 rounded-2xl p-4 shadow-lg sm:col-span-2">
+                            <span class="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Viabilidade Operacional (SLA, mês 1)</span>
+                            <div class="grid grid-cols-2 gap-3 mt-2 text-xs">
+                                <div>
+                                    <span class="text-[10px] text-slate-400 font-bold uppercase block">Legado</span>
+                                    <span id="slaLegacy" class="font-extrabold">—</span>
+                                </div>
+                                <div>
+                                    <span class="text-[10px] text-slate-400 font-bold uppercase block">Otimizado</span>
+                                    <span id="slaOptimized" class="font-extrabold">—</span>
+                                </div>
+                            </div>
+                            <p id="slaNote" class="text-[10px] text-slate-400 mt-2">—</p>
                         </div>
 
                     </div>
@@ -270,10 +287,10 @@
                                     <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
                                     Manutenção de Tabelas (compaction / snapshots)
                                 </span>
-                                <span id="ingestionCost" class="text-white font-bold">— (0%)</span>
+                                <span id="maintenanceCost" class="text-white font-bold">— (0%)</span>
                             </div>
                             <div class="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden border border-slate-800">
-                                <div id="ingestionBar" class="bg-amber-500 h-full rounded-full transition-all duration-500" style="width: 0%;"></div>
+                                <div id="maintenanceBar" class="bg-amber-500 h-full rounded-full transition-all duration-500" style="width: 0%;"></div>
                             </div>
                         </div>
 
@@ -362,6 +379,8 @@
                     Estimativa em preço de lista, mesmo motor e mesmos preços (fonte e data em
                     <code>validation/pricing_confirmations.md</code>) usados na visão técnica. Não substitui
                     as calculadoras oficiais dos provedores nem representa uma fatura real.
+                    A projeção considera o storage já em regime (retenção cheia) desde o mês 1 e
+                    extrapola o crescimento além da faixa do slider de volume.
                 </p>
 
             </div>

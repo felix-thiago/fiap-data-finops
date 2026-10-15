@@ -4,11 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DataCost Architect - Painel Gerencial & Scorecard FinOps</title>
-    <!-- tailwind via CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- CSS do Tailwind gerado localmente (npm run build:css) e embutido pelo build.py: abre sem internet -->
     <style>
-        body { font-family: 'Inter', sans-serif; }
+*,:after,:before{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgba(59,130,246,.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgba(59,130,246,.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/*! tailwindcss v3.4.19 | MIT License | https://tailwindcss.com*/*,:after,:before{box-sizing:border-box;border:0 solid #e5e7eb}:after,:before{--tw-content:""}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;-o-tab-size:4;tab-size:4;font-family:ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0}fieldset,legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::-moz-placeholder,textarea::-moz-placeholder{opacity:1;color:#9ca3af}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.relative{position:relative}.sticky{position:sticky}.top-0{top:0}.z-50{z-index:50}.mx-auto{margin-left:auto;margin-right:auto}.my-2{margin-top:.5rem;margin-bottom:.5rem}.-mt-2{margin-top:-.5rem}.mb-1{margin-bottom:.25rem}.mb-2{margin-bottom:.5rem}.ml-2{margin-left:.5rem}.mt-0\.5{margin-top:.125rem}.mt-1{margin-top:.25rem}.mt-2{margin-top:.5rem}.mt-3{margin-top:.75rem}.block{display:block}.inline-block{display:inline-block}.flex{display:flex}.table{display:table}.grid{display:grid}.hidden{display:none}.h-16{height:4rem}.h-2{height:.5rem}.h-2\.5{height:.625rem}.h-24{height:6rem}.h-4{height:1rem}.h-full{height:100%}.min-h-screen{min-height:100vh}.w-2\.5{width:.625rem}.w-4{width:1rem}.w-44{width:11rem}.w-full{width:100%}.w-max{width:-moz-max-content;width:max-content}.max-w-7xl{max-width:80rem}.border-collapse{border-collapse:collapse}.transform{transform:translate(var(--tw-translate-x),var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.cursor-pointer{cursor:pointer}.appearance-none{-webkit-appearance:none;-moz-appearance:none;appearance:none}.grid-cols-1{grid-template-columns:repeat(1,minmax(0,1fr))}.grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.flex-col{flex-direction:column}.items-start{align-items:flex-start}.items-center{align-items:center}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-1\.5{gap:.375rem}.gap-2{gap:.5rem}.gap-3{gap:.75rem}.gap-4{gap:1rem}.gap-8{gap:2rem}.space-x-2>:not([hidden])~:not([hidden]){--tw-space-x-reverse:0;margin-right:calc(.5rem*var(--tw-space-x-reverse));margin-left:calc(.5rem*(1 - var(--tw-space-x-reverse)))}.space-x-3>:not([hidden])~:not([hidden]){--tw-space-x-reverse:0;margin-right:calc(.75rem*var(--tw-space-x-reverse));margin-left:calc(.75rem*(1 - var(--tw-space-x-reverse)))}.space-y-3\.5>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(.875rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(.875rem*var(--tw-space-y-reverse))}.space-y-4>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1rem*var(--tw-space-y-reverse))}.space-y-5>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1.25rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1.25rem*var(--tw-space-y-reverse))}.space-y-6>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1.5rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1.5rem*var(--tw-space-y-reverse))}.space-y-8>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(2rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(2rem*var(--tw-space-y-reverse))}.divide-y>:not([hidden])~:not([hidden]){--tw-divide-y-reverse:0;border-top-width:calc(1px*(1 - var(--tw-divide-y-reverse)));border-bottom-width:calc(1px*var(--tw-divide-y-reverse))}.divide-slate-800\/60>:not([hidden])~:not([hidden]){border-color:rgba(30,41,59,.6)}.overflow-hidden{overflow:hidden}.overflow-visible{overflow:visible}.overflow-x-auto{overflow-x:auto}.rounded{border-radius:.25rem}.rounded-2xl{border-radius:1rem}.rounded-full{border-radius:9999px}.rounded-lg{border-radius:.5rem}.rounded-xl{border-radius:.75rem}.border{border-width:1px}.border-b{border-bottom-width:1px}.border-amber-500\/30{border-color:rgba(245,158,11,.3)}.border-blue-500\/20{border-color:rgba(59,130,246,.2)}.border-blue-500\/30{border-color:rgba(59,130,246,.3)}.border-emerald-500\/20{border-color:rgba(16,185,129,.2)}.border-emerald-500\/30{border-color:rgba(16,185,129,.3)}.border-purple-500\/30{border-color:rgba(168,85,247,.3)}.border-slate-700{--tw-border-opacity:1;border-color:rgb(51 65 85/var(--tw-border-opacity,1))}.border-slate-800{--tw-border-opacity:1;border-color:rgb(30 41 59/var(--tw-border-opacity,1))}.bg-amber-500{--tw-bg-opacity:1;background-color:rgb(245 158 11/var(--tw-bg-opacity,1))}.bg-blue-500{--tw-bg-opacity:1;background-color:rgb(59 130 246/var(--tw-bg-opacity,1))}.bg-blue-500\/10{background-color:rgba(59,130,246,.1)}.bg-blue-600{--tw-bg-opacity:1;background-color:rgb(37 99 235/var(--tw-bg-opacity,1))}.bg-emerald-500{--tw-bg-opacity:1;background-color:rgb(16 185 129/var(--tw-bg-opacity,1))}.bg-emerald-500\/10{background-color:rgba(16,185,129,.1)}.bg-purple-500{--tw-bg-opacity:1;background-color:rgb(168 85 247/var(--tw-bg-opacity,1))}.bg-rose-500{--tw-bg-opacity:1;background-color:rgb(244 63 94/var(--tw-bg-opacity,1))}.bg-slate-800{--tw-bg-opacity:1;background-color:rgb(30 41 59/var(--tw-bg-opacity,1))}.bg-slate-900\/80{background-color:rgba(15,23,42,.8)}.bg-slate-900\/90{background-color:rgba(15,23,42,.9)}.bg-slate-950{--tw-bg-opacity:1;background-color:rgb(2 6 23/var(--tw-bg-opacity,1))}.bg-slate-950\/60{background-color:rgba(2,6,23,.6)}.bg-gradient-to-r{background-image:linear-gradient(to right,var(--tw-gradient-stops))}.from-blue-950\/30{--tw-gradient-from:rgba(23,37,84,.3) var(--tw-gradient-from-position);--tw-gradient-to:rgba(23,37,84,0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from),var(--tw-gradient-to)}.from-slate-900{--tw-gradient-from:#0f172a var(--tw-gradient-from-position);--tw-gradient-to:rgba(15,23,42,0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from),var(--tw-gradient-to)}.via-slate-900{--tw-gradient-to:rgba(15,23,42,0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from),#0f172a var(--tw-gradient-via-position),var(--tw-gradient-to)}.to-blue-950\/50{--tw-gradient-to:rgba(23,37,84,.5) var(--tw-gradient-to-position)}.to-slate-900{--tw-gradient-to:#0f172a var(--tw-gradient-to-position)}.p-1{padding:.25rem}.p-2{padding:.5rem}.p-3{padding:.75rem}.p-4{padding:1rem}.p-5{padding:1.25rem}.p-6{padding:1.5rem}.px-2{padding-left:.5rem;padding-right:.5rem}.px-2\.5{padding-left:.625rem;padding-right:.625rem}.px-3{padding-left:.75rem;padding-right:.75rem}.px-3\.5{padding-left:.875rem;padding-right:.875rem}.px-4{padding-left:1rem;padding-right:1rem}.py-0\.5{padding-top:.125rem;padding-bottom:.125rem}.py-1{padding-top:.25rem;padding-bottom:.25rem}.py-1\.5{padding-top:.375rem;padding-bottom:.375rem}.py-2{padding-top:.5rem;padding-bottom:.5rem}.py-2\.5{padding-top:.625rem;padding-bottom:.625rem}.py-8{padding-top:2rem;padding-bottom:2rem}.pb-2{padding-bottom:.5rem}.pt-1{padding-top:.25rem}.text-left{text-align:left}.text-center{text-align:center}.text-right{text-align:right}.text-2xl{font-size:1.5rem;line-height:2rem}.text-\[10px\]{font-size:10px}.text-\[11px\]{font-size:11px}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:.875rem;line-height:1.25rem}.text-xl{font-size:1.25rem;line-height:1.75rem}.text-xs{font-size:.75rem;line-height:1rem}.font-black{font-weight:900}.font-bold{font-weight:700}.font-extrabold{font-weight:800}.font-medium{font-weight:500}.font-semibold{font-weight:600}.uppercase{text-transform:uppercase}.leading-relaxed{line-height:1.625}.tracking-tight{letter-spacing:-.025em}.tracking-wide{letter-spacing:.025em}.tracking-wider{letter-spacing:.05em}.text-amber-400{--tw-text-opacity:1;color:rgb(251 191 36/var(--tw-text-opacity,1))}.text-blue-400{--tw-text-opacity:1;color:rgb(96 165 250/var(--tw-text-opacity,1))}.text-blue-500{--tw-text-opacity:1;color:rgb(59 130 246/var(--tw-text-opacity,1))}.text-emerald-300{--tw-text-opacity:1;color:rgb(110 231 183/var(--tw-text-opacity,1))}.text-emerald-400{--tw-text-opacity:1;color:rgb(52 211 153/var(--tw-text-opacity,1))}.text-purple-400{--tw-text-opacity:1;color:rgb(192 132 252/var(--tw-text-opacity,1))}.text-rose-400{--tw-text-opacity:1;color:rgb(251 113 133/var(--tw-text-opacity,1))}.text-slate-100{--tw-text-opacity:1;color:rgb(241 245 249/var(--tw-text-opacity,1))}.text-slate-300{--tw-text-opacity:1;color:rgb(203 213 225/var(--tw-text-opacity,1))}.text-slate-400{--tw-text-opacity:1;color:rgb(148 163 184/var(--tw-text-opacity,1))}.text-slate-500{--tw-text-opacity:1;color:rgb(100 116 139/var(--tw-text-opacity,1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255/var(--tw-text-opacity,1))}.accent-amber-500{accent-color:#f59e0b}.accent-blue-500{accent-color:#3b82f6}.accent-emerald-500{accent-color:#10b981}.accent-purple-500{accent-color:#a855f7}.shadow-lg{--tw-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1);--tw-shadow-colored:0 10px 15px -3px var(--tw-shadow-color),0 4px 6px -4px var(--tw-shadow-color)}.shadow-lg,.shadow-xl{box-shadow:var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),var(--tw-shadow)}.shadow-xl{--tw-shadow:0 20px 25px -5px rgba(0,0,0,.1),0 8px 10px -6px rgba(0,0,0,.1);--tw-shadow-colored:0 20px 25px -5px var(--tw-shadow-color),0 8px 10px -6px var(--tw-shadow-color)}.shadow-blue-500\/20{--tw-shadow-color:rgba(59,130,246,.2);--tw-shadow:var(--tw-shadow-colored)}.filter{filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.backdrop-blur-md{--tw-backdrop-blur:blur(12px);-webkit-backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia)}.transition{transition-property:color,background-color,border-color,text-decoration-color,fill,stroke,opacity,box-shadow,transform,filter,-webkit-backdrop-filter;transition-property:color,background-color,border-color,text-decoration-color,fill,stroke,opacity,box-shadow,transform,filter,backdrop-filter;transition-property:color,background-color,border-color,text-decoration-color,fill,stroke,opacity,box-shadow,transform,filter,backdrop-filter,-webkit-backdrop-filter;transition-timing-function:cubic-bezier(.4,0,.2,1);transition-duration:.15s}.transition-all{transition-property:all;transition-timing-function:cubic-bezier(.4,0,.2,1);transition-duration:.15s}.duration-500{transition-duration:.5s}.hover\:bg-slate-800\/40:hover{background-color:rgba(30,41,59,.4)}.hover\:bg-slate-800\/80:hover{background-color:rgba(30,41,59,.8)}.hover\:text-white:hover{--tw-text-opacity:1;color:rgb(255 255 255/var(--tw-text-opacity,1))}.focus\:ring-2:focus{--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);box-shadow:var(--tw-ring-offset-shadow),var(--tw-ring-shadow),var(--tw-shadow,0 0 #0000)}.focus\:ring-blue-500:focus{--tw-ring-opacity:1;--tw-ring-color:rgb(59 130 246/var(--tw-ring-opacity,1))}@media (min-width:640px){.sm\:col-span-2{grid-column:span 2/span 2}.sm\:inline-block{display:inline-block}.sm\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.sm\:grid-cols-5{grid-template-columns:repeat(5,minmax(0,1fr))}.sm\:flex-row{flex-direction:row}.sm\:items-center{align-items:center}.sm\:px-6{padding-left:1.5rem;padding-right:1.5rem}.sm\:text-3xl{font-size:1.875rem;line-height:2.25rem}.sm\:text-sm{font-size:.875rem;line-height:1.25rem}}@media (min-width:768px){.md\:col-span-5{grid-column:span 5/span 5}.md\:col-span-7{grid-column:span 7/span 7}.md\:grid-cols-12{grid-template-columns:repeat(12,minmax(0,1fr))}.md\:flex-row{flex-direction:row}.md\:items-center{align-items:center}}@media (min-width:1024px){.lg\:col-span-4{grid-column:span 4/span 4}.lg\:col-span-8{grid-column:span 8/span 8}.lg\:grid-cols-12{grid-template-columns:repeat(12,minmax(0,1fr))}.lg\:px-8{padding-left:2rem;padding-right:2rem}}
+    </style>
+    <style>
+        body { font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
         .gauge-needle { transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); transform-origin: 50px 50px; }
         .gauge-arc { transition: stroke-dashoffset 0.6s ease-in-out; }
     </style>
@@ -193,13 +194,29 @@
                             <div class="flex justify-between items-center">
                                 <div>
                                     <span class="text-[10px] font-bold text-purple-400 uppercase tracking-wider">Go / No-Go de Orçamento</span>
-                                    <div id="roiVal" class="text-lg font-black text-white mt-0.5">—</div>
+                                    <div id="gateVal" class="text-lg font-black text-white mt-0.5">—</div>
                                 </div>
                                 <div class="text-right">
                                     <span class="text-[10px] text-slate-400 font-bold uppercase block">Arquitetura Recomendada</span>
                                     <span id="recommendedStackName" class="text-xs font-extrabold text-emerald-400 block">—</span>
                                 </div>
                             </div>
+                        </div>
+
+                        <!-- viabilidade: o custo só vale se o pipeline termina dentro do SLA -->
+                        <div class="bg-slate-900/90 border border-amber-500/30 rounded-2xl p-4 shadow-lg sm:col-span-2">
+                            <span class="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Viabilidade Operacional (SLA, mês 1)</span>
+                            <div class="grid grid-cols-2 gap-3 mt-2 text-xs">
+                                <div>
+                                    <span class="text-[10px] text-slate-400 font-bold uppercase block">Legado</span>
+                                    <span id="slaLegacy" class="font-extrabold">—</span>
+                                </div>
+                                <div>
+                                    <span class="text-[10px] text-slate-400 font-bold uppercase block">Otimizado</span>
+                                    <span id="slaOptimized" class="font-extrabold">—</span>
+                                </div>
+                            </div>
+                            <p id="slaNote" class="text-[10px] text-slate-400 mt-2">—</p>
                         </div>
 
                     </div>
@@ -270,10 +287,10 @@
                                     <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
                                     Manutenção de Tabelas (compaction / snapshots)
                                 </span>
-                                <span id="ingestionCost" class="text-white font-bold">— (0%)</span>
+                                <span id="maintenanceCost" class="text-white font-bold">— (0%)</span>
                             </div>
                             <div class="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden border border-slate-800">
-                                <div id="ingestionBar" class="bg-amber-500 h-full rounded-full transition-all duration-500" style="width: 0%;"></div>
+                                <div id="maintenanceBar" class="bg-amber-500 h-full rounded-full transition-all duration-500" style="width: 0%;"></div>
                             </div>
                         </div>
 
@@ -362,6 +379,8 @@
                     Estimativa em preço de lista, mesmo motor e mesmos preços (fonte e data em
                     <code>validation/pricing_confirmations.md</code>) usados na visão técnica. Não substitui
                     as calculadoras oficiais dos provedores nem representa uma fatura real.
+                    A projeção considera o storage já em regime (retenção cheia) desde o mês 1 e
+                    extrapola o crescimento além da faixa do slider de volume.
                 </p>
 
             </div>
@@ -1661,11 +1680,46 @@ const STAGE_DEFAULTS = () => ([
     dbx:  (g, stages) => VARIANTS.dbx.apply(g, stages),  // transformações em Databricks Jobs + Photon.
   };
 
+  // o painel varia o volume em ordens de grandeza (0,5 a 20 TB/dia, com crescimento
+  // composto). com os workers fixos do workload padrão, a partir de ~0,15 TB/dia o
+  // pipeline deixa de terminar antes da próxima execução e o custo mostrado seria o de
+  // um pipeline que não roda. por isso cada estágio é dimensionado para a cadeia caber
+  // no SLA, até um teto de workers (300 é o limite padrão de workers por job no Glue).
+  const MAX_WORKERS = 300;
+  const WH_ORDER = ['XS', 'S', 'M', 'L'];
+  const SCALABLE = ['glue', 'ec2', 'dbx', 'dbx_sl', 'custom'];
+
+  function sizeForSla(g, stages) {
+    const batch = stages.filter(s => s.enabled && s.kind !== 'serve');
+    // mira 90% do SLA: folga de operação e evita cair exatamente no limite da freshness
+    const perStageMin = 0.9 * g.slaMaxMinutes / Math.max(1, batch.length);
+    let dailyIn = g.dailyDeltaGB;
+    return stages.map(s => {
+      if (!s.enabled) return s;
+      const e = ENGINES[s.engine];
+      const volPerRun = dailyIn / s.runsPerDay;
+      dailyIn *= s.reduction;
+      if (s.kind === 'serve') return s;
+      if (SCALABLE.includes(e.kind)) {
+        const perNode = e.kind === 'custom' ? g.customGbPerNodeMin : e.gbPerNodeMin * WORKER_TYPES[s.workerType || 'm5.xlarge'].perf;
+        const avail = Math.max(1, perStageMin - e.startupMin);
+        const need = Math.ceil(volPerRun / (perNode * avail));
+        return { ...s, workers: Math.min(MAX_WORKERS, Math.max(s.workers, need)) };
+      }
+      if (e.kind === 'snowflake') {
+        const from = Math.max(0, WH_ORDER.indexOf(s.whSize || 'S'));
+        const fit = WH_ORDER.slice(from).find(sz => e.startupMin + volPerRun / WH_SIZES[sz].gbPerMin <= perStageMin);
+        return { ...s, whSize: fit || 'L' };
+      }
+      return s;
+    });
+  }
+
   function runPipeline(dailyTB, retentionMonths, variantFn) {
-    const g = { ...structuredClone(G_DEFAULTS), ingestion: 'incremental', dailyDeltaGB: dailyTB * 1000 };
+    const g = { ...structuredClone(G_DEFAULTS), ingestion: 'incremental', dailyDeltaGB: dailyTB * 1024 };
     const stages = STAGE_DEFAULTS().map(s => ({ ...s, retentionDays: Math.round(retentionMonths * DAYS) }));
     const [vg, vs] = variantFn(g, stages);
-    return calcPipeline(vg, vs);
+    return calcPipeline(vg, sizeForSla(vg, vs));
   }
 
   function updateGauge(reductionPct) {
@@ -1684,6 +1738,15 @@ const STAGE_DEFAULTS = () => ([
     $('gaugeStatusText').innerText = status;
     $('gaugeScoreText').style.color = color;
     $('gaugeArc').style.stroke = color;
+  }
+
+  const SLA_COLOR = { PASS: '#10b981', PARTIAL: '#f59e0b', FAIL: '#ef4444' };
+  const mins = v => v >= 120 ? (v / 60).toFixed(1).replace('.', ',') + ' h' : v.toFixed(0) + ' min';
+
+  function showSla(id, r) {
+    const node = $(id);
+    node.innerText = `${r.slaStatus} · ${mins(r.processingMin)} de processamento`;
+    node.style.color = SLA_COLOR[r.slaStatus];
   }
 
   function updateUI() {
@@ -1708,9 +1771,8 @@ const STAGE_DEFAULTS = () => ([
     let cumSavings = 0;
     const yearCum = [];
     let month1Optimized = null, month1Legacy = null;
-
-    const momTableBody = $('momTableBody');
-    momTableBody.innerHTML = '';
+    let legacyBreaks = null, optimizedBreaks = null; // primeiro mês em que deixa de caber no SLA
+    let rowsHtml = '';
 
     for (let m = 1; m <= MONTHS; m++) {
       const currentTB = initialTB * Math.pow(1 + growthRatePct, m - 1);
@@ -1718,13 +1780,15 @@ const STAGE_DEFAULTS = () => ([
       const optimized = runPipeline(currentTB, retentionMonths, goalFn);
 
       if (m === 1) { month1Legacy = legacy; month1Optimized = optimized; }
+      if (legacyBreaks === null && legacy.slaStatus !== 'PASS') legacyBreaks = m;
+      if (optimizedBreaks === null && optimized.slaStatus !== 'PASS') optimizedBreaks = m;
 
       const mSavings = legacy.monthly - optimized.monthly;
       cumSavings += mSavings;
       if (m % 12 === 0) yearCum.push(cumSavings);
 
       if (m <= 12) {
-        momTableBody.innerHTML += `
+        rowsHtml += `
                     <tr class="hover:bg-slate-800/40 transition">
                         <td class="py-2.5 px-3 font-bold text-white">Mês ${m}</td>
                         <td class="py-2.5 px-3 text-slate-300 font-semibold">${currentTB.toFixed(2).replace('.', ',')} TB</td>
@@ -1732,10 +1796,10 @@ const STAGE_DEFAULTS = () => ([
                         <td class="py-2.5 px-3 text-emerald-400 font-bold">${fmt(optimized.monthly)}</td>
                         <td class="py-2.5 px-3 text-blue-400 font-bold">${fmt(mSavings)}</td>
                         <td class="py-2.5 px-3 font-extrabold text-emerald-300">${fmt(cumSavings)}</td>
-                    </tr>
-                `;
+                    </tr>`;
       }
     }
+    $('momTableBody').innerHTML = rowsHtml;
 
     /* Scorecards — mês 1 */
     const avgSavingsPct = (month1Legacy.monthly - month1Optimized.monthly) / month1Legacy.monthly * 100;
@@ -1751,12 +1815,23 @@ const STAGE_DEFAULTS = () => ([
 
     const gate = budgetGate(month1Optimized.monthly, month1Optimized.range, budgetUSD);
     const gateColor = { GO: '#10b981', REVIEW: '#f59e0b', 'NO-GO': '#ef4444', NONE: '#94a3b8' }[gate.status];
-    const roiEl = $('roiVal');
-    roiEl.innerText = `${gate.status} · ${gate.usedPct.toFixed(0)}% do orçamento (${fmt(budgetUSD)})`;
-    roiEl.style.color = gateColor;
+    const gateEl = $('gateVal');
+    gateEl.innerText = `${gate.status} · ${gate.usedPct.toFixed(0)}% do orçamento (${fmt(budgetUSD)})`;
+    gateEl.style.color = gateColor;
 
     $('recommendedStackName').innerText = $('strategicGoal').selectedOptions[0].textContent;
     $('monthlyOptimizedTotal').innerText = fmt(month1Optimized.monthly) + ' / mês';
+
+    /* Viabilidade: o custo só vale se o pipeline termina dentro do SLA. */
+    showSla('slaLegacy', month1Legacy);
+    showSla('slaOptimized', month1Optimized);
+    const breaks = [];
+    if (legacyBreaks) breaks.push(`legado a partir do mês ${legacyBreaks}`);
+    if (optimizedBreaks) breaks.push(`otimizado a partir do mês ${optimizedBreaks}`);
+    $('slaNote').innerText = `Workers e warehouse dimensionados para a cadeia caber no SLA de ${G_DEFAULTS.slaMaxMinutes} min `
+      + `(até ${MAX_WORKERS} workers por estágio). `
+      + (breaks.length ? `Com o crescimento projetado, o SLA deixa de ser atendido: ${breaks.join('; ')}.`
+                       : 'O SLA é atendido nos 60 meses projetados.');
 
     /* Decomposição de custos — agrupando o breakdown real do engine em 5 faixas visuais. */
     const b = month1Optimized.breakdown;
@@ -1765,7 +1840,7 @@ const STAGE_DEFAULTS = () => ([
       ['computeCost', 'computeBar', b.Ingestion + b.Processing],
       ['warehouseCost', 'warehouseBar', b.Warehouse],
       ['storageCost', 'storageBar', b.Storage + b.Catalog],
-      ['ingestionCost', 'ingestionBar', b.Maintenance],
+      ['maintenanceCost', 'maintenanceBar', b.Maintenance],
       ['egressCost', 'egressBar', b.Network],
     ];
     groups.forEach(([costId, barId, val]) => {
@@ -1780,7 +1855,12 @@ const STAGE_DEFAULTS = () => ([
     }
   }
 
-  ['dailyVolume', 'momGrowth', 'retentionMonths', 'budgetMonthly'].forEach(id => $(id).addEventListener('input', updateUI));
+  // cada movimento de slider recalcula 120 pipelines (60 meses × 2 arquiteturas);
+  // o debounce evita refazer a conta a cada pixel arrastado
+  let pending = null;
+  const scheduleUpdate = () => { clearTimeout(pending); pending = setTimeout(updateUI, 80); };
+
+  ['dailyVolume', 'momGrowth', 'retentionMonths', 'budgetMonthly'].forEach(id => $(id).addEventListener('input', scheduleUpdate));
   ['currencySelect', 'baselineStack', 'strategicGoal'].forEach(id => $(id).addEventListener('change', updateUI));
 
   updateUI();

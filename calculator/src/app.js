@@ -1,4 +1,4 @@
-// camada de apresentação do DataCost Architect (v0.2)
+// camada de apresentação do DataCost Architect (visão técnica)
 // G_DEFAULTS e STAGE_DEFAULTS vêm de workload_default.js, compartilhado com o executive.js
 
 const G_FIELDS = [
@@ -16,6 +16,7 @@ const G_FIELDS = [
   ['orchestration','Orchestration','select',[['chained','DAG única (encadeada)'],['independent','Estágios independentes']],false],
   ['targetFileMB','Target file size','number',null,true,'MB'],
   ['catalogObjects','Glue Catalog objects','number',null,true,'objects'],
+  ['catalogFreeTier','Glue Catalog free tier','select',[[true,'Aplicar (1 M objetos grátis/mês)'],[false,'Não aplicar']],true],
   ['queriesPerDay','Queries per day','number',null,true,'queries'],
   ['avgQuerySec','Average query time','number',null,true,'s'],
   ['scanPerQueryGB','Data scanned per query','number',null,true,'GB'],
@@ -23,6 +24,7 @@ const G_FIELDS = [
   ['retries','Retries','number',null,true,'attempts'],
   ['snowflakeEdition','Snowflake edition','select',[['standard','Standard'],['enterprise','Enterprise']],true],
   ['snowflakeStorage','Snowflake storage','select',[['capacity','Capacity'],['ondemand','On demand']],true],
+  ['snowflakeWhGen','Snowflake warehouse generation','select',[['gen1','Gen 1'],['gen2','Gen 2 (+35% créditos/h)']],true],
   ['customGbPerNodeMin','Custom framework throughput','number',null,true,'GB/node-min'],
   ['customCostPerNodeHour','Custom framework cost','number',null,true,'USD/node-h'],
   ['crossRegionGB','Cross-region transfer','number',null,true,'GB/month'],
@@ -34,10 +36,10 @@ const G_GROUPS = [
   { title:'1 · Workload', keys:['name','environment','criticality'] },
   { title:'2 · Source',   keys:['sourceType','sourceVolumeGB','dailyDeltaGB','recordsPerDay','ingestion'] },
   { title:'3 · SLA, freshness & budget', keys:['budgetMonthly','slaMaxMinutes','freshnessHours','orchestration'] },
-  { title:'4 · Files & catalog', keys:['targetFileMB','catalogObjects'] },
+  { title:'4 · Files & catalog', keys:['targetFileMB','catalogObjects','catalogFreeTier'] },
   { title:'5 · Consumption', keys:['queriesPerDay','avgQuerySec','scanPerQueryGB'] },
   { title:'6 · Reliability', keys:['failureRate','retries'] },
-  { title:'7 · Platform options', keys:['snowflakeEdition','snowflakeStorage','customGbPerNodeMin','customCostPerNodeHour'] },
+  { title:'7 · Platform options', keys:['snowflakeEdition','snowflakeStorage','snowflakeWhGen','customGbPerNodeMin','customCostPerNodeHour'] },
   { title:'8 · Network & commercial', keys:['crossRegionGB','internetGB','discountPct'] },
 ];
 
@@ -90,7 +92,8 @@ function gField(def) {
     const s = el('select');
     opts.forEach(o=>{ const [v,t]=Array.isArray(o)?o:[o,o]; const op=el('option',null,t); op.value=v;
       if(String(G[key])===String(v)) op.selected=true; s.appendChild(op); });
-    s.onchange = () => { const v=s.value; G[key] = typeof G_DEFAULTS[key]==='number'? +v : v; G._provided[key]=1; render(); };
+    s.onchange = () => { const v=s.value, d=G_DEFAULTS[key];
+      G[key] = typeof d==='number' ? +v : typeof d==='boolean' ? v==='true' : v; G._provided[key]=1; render(); };
     w.appendChild(s);
   } else {
     const i = el('input'); i.type=type; i.value=G[key];
@@ -358,6 +361,7 @@ function viewResult() {
   k.appendChild(kpi('SLA', `<span class="sla ${slaCls(r.slaStatus)}">${r.slaStatus}</span>`, `${r.slaTimeOk?'tempo ok':'tempo estourado'} · ${r.freshnessOk?'freshness ok':'freshness estourada'}`));
   k.appendChild(kpi('Confidence', r.confidence+'%', `<span class="meter"><span style="width:${r.confidence}%"></span></span>`));
   root.appendChild(k);
+  root.appendChild(warningsCard(r));
 
   const c1 = el('div','card'); c1.appendChild(el('h3',null,'Cost breakdown por categoria'));
   c1.appendChild(barList(Object.entries(r.breakdown).filter(([,v])=>v>0), r.monthly));
@@ -434,7 +438,7 @@ function barList(pairs, total) {
     const t = el('span','bt'); const f = el('span','bf');
     f.style.width = (max? v/max*100:0)+'%'; f.style.background = SERIES[i%SERIES.length];
     t.appendChild(f); row.appendChild(t);
-    row.appendChild(el('span','bv', money(v,0)+` <em>${(v/total*100).toFixed(0)}%</em>`));
+    row.appendChild(el('span','bv', money(v,0)+` <em>${(total ? v/total*100 : 0).toFixed(0)}%</em>`));
     box.appendChild(row);
   });
   const tot = el('div','bar total');
@@ -486,6 +490,15 @@ function viewGate() {
   return root;
 }
 
+// avisos de viabilidade (job que não termina antes da próxima execução, warehouse além de um cluster)
+function warningsCard(r) {
+  if (!r.warnings.length) return document.createDocumentFragment();
+  const c = el('div','card alert');
+  c.appendChild(el('h3',null,'Avisos de viabilidade'));
+  const ul = el('ul','list'); r.warnings.forEach(t => ul.appendChild(el('li',null,t))); c.appendChild(ul);
+  return c;
+}
+
 // a barra de resumo fixa no topo
 function renderSummary() {
   const { r, gate } = gateNow(); const box = $('#summary');
@@ -498,7 +511,8 @@ function renderSummary() {
   const fill = (d,l,v,sub) => { d.innerHTML = `<span class="sl">${l}</span><span class="sv">${v}</span><span class="ss">${sub}</span>`; };
 
   fill(card('sc-cost','s-cost'), 'Custo mensal estimado', money(r.monthly,0), `faixa ${money(r.range.low,0)} – ${money(r.range.high,0)} · ${money(r.unit.perYear,0)}/ano`);
-  fill(card('sc-sla','s-'+r.slaStatus), 'SLA', r.slaStatus, `${mins(r.processingMin)} de ${G.slaMaxMinutes} min · latência ${mins(r.latencyMin)}`);
+  fill(card('sc-sla','s-'+r.slaStatus), 'SLA', r.slaStatus, `${mins(r.processingMin)} de ${G.slaMaxMinutes} min · latência ${mins(r.latencyMin)}`
+    + (r.warnings.length ? ` · <b>⚠ ${r.warnings.length} aviso${r.warnings.length>1?'s':''}</b> (aba Result)` : ''));
 
   const g = card('sc-gate','s-'+gate.status);
   if (!g.querySelector('input')) {
@@ -576,7 +590,7 @@ function viewSchedule() {
   const target = sweep.find(s=>s.runsPerDay===24);
   const daily = sweep.find(s=>s.runsPerDay===1);
   if (target && daily) {
-    const mult = target.monthly/daily.monthly;
+    const mult = daily.monthly ? target.monthly/daily.monthly : 1;
     root.appendChild(el('div','card',
       `<h3>Leitura</h3><p class="verdict">Sair de <b>${daily.label}</b> para <b>${target.label}</b> multiplica o custo por <b>${mult.toFixed(2)}×</b> (${money(daily.monthly,0)} → ${money(target.monthly,0)}/mês) e reduz a latência de ${mins(daily.latencyMin)} para ${mins(target.latencyMin)}. O custo não cresce proporcionalmente ao número de execuções porque storage e retenção são independentes da frequência — o que cresce é compute, startups e mínimos de cobrança.</p>`));
   }
