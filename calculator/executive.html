@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-en-title="DataCost Architect - Executive Dashboard &amp; FinOps Scorecard">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -23,7 +23,7 @@
                 <div class="bg-blue-600 p-2 rounded-lg font-black text-white text-lg">DC</div>
                 <div>
                     <span class="font-extrabold text-white text-lg tracking-tight">DataCost <span class="text-blue-500">Architect</span></span>
-                    <span class="hidden sm:inline-block ml-2 text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700">Módulo FinOps C-Level</span>
+                    <span class="hidden sm:inline-block ml-2 text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700" data-en="C-Level FinOps Module">Módulo FinOps C-Level</span>
                 </div>
             </div>
 
@@ -31,11 +31,11 @@
             <div class="flex items-center space-x-2 bg-slate-950 p-1 rounded-xl border border-slate-800">
                 <a href="index.html" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800/80 transition flex items-center gap-2">
                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
-                    Visão Técnica (Engine)
+                    <span data-en="Technical View (Engine)">Visão Técnica (Engine)</span>
                 </a>
                 <a href="executive.html" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-lg shadow-blue-500/20 flex items-center gap-2">
                     <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                    Visão Gerencial (CFO/Board)
+                    <span data-en="Executive View (CFO/Board)">Visão Gerencial (CFO/Board)</span>
                 </a>
             </div>
         </div>
@@ -46,11 +46,16 @@
         <!-- cabeçalho -->
         <div class="bg-gradient-to-r from-slate-900 via-slate-900 to-blue-950/50 p-6 rounded-2xl border border-slate-800 shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-                <h1 class="text-2xl sm:text-3xl font-extrabold text-white">Painel Gerencial de TCO & Governança</h1>
-                <p class="text-slate-400 text-xs sm:text-sm mt-1">Simulação dinâmica de eficiência orçamentária, unit economics e projeção cumulativa, calculada pelo mesmo motor de custo validado da visão técnica.</p>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-white" data-en="TCO &amp; Governance Executive Dashboard">Painel Gerencial de TCO & Governança</h1>
+                <p class="text-slate-400 text-xs sm:text-sm mt-1" data-en="Dynamic simulation of budget efficiency, unit economics and cumulative projection, computed by the same validated cost engine as the technical view.">Simulação dinâmica de eficiência orçamentária, unit economics e projeção cumulativa, calculada pelo mesmo motor de custo validado da visão técnica.</p>
             </div>
             <div class="flex items-center gap-3">
-                <span class="text-xs text-slate-400 font-medium">Moeda de Exibição:</span>
+                <span class="text-xs text-slate-400 font-medium" data-en="Language:">Idioma:</span>
+                <select id="langSelect" class="bg-slate-950 border border-slate-700 text-white text-xs rounded-lg px-3 py-2 font-bold focus:ring-2 focus:ring-blue-500">
+                    <option value="pt">Português (BR)</option>
+                    <option value="en">English</option>
+                </select>
+                <span class="text-xs text-slate-400 font-medium" data-en="Display currency:">Moeda de Exibição:</span>
                 <select id="currencySelect" class="bg-slate-950 border border-slate-700 text-white text-xs rounded-lg px-3 py-2 font-bold focus:ring-2 focus:ring-blue-500">
                     <option value="BRL" selected>BRL (R$)</option>
                     <option value="USD">USD ($)</option>
@@ -67,13 +72,13 @@
                 <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
                     <h2 class="text-xs font-bold text-blue-400 uppercase tracking-wider flex items-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
-                        Parâmetros da Operação
+                        <span data-en="Operating Parameters">Parâmetros da Operação</span>
                     </h2>
 
                     <!-- volume diário -->
                     <div>
                         <div class="flex justify-between text-xs font-semibold mb-2">
-                            <span class="text-slate-300">Volume Inicial (Dia 1)</span>
+                            <span class="text-slate-300" data-en="Initial Volume (Day 1)">Volume Inicial (Dia 1)</span>
                             <span id="volumeDisplay" class="text-blue-400 font-bold">2,5 TB / dia</span>
                         </div>
                         <input type="range" id="dailyVolume" min="0.5" max="20" step="0.5" value="2.5"
@@ -83,7 +88,7 @@
                     <!-- crescimento mensal de dados -->
                     <div>
                         <div class="flex justify-between text-xs font-semibold mb-2">
-                            <span class="text-slate-300">Crescimento Mensal de Dados (MoM)</span>
+                            <span class="text-slate-300" data-en="Monthly Data Growth (MoM)">Crescimento Mensal de Dados (MoM)</span>
                             <span id="growthDisplay" class="text-emerald-400 font-bold">5% ao mês</span>
                         </div>
                         <input type="range" id="momGrowth" min="0" max="20" step="1" value="5"
@@ -93,7 +98,7 @@
                     <!-- retenção -->
                     <div>
                         <div class="flex justify-between text-xs font-semibold mb-2">
-                            <span class="text-slate-300">Retenção no Data Lake</span>
+                            <span class="text-slate-300" data-en="Data Lake Retention">Retenção no Data Lake</span>
                             <span id="retentionDisplay" class="text-purple-400 font-bold">12 Meses</span>
                         </div>
                         <input type="range" id="retentionMonths" min="1" max="36" step="1" value="12"
@@ -103,7 +108,7 @@
                     <!-- orçamento alvo, usado no go/no-go -->
                     <div>
                         <div class="flex justify-between text-xs font-semibold mb-2">
-                            <span class="text-slate-300">Orçamento Mensal Alvo</span>
+                            <span class="text-slate-300" data-en="Target Monthly Budget">Orçamento Mensal Alvo</span>
                             <span id="budgetDisplay" class="text-amber-400 font-bold">$ 30.000</span>
                         </div>
                         <input type="range" id="budgetMonthly" min="1000" max="200000" step="1000" value="30000"
@@ -112,23 +117,23 @@
 
                     <!-- qual arquitetura legada comparar -->
                     <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-2">Arquitetura Legada (Sem FinOps)</label>
+                        <label class="block text-xs font-semibold text-slate-300 mb-2" data-en="Legacy Architecture (No FinOps)">Arquitetura Legada (Sem FinOps)</label>
                         <select id="baselineStack" class="w-full py-2.5 px-3 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs font-medium focus:ring-2 focus:ring-blue-500">
-                            <option value="asis" selected>AWS Glue + Snowflake (Tradicional)</option>
-                            <option value="dbx_plain">Databricks + Snowflake (Sem Photon)</option>
+                            <option value="asis" selected data-en="AWS Glue + Snowflake (Traditional)">AWS Glue + Snowflake (Tradicional)</option>
+                            <option value="dbx_plain" data-en="Databricks + Snowflake (No Photon)">Databricks + Snowflake (Sem Photon)</option>
                         </select>
                     </div>
 
                     <!-- estratégia escolhida -->
                     <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-2">Diretriz Estratégica do Board</label>
+                        <label class="block text-xs font-semibold text-slate-300 mb-2" data-en="Board Strategic Direction">Diretriz Estratégica do Board</label>
                         <select id="strategicGoal" class="w-full py-2.5 px-3 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs font-medium focus:ring-2 focus:ring-blue-500">
-                            <option value="lake">Custo Mínimo (Servir do lake via Athena)</option>
-                            <option value="dbx" selected>Equilíbrio (Databricks Photon)</option>
+                            <option value="lake" data-en="Lowest Cost (Serve from the lake via Athena)">Custo Mínimo (Servir do lake via Athena)</option>
+                            <option value="dbx" selected data-en="Balance (Databricks Photon)">Equilíbrio (Databricks Photon)</option>
                         </select>
                     </div>
 
-                    <p class="text-[10px] text-slate-500 leading-relaxed pt-1">
+                    <p class="text-[10px] text-slate-500 leading-relaxed pt-1" data-en="Values are computed by the same cost engine (<code>engine.js</code> + prices from <code>pricing.js</code>) used in the technical view and validated against the official calculators — not a parallel estimate.">
                         Os valores são calculados pelo mesmo motor de custo (<code>engine.js</code> + preços de
                         <code>pricing.js</code>) usado na visão técnica e validado contra as calculadoras oficiais —
                         não é uma estimativa paralela.
@@ -144,7 +149,7 @@
 
                     <!-- velocímetro de redução de custo -->
                     <div class="md:col-span-5 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col items-center justify-center text-center relative">
-                        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Redução de custo vs. legado</span>
+                        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1" data-en="Cost reduction vs. legacy">Redução de custo vs. legado</span>
 
                         <!-- svg do velocímetro -->
                         <div class="relative w-44 h-24 my-2">
@@ -172,7 +177,7 @@
                         <!-- economia acumulada no ano 1 -->
                         <div class="bg-slate-900/90 border border-emerald-500/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between">
                             <div>
-                                <span class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Economia Cumulativa (Ano 1)</span>
+                                <span class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider" data-en="Cumulative Savings (Year 1)">Economia Cumulativa (Ano 1)</span>
                                 <div id="annualSavingsVal" class="text-xl font-black text-emerald-400 mt-1">—</div>
                             </div>
                             <span id="savingsPct" class="inline-block mt-3 text-[10px] font-bold bg-emerald-500/10 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/20 w-max">
@@ -183,21 +188,21 @@
                         <!-- custo por tb -->
                         <div class="bg-slate-900/90 border border-blue-500/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between">
                             <div>
-                                <span class="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Custo Unitário da Operação</span>
+                                <span class="text-[10px] font-bold text-blue-400 uppercase tracking-wider" data-en="Operating Unit Cost">Custo Unitário da Operação</span>
                                 <div id="unitCostPerTB" class="text-xl font-black text-blue-400 mt-1">—</div>
                             </div>
-                            <p class="text-[10px] text-slate-400 mt-2">Faixa de confiança: <span id="rangeVal" class="text-white font-bold">—</span>.</p>
+                            <p class="text-[10px] text-slate-400 mt-2"><span data-en="Confidence range:">Faixa de confiança:</span> <span id="rangeVal" class="text-white font-bold">—</span>.</p>
                         </div>
 
                         <!-- confiança da estimativa -->
                         <div class="bg-slate-900/90 border border-purple-500/30 rounded-2xl p-4 shadow-lg flex flex-col justify-between sm:col-span-2">
                             <div class="flex justify-between items-center">
                                 <div>
-                                    <span class="text-[10px] font-bold text-purple-400 uppercase tracking-wider">Go / No-Go de Orçamento</span>
+                                    <span class="text-[10px] font-bold text-purple-400 uppercase tracking-wider" data-en="Budget Go / No-Go">Go / No-Go de Orçamento</span>
                                     <div id="gateVal" class="text-lg font-black text-white mt-0.5">—</div>
                                 </div>
                                 <div class="text-right">
-                                    <span class="text-[10px] text-slate-400 font-bold uppercase block">Arquitetura Recomendada</span>
+                                    <span class="text-[10px] text-slate-400 font-bold uppercase block" data-en="Recommended Architecture">Arquitetura Recomendada</span>
                                     <span id="recommendedStackName" class="text-xs font-extrabold text-emerald-400 block">—</span>
                                 </div>
                             </div>
@@ -205,14 +210,14 @@
 
                         <!-- viabilidade: o custo só vale se o pipeline termina dentro do SLA -->
                         <div class="bg-slate-900/90 border border-amber-500/30 rounded-2xl p-4 shadow-lg sm:col-span-2">
-                            <span class="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Viabilidade Operacional (SLA, mês 1)</span>
+                            <span class="text-[10px] font-bold text-amber-400 uppercase tracking-wider" data-en="Operational Feasibility (SLA, month 1)">Viabilidade Operacional (SLA, mês 1)</span>
                             <div class="grid grid-cols-2 gap-3 mt-2 text-xs">
                                 <div>
-                                    <span class="text-[10px] text-slate-400 font-bold uppercase block">Legado</span>
+                                    <span class="text-[10px] text-slate-400 font-bold uppercase block" data-en="Legacy">Legado</span>
                                     <span id="slaLegacy" class="font-extrabold">—</span>
                                 </div>
                                 <div>
-                                    <span class="text-[10px] text-slate-400 font-bold uppercase block">Otimizado</span>
+                                    <span class="text-[10px] text-slate-400 font-bold uppercase block" data-en="Optimized">Otimizado</span>
                                     <span id="slaOptimized" class="font-extrabold">—</span>
                                 </div>
                             </div>
@@ -227,11 +232,11 @@
                 <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                         <div>
-                            <h3 class="text-xs font-bold text-white uppercase tracking-wider">Decomposição Reativa dos Custos</h3>
-                            <p class="text-xs text-slate-400 mt-0.5">Distribuição financeira mensal no modelo DataCost Otimizado.</p>
+                            <h3 class="text-xs font-bold text-white uppercase tracking-wider" data-en="Live Cost Breakdown">Decomposição Reativa dos Custos</h3>
+                            <p class="text-xs text-slate-400 mt-0.5" data-en="Monthly cost distribution in the optimized DataCost model.">Distribuição financeira mensal no modelo DataCost Otimizado.</p>
                         </div>
                         <span class="text-xs font-bold text-slate-300 bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
-                            Mês 1 Otimizado: <span id="monthlyOptimizedTotal" class="text-emerald-400">—</span>
+                            <span data-en="Optimized Month 1:">Mês 1 Otimizado:</span> <span id="monthlyOptimizedTotal" class="text-emerald-400">—</span>
                         </span>
                     </div>
 
@@ -243,7 +248,7 @@
                             <div class="flex justify-between text-xs mb-1 font-medium">
                                 <span class="text-slate-300 flex items-center gap-1.5">
                                     <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-                                    Processamento & Ingestão (Spark / Clusters / DBU)
+                                    <span data-en="Processing &amp; Ingestion (Spark / Clusters / DBU)">Processamento & Ingestão (Spark / Clusters / DBU)</span>
                                 </span>
                                 <span id="computeCost" class="text-white font-bold">— (0%)</span>
                             </div>
@@ -257,7 +262,7 @@
                             <div class="flex justify-between text-xs mb-1 font-medium">
                                 <span class="text-slate-300 flex items-center gap-1.5">
                                     <span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
-                                    Data Warehouse & Servidores BI (Snowflake / Athena)
+                                    <span data-en="Data Warehouse &amp; BI Serving (Snowflake / Athena)">Data Warehouse & Servidores BI (Snowflake / Athena)</span>
                                 </span>
                                 <span id="warehouseCost" class="text-white font-bold">— (0%)</span>
                             </div>
@@ -271,7 +276,7 @@
                             <div class="flex justify-between text-xs mb-1 font-medium">
                                 <span class="text-slate-300 flex items-center gap-1.5">
                                     <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                                    Armazenamento & Data Lake (S3 + requests)
+                                    <span data-en="Storage &amp; Data Lake (S3 + requests)">Armazenamento & Data Lake (S3 + requests)</span>
                                 </span>
                                 <span id="storageCost" class="text-white font-bold">— (0%)</span>
                             </div>
@@ -285,7 +290,7 @@
                             <div class="flex justify-between text-xs mb-1 font-medium">
                                 <span class="text-slate-300 flex items-center gap-1.5">
                                     <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                                    Manutenção de Tabelas (compaction / snapshots)
+                                    <span data-en="Table Maintenance (compaction / snapshots)">Manutenção de Tabelas (compaction / snapshots)</span>
                                 </span>
                                 <span id="maintenanceCost" class="text-white font-bold">— (0%)</span>
                             </div>
@@ -299,7 +304,7 @@
                             <div class="flex justify-between text-xs mb-1 font-medium">
                                 <span class="text-slate-300 flex items-center gap-1.5">
                                     <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-                                    Tráfego de Rede & Egress (Inter-region / Internet)
+                                    <span data-en="Network Traffic &amp; Egress (Inter-region / Internet)">Tráfego de Rede & Egress (Inter-region / Internet)</span>
                                 </span>
                                 <span id="egressCost" class="text-white font-bold">— (0%)</span>
                             </div>
@@ -315,8 +320,8 @@
                 <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
                     <div class="flex justify-between items-center">
                         <div>
-                            <h3 class="text-xs font-bold text-white uppercase tracking-wider">Projeção Cumulativa MoM (Mês a Mês - Ano 1)</h3>
-                            <p class="text-[11px] text-slate-400">Evolução do crescimento mensal de dados x Economia acumulada.</p>
+                            <h3 class="text-xs font-bold text-white uppercase tracking-wider" data-en="Cumulative MoM Projection (Month by Month - Year 1)">Projeção Cumulativa MoM (Mês a Mês - Ano 1)</h3>
+                            <p class="text-[11px] text-slate-400" data-en="Monthly data growth vs. cumulative savings.">Evolução do crescimento mensal de dados x Economia acumulada.</p>
                         </div>
                         <span id="totalYear1Savings" class="text-xs font-extrabold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
                             Economia Acumulada: —
@@ -327,12 +332,12 @@
                         <table class="w-full text-left border-collapse text-xs">
                             <thead>
                                 <tr class="border-b border-slate-800 text-slate-400 uppercase text-[10px]">
-                                    <th class="py-2.5 px-3">Mês</th>
-                                    <th class="py-2.5 px-3">Volume (TB/dia)</th>
-                                    <th class="py-2.5 px-3">Legado Sem FinOps</th>
-                                    <th class="py-2.5 px-3">DataCost Otimizado</th>
-                                    <th class="py-2.5 px-3">Economia no Mês</th>
-                                    <th class="py-2.5 px-3">Economia Acumulada</th>
+                                    <th class="py-2.5 px-3" data-en="Month">Mês</th>
+                                    <th class="py-2.5 px-3" data-en="Volume (TB/day)">Volume (TB/dia)</th>
+                                    <th class="py-2.5 px-3" data-en="Legacy (No FinOps)">Legado Sem FinOps</th>
+                                    <th class="py-2.5 px-3" data-en="DataCost Optimized">DataCost Otimizado</th>
+                                    <th class="py-2.5 px-3" data-en="Monthly Savings">Economia no Mês</th>
+                                    <th class="py-2.5 px-3" data-en="Cumulative Savings">Economia Acumulada</th>
                                 </tr>
                             </thead>
                             <tbody id="momTableBody" class="divide-y divide-slate-800/60 text-slate-300 font-medium">
@@ -345,37 +350,37 @@
                 <!-- projeção de 5 anos -->
                 <div class="bg-gradient-to-r from-blue-950/30 via-slate-900 to-slate-900 border border-blue-500/20 rounded-2xl p-6 shadow-xl space-y-4">
                     <div class="flex justify-between items-center">
-                        <h3 class="text-xs font-bold text-white uppercase tracking-wider">Projeção de Longo Prazo (5 Anos de Operação)</h3>
-                        <span class="text-[10px] text-blue-400 font-bold bg-blue-500/10 border border-blue-500/20 px-2.5 py-0.5 rounded">
+                        <h3 class="text-xs font-bold text-white uppercase tracking-wider" data-en="Long-Term Projection (5 Years of Operation)">Projeção de Longo Prazo (5 Anos de Operação)</h3>
+                        <span class="text-[10px] text-blue-400 font-bold bg-blue-500/10 border border-blue-500/20 px-2.5 py-0.5 rounded" data-en="The same monthly growth projected month by month, with no arbitrary multiplier">
                             Mesmo crescimento mensal projetado mês a mês, sem multiplicador arbitrário
                         </span>
                     </div>
 
                     <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
                         <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
-                            <span class="text-[10px] text-slate-400 font-bold block uppercase">Ano 1</span>
+                            <span class="text-[10px] text-slate-400 font-bold block uppercase" data-en="Year 1">Ano 1</span>
                             <span id="y1Savings" class="text-sm font-extrabold text-emerald-400 block mt-1">—</span>
                         </div>
                         <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
-                            <span class="text-[10px] text-slate-400 font-bold block uppercase">Ano 2</span>
+                            <span class="text-[10px] text-slate-400 font-bold block uppercase" data-en="Year 2">Ano 2</span>
                             <span id="y2Savings" class="text-sm font-extrabold text-emerald-400 block mt-1">—</span>
                         </div>
                         <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
-                            <span class="text-[10px] text-slate-400 font-bold block uppercase">Ano 3</span>
+                            <span class="text-[10px] text-slate-400 font-bold block uppercase" data-en="Year 3">Ano 3</span>
                             <span id="y3Savings" class="text-sm font-extrabold text-emerald-400 block mt-1">—</span>
                         </div>
                         <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
-                            <span class="text-[10px] text-slate-400 font-bold block uppercase">Ano 4</span>
+                            <span class="text-[10px] text-slate-400 font-bold block uppercase" data-en="Year 4">Ano 4</span>
                             <span id="y4Savings" class="text-sm font-extrabold text-emerald-400 block mt-1">—</span>
                         </div>
                         <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
-                            <span class="text-[10px] text-slate-400 font-bold block uppercase">Ano 5</span>
+                            <span class="text-[10px] text-slate-400 font-bold block uppercase" data-en="Year 5">Ano 5</span>
                             <span id="y5Savings" class="text-sm font-extrabold text-emerald-400 block mt-1">—</span>
                         </div>
                     </div>
                 </div>
 
-                <p class="text-[10px] text-slate-500 text-center pb-2">
+                <p class="text-[10px] text-slate-500 text-center pb-2" data-en="List-price estimate, same engine and same prices (source and date in <code>validation/pricing_confirmations.md</code>) as the technical view. It does not replace the providers' official calculators and is not an actual bill. The projection assumes storage already at steady state (full retention) from month 1 and extrapolates growth beyond the volume slider's range.">
                     Estimativa em preço de lista, mesmo motor e mesmos preços (fonte e data em
                     <code>validation/pricing_confirmations.md</code>) usados na visão técnica. Não substitui
                     as calculadoras oficiais dos provedores nem representa uma fatura real.
@@ -388,6 +393,144 @@
     </main>
 
     <!-- motor js -->
+    <script>
+// idioma da interface: português do Brasil (padrão) ou inglês, igual ao seletor de moeda.
+// o motor (engine.js e o Python) sempre escreve em português — premissas, avisos, nomes de
+// variantes e de otimizações. esses textos são traduzidos aqui, na apresentação, para não
+// mexer no motor nem na paridade JS × Python.
+
+let LANG = (() => { try { return localStorage.getItem('datacost.lang') === 'en' ? 'en' : 'pt'; } catch (e) { return 'pt'; } })();
+
+/** texto da interface nos dois idiomas: L('Custo mensal', 'Monthly cost') */
+const L = (pt, en) => (LANG === 'en' ? en : pt);
+/** par [pt, en] guardado em tabela → texto no idioma atual */
+const Lp = pair => (Array.isArray(pair) ? (LANG === 'en' ? pair[1] : pair[0]) : pair);
+/** locale dos números (1,234.5 em inglês; 1.234,5 em português) */
+const LOCALE = () => (LANG === 'en' ? 'en-US' : 'pt-BR');
+
+function saveLang(lang) {
+  LANG = lang === 'en' ? 'en' : 'pt';
+  try { localStorage.setItem('datacost.lang', LANG); } catch (e) { /* navegador sem storage: vale só nesta aba */ }
+  document.documentElement.lang = LANG === 'en' ? 'en' : 'pt-BR';
+  translateStatic();
+}
+
+/** HTML estático: o elemento guarda o português e recebe o inglês de data-en
+ *  (e de data-en-title / data-en-aria para os atributos). */
+function translateStatic(root = document) {
+  root.querySelectorAll('[data-en]').forEach(e => {
+    if (e.dataset.pt == null) e.dataset.pt = e.innerHTML;
+    e.innerHTML = LANG === 'en' ? e.dataset.en : e.dataset.pt;
+  });
+  root.querySelectorAll('[data-en-title]').forEach(e => {
+    if (e.dataset.ptTitle == null) e.dataset.ptTitle = e.title;
+    e.title = LANG === 'en' ? e.dataset.enTitle : e.dataset.ptTitle;
+  });
+  if (document.title && document.documentElement.dataset.enTitle) {
+    const h = document.documentElement;
+    if (h.dataset.ptDocTitle == null) h.dataset.ptDocTitle = document.title;
+    document.title = LANG === 'en' ? h.dataset.enTitle : h.dataset.ptDocTitle;
+  }
+}
+
+// ---- textos fixos que vêm do motor ----
+const ENGINE_EN = {
+  // variantes
+  'As-is (configuração atual)': 'As-is (current configuration)',
+  'O pipeline exatamente como está configurado na aba Pipeline.': 'The pipeline exactly as configured in the Pipeline tab.',
+  'Databricks Photon nas transformações': 'Databricks Photon for transformations',
+  'Bronze/Silver/Gold migrados para Databricks Jobs com Photon; ingestão e DW inalterados.': 'Bronze/Silver/Gold moved to Databricks Jobs with Photon; ingestion and DW unchanged.',
+  'Todos os jobs Glue migrados para Glue 6.0+ (US$ 0,308/DPU-h contra US$ 0,44); assume o mesmo throughput — validar com execução real.': 'All Glue jobs moved to Glue 6.0+ (US$ 0.308/DPU-h vs. US$ 0.44); assumes the same throughput — validate with a real run.',
+  'PySpark em EMR': 'PySpark on EMR',
+  'Transformações em cluster EMR próprio (EC2 + uplift EMR), maior complexidade operacional.': 'Transformations on a dedicated EMR cluster (EC2 + EMR uplift), higher operational complexity.',
+  'Servir do lake (Athena), sem DW': 'Serve from the lake (Athena), no DW',
+  'Remove a carga no Snowflake; o consumo passa a ler a camada Gold direto no S3 via Athena.': 'Drops the Snowflake load; consumers read the Gold layer straight from S3 through Athena.',
+  'Ingestão e transformações em Databricks Jobs (Azure), storage em ADLS Gen2 e consumo em Databricks SQL; DW Snowflake mantido. Preços da Azure Retail Prices API.': 'Ingestion and transformations on Databricks Jobs (Azure), storage on ADLS Gen2 and consumption on Databricks SQL; Snowflake DW kept. Prices from the Azure Retail Prices API.',
+  'ELT dentro do Snowflake': 'ELT inside Snowflake',
+  'Ingestão para o S3, carga bruta via Snowpipe e transformações Silver/Gold executadas em virtual warehouse.': 'Ingestion to S3, raw load through Snowpipe and Silver/Gold transformations running on a virtual warehouse.',
+  // otimizações
+  'Migrar de Full Load para Incremental': 'Switch from full load to incremental',
+  'O delta diário é uma fração pequena da base; reprocessar tudo a cada execução multiplica compute, escrita e storage.': 'The daily delta is a small fraction of the source; reprocessing everything on each run multiplies compute, writes and storage.',
+  'Migrar os jobs Glue para Glue 6.0+': 'Move the Glue jobs to Glue 6.0+',
+  'O Glue 6.0+ cobra US$ 0,308 por DPU-hora contra US$ 0,44 do Glue anterior (~30% menos). Assume o mesmo throughput; validar com uma execução real.': 'Glue 6.0+ charges US$ 0.308 per DPU-hour vs. US$ 0.44 for earlier Glue (~30% less). Assumes the same throughput; validate with a real run.',
+  'Adotar Parquet + ZSTD nas camadas em CSV/JSON': 'Use Parquet + ZSTD in CSV/JSON layers',
+  'Formato colunar comprimido reduz storage, requests e o volume lido pelos estágios seguintes.': 'A compressed columnar format reduces storage, requests and the volume read by later stages.',
+  'Adotar Iceberg na camada consumida': 'Use Iceberg in the consumed layer',
+  'Partition e file pruning reduzem o volume escaneado por consulta; o custo extra de metadados costuma ser menor que a economia de scan.': 'Partition and file pruning reduce the data scanned per query; the extra metadata cost is usually smaller than the scan savings.',
+  'Mover a camada bruta para S3 Standard-IA': 'Move the raw layer to S3 Standard-IA',
+  'A camada bruta com retenção longa é lida raramente depois de processada — candidata natural a classe de armazenamento mais barata.': 'A raw layer with long retention is rarely read after processing — a natural candidate for a cheaper storage class.',
+  'Reduzir a retenção da camada bruta para 90 dias': 'Cut raw-layer retention to 90 days',
+  'Com Silver e Gold versionadas, manter a bruta por mais de um ano raramente atende a um requisito real de negócio ou compliance.': 'With versioned Silver and Gold, keeping raw data for over a year rarely meets a real business or compliance requirement.',
+  'Compactar arquivos para ~128 MB': 'Compact files to ~128 MB',
+  'Muitos arquivos pequenos elevam o custo de requests e o overhead de planejamento das engines.': 'Many small files raise request costs and the engines\' planning overhead.',
+  'Reduzir a frequência dos estágios com folga de freshness': 'Run stages less often where freshness allows',
+  'Há folga entre a latência atual e o requisito de freshness; executar menos vezes reduz startups e mínimos de cobrança.': 'There is slack between current latency and the freshness requirement; fewer runs mean fewer startups and minimum charges.',
+  'Reduzir auto-suspend do warehouse para 60 s': 'Lower warehouse auto-suspend to 60 s',
+  'Warehouse suspenso não consome créditos; janelas de ociosidade longas são cobradas a cada execução ou sessão.': 'A suspended warehouse uses no credits; long idle windows are billed on every run or session.',
+  'Reduzir o tamanho do virtual warehouse': 'Downsize the virtual warehouse',
+  'O tempo total de processamento está bem abaixo do SLA; um warehouse menor mantém o SLA a metade do custo em créditos.': 'Total processing time is well under the SLA; a smaller warehouse keeps the SLA at half the credit cost.',
+  // catálogo
+  'PySpark em EC2 (self-managed)': 'PySpark on EC2 (self-managed)',
+  'Sqoop em EMR (JDBC paralelo)': 'Sqoop on EMR (parallel JDBC)',
+  'AWS DMS (CDC contínuo)': 'AWS DMS (continuous CDC)',
+  'Framework próprio (ex.: Talaria)': 'In-house framework (e.g., Talaria)',
+  'Snowflake (BI/consumo)': 'Snowflake (BI/consumption)',
+  'r5.xlarge (memória)': 'r5.xlarge (memory)',
+  'Hive / diretórios': 'Hive / directories',
+  'Gen 1 (padrão)': 'Gen 1 (default)',
+  'Diário': 'Daily',
+  // premissas fixas
+  'Full load: cada execução do primeiro estágio lê o volume total da fonte.': 'Full load: every run of the first stage reads the whole source.',
+  'CDC: +30% sobre o delta diário para before/after image e metadados.': 'CDC: +30% over the daily delta for before/after images and metadata.',
+  'Glue Data Catalog: o primeiro 1 milhão de objetos/mês é gratuito (free tier por conta AWS).': 'Glue Data Catalog: the first 1 million objects/month are free (AWS free tier, per account).',
+  'Cloud Azure: storage ADLS Gen2 (Hot/Cool LRS), Databricks Premium (DBU) + VMs Dsv5/Esv5; sem custo de catálogo (Unity Catalog). Snowflake e transferência de dados mantêm os preços de lista da AWS como proxy.': 'Azure cloud: ADLS Gen2 storage (Hot/Cool LRS), Databricks Premium (DBU) + Dsv5/Esv5 VMs; no catalog cost (Unity Catalog). Snowflake and data transfer keep AWS list prices as a proxy.',
+  'Estágios agendados de forma independente: latência = Σ (intervalo + tempo de execução) de cada estágio.': 'Independently scheduled stages: latency = Σ (interval + run time) of each stage.',
+  'Estágios encadeados numa única DAG: latência = maior intervalo de agendamento + soma dos tempos de execução.': 'Stages chained in a single DAG: latency = longest schedule interval + sum of run times.',
+};
+
+// textos do motor com números no meio: [regex, tradução]
+const ENGINE_EN_PATTERNS = [
+  [/^A cada (.+)$/, 'Every $1'],
+  [/^Retries: multiplicador de (.+)× sobre compute e requests\.$/, 'Retries: $1× multiplier on compute and requests.'],
+  [/^(.+): cada execução leva (\d+) min, mais que o intervalo entre execuções \((\d+) min\) — o job não termina antes da próxima\. Aumente os workers ou reduza a frequência\.$/,
+    '$1: each run takes $2 min, longer than the interval between runs ($3 min) — the job does not finish before the next one starts. Add workers or run less often.'],
+  [/^(.+): o warehouse precisaria de (\d+) h\/mês, acima das (.+) h de um cluster — exige multi-cluster \(~(\d+) clusters\)\.$/,
+    '$1: the warehouse would need $2 h/month, above the $3 h of a single cluster — requires multi-cluster (~$4 clusters).'],
+  [/^(.+): (\d+) h\/mês de consulta não cabem num warehouse single-cluster \((.+) h\/mês\) — exige multi-cluster \(~(\d+) clusters\)\.$/,
+    '$1: $2 query hours/month do not fit in a single-cluster warehouse ($3 h/month) — requires multi-cluster (~$4 clusters).'],
+  [/^(.+): horas do warehouse limitadas a (.+) h\/mês \(um cluster não fica ligado mais que o mês inteiro\)\.$/,
+    '$1: warehouse hours capped at $2 h/month (a cluster cannot run longer than the whole month).'],
+  [/^(.+): manutenção \(compaction\/expire snapshots\) cobrada (\d+)×\/mês na camada (.+)\.$/,
+    '$1: maintenance (compaction/expire snapshots) billed $2×/month on the $3 layer.'],
+  [/^(.+): storage multiplicado por (.+)× devido a snapshots retidos\.$/, '$1: storage multiplied by $2× because of retained snapshots.'],
+  [/^(.+): partition\/file pruning reduz o volume escaneado para (\d+)%\.$/, '$1: partition/file pruning cuts the scanned volume to $2%.'],
+  [/^S3 Standard em faixas: (.+) TB armazenados, preço médio de US\$ (.+)\/GB-mês \(US\$ (.+) até 50 TB, (.+) até 500 TB, (.+) acima\)\.$/,
+    'S3 Standard volume tiers: $1 TB stored, average price US$ $2/GB-month (US$ $3 up to 50 TB, $4 up to 500 TB, $5 above).'],
+  [/^Snowflake (.+): (.+)× créditos por hora no mesmo tamanho de warehouse, com o mesmo throughput do Gen 1 \(premissa\)\.$/,
+    'Snowflake $1: $2× credits per hour for the same warehouse size, with the same throughput as Gen 1 (assumption).'],
+  [/^Desconto contratual de (.+)% aplicado sobre o preço de lista\.$/, 'Contractual discount of $1% applied to list price.'],
+  [/^(.+) TB escaneados\/mês \(scan factor (.+)\)$/, '$1 TB scanned/month (scan factor $2)'],
+  [/^(.+) créditos\/mês \(warehouse (.+)\)$/, '$1 credits/month (warehouse $2)'],
+  [/^(.+) DBU\/mês em SQL Serverless$/, '$1 DBU/month on SQL Serverless'],
+];
+
+/** traduz um texto produzido pelo motor (no português, devolve como está) */
+function tr(s) {
+  if (LANG !== 'en' || !s) return s;
+  if (ENGINE_EN[s]) return ENGINE_EN[s];
+  for (const [re, rep] of ENGINE_EN_PATTERNS) if (re.test(s)) return s.replace(re, rep);
+  return s;
+}
+
+/** descrição de fonte de um preço (dado do pricing.json, gravado em português) */
+function trSource(s) {
+  if (LANG !== 'en' || !s) return s;
+  return s.replace(/\(página pública\)/g, '(public page)').replace(/publicado /g, 'published ')
+          .replace(/taxas de referência do BCE/g, 'ECB reference rates').replace(/padrão do projeto/g, 'project default')
+          .replace(/ — 50 a 500 TB/g, ' — 50 to 500 TB').replace(/ — acima de 500 TB/g, ' — above 500 TB');
+}
+
+    </script>
     <script>
 // base de preços do DataCost Architect — gerado automaticamente, não editar à mão
 // (saída de tools/fetch_pricing.py). method: 'api' = API pública do fornecedor,
@@ -1730,10 +1873,10 @@ const STAGE_DEFAULTS = () => ([
     $('gaugeArc').style.strokeDashoffset = offset;
     $('gaugeScoreText').innerText = clamped.toFixed(0) + '%';
 
-    let status = 'Redução Baixa';
+    let status = L('Redução Baixa', 'Low Reduction');
     let color = '#ef4444';
-    if (clamped >= 20) { status = 'Redução Alta (Excelente)'; color = '#10b981'; }
-    else if (clamped >= 8) { status = 'Redução Moderada'; color = '#f59e0b'; }
+    if (clamped >= 20) { status = L('Redução Alta (Excelente)', 'High Reduction (Excellent)'); color = '#10b981'; }
+    else if (clamped >= 8) { status = L('Redução Moderada', 'Moderate Reduction'); color = '#f59e0b'; }
 
     $('gaugeStatusText').innerText = status;
     $('gaugeScoreText').style.color = color;
@@ -1741,11 +1884,12 @@ const STAGE_DEFAULTS = () => ([
   }
 
   const SLA_COLOR = { PASS: '#10b981', PARTIAL: '#f59e0b', FAIL: '#ef4444' };
-  const mins = v => v >= 120 ? (v / 60).toFixed(1).replace('.', ',') + ' h' : v.toFixed(0) + ' min';
+  const dec = (v, d) => v.toLocaleString(LOCALE(), { minimumFractionDigits: d, maximumFractionDigits: d });
+  const mins = v => v >= 120 ? dec(v / 60, 1) + ' h' : dec(v, 0) + ' min';
 
   function showSla(id, r) {
     const node = $(id);
-    node.innerText = `${r.slaStatus} · ${mins(r.processingMin)} de processamento`;
+    node.innerText = `${r.slaStatus} · ${mins(r.processingMin)} ${L('de processamento', 'of processing')}`;
     node.style.color = SLA_COLOR[r.slaStatus];
   }
 
@@ -1758,13 +1902,13 @@ const STAGE_DEFAULTS = () => ([
     const baselineFn = BASELINE_VARIANTS[$('baselineStack').value];
     const goalFn = GOAL_VARIANTS[$('strategicGoal').value];
 
-    $('volumeDisplay').innerText = initialTB.toFixed(1).replace('.', ',') + ' TB / dia';
-    $('growthDisplay').innerText = (growthRatePct * 100).toFixed(0) + '% ao mês';
-    $('retentionDisplay').innerText = retentionMonths + ' Meses';
+    $('volumeDisplay').innerText = dec(initialTB, 1) + L(' TB / dia', ' TB / day');
+    $('growthDisplay').innerText = (growthRatePct * 100).toFixed(0) + L('% ao mês', '% per month');
+    $('retentionDisplay').innerText = retentionMonths + L(' Meses', ' Months');
 
     const toDisp = v => v * FX[currency];
     const CURRENCY_SYMBOL = { BRL: 'R$ ', USD: '$ ', EUR: '€ ' };
-    const fmt = v => (CURRENCY_SYMBOL[currency] || '$ ') + toDisp(v).toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+    const fmt = v => (CURRENCY_SYMBOL[currency] || '$ ') + toDisp(v).toLocaleString(LOCALE(), { maximumFractionDigits: 0 });
     $('budgetDisplay').innerText = fmt(budgetUSD);
 
     const MONTHS = 60; // 5 anos, para a projeção de longo prazo
@@ -1790,8 +1934,8 @@ const STAGE_DEFAULTS = () => ([
       if (m <= 12) {
         rowsHtml += `
                     <tr class="hover:bg-slate-800/40 transition">
-                        <td class="py-2.5 px-3 font-bold text-white">Mês ${m}</td>
-                        <td class="py-2.5 px-3 text-slate-300 font-semibold">${currentTB.toFixed(2).replace('.', ',')} TB</td>
+                        <td class="py-2.5 px-3 font-bold text-white">${L('Mês', 'Month')} ${m}</td>
+                        <td class="py-2.5 px-3 text-slate-300 font-semibold">${dec(currentTB, 2)} TB</td>
                         <td class="py-2.5 px-3 text-rose-400 font-bold">${fmt(legacy.monthly)}</td>
                         <td class="py-2.5 px-3 text-emerald-400 font-bold">${fmt(optimized.monthly)}</td>
                         <td class="py-2.5 px-3 text-blue-400 font-bold">${fmt(mSavings)}</td>
@@ -1805,33 +1949,35 @@ const STAGE_DEFAULTS = () => ([
     const avgSavingsPct = (month1Legacy.monthly - month1Optimized.monthly) / month1Legacy.monthly * 100;
 
     $('annualSavingsVal').innerText = fmt(yearCum[0]);
-    $('totalYear1Savings').innerText = 'Economia Acumulada (Ano 1): ' + fmt(yearCum[0]);
-    $('savingsPct').innerText = 'Redução de ' + avgSavingsPct.toFixed(0) + '% no TCO (mês 1)';
+    $('totalYear1Savings').innerText = L('Economia Acumulada (Ano 1): ', 'Cumulative Savings (Year 1): ') + fmt(yearCum[0]);
+    $('savingsPct').innerText = L(`Redução de ${avgSavingsPct.toFixed(0)}% no TCO (mês 1)`, `${avgSavingsPct.toFixed(0)}% TCO reduction (month 1)`);
 
     updateGauge(avgSavingsPct);
 
     $('unitCostPerTB').innerText = fmt(month1Optimized.unit.perTB) + ' / TB';
-    $('rangeVal').innerText = `${fmt(month1Optimized.range.low)} – ${fmt(month1Optimized.range.high)} (confiança ${month1Optimized.confidence}%)`;
+    $('rangeVal').innerText = `${fmt(month1Optimized.range.low)} – ${fmt(month1Optimized.range.high)} (${L('confiança', 'confidence')} ${month1Optimized.confidence}%)`;
 
     const gate = budgetGate(month1Optimized.monthly, month1Optimized.range, budgetUSD);
     const gateColor = { GO: '#10b981', REVIEW: '#f59e0b', 'NO-GO': '#ef4444', NONE: '#94a3b8' }[gate.status];
     const gateEl = $('gateVal');
-    gateEl.innerText = `${gate.status} · ${gate.usedPct.toFixed(0)}% do orçamento (${fmt(budgetUSD)})`;
+    gateEl.innerText = `${gate.status} · ${gate.usedPct.toFixed(0)}% ${L('do orçamento', 'of budget')} (${fmt(budgetUSD)})`;
     gateEl.style.color = gateColor;
 
     $('recommendedStackName').innerText = $('strategicGoal').selectedOptions[0].textContent;
-    $('monthlyOptimizedTotal').innerText = fmt(month1Optimized.monthly) + ' / mês';
+    $('monthlyOptimizedTotal').innerText = fmt(month1Optimized.monthly) + L(' / mês', ' / month');
 
     /* Viabilidade: o custo só vale se o pipeline termina dentro do SLA. */
     showSla('slaLegacy', month1Legacy);
     showSla('slaOptimized', month1Optimized);
     const breaks = [];
-    if (legacyBreaks) breaks.push(`legado a partir do mês ${legacyBreaks}`);
-    if (optimizedBreaks) breaks.push(`otimizado a partir do mês ${optimizedBreaks}`);
-    $('slaNote').innerText = `Workers e warehouse dimensionados para a cadeia caber no SLA de ${G_DEFAULTS.slaMaxMinutes} min `
-      + `(até ${MAX_WORKERS} workers por estágio). `
-      + (breaks.length ? `Com o crescimento projetado, o SLA deixa de ser atendido: ${breaks.join('; ')}.`
-                       : 'O SLA é atendido nos 60 meses projetados.');
+    if (legacyBreaks) breaks.push(L(`legado a partir do mês ${legacyBreaks}`, `legacy from month ${legacyBreaks}`));
+    if (optimizedBreaks) breaks.push(L(`otimizado a partir do mês ${optimizedBreaks}`, `optimized from month ${optimizedBreaks}`));
+    $('slaNote').innerText = L(
+      `Workers e warehouse dimensionados para a cadeia caber no SLA de ${G_DEFAULTS.slaMaxMinutes} min (até ${MAX_WORKERS} workers por estágio). `,
+      `Workers and warehouse sized so the chain fits the ${G_DEFAULTS.slaMaxMinutes} min SLA (up to ${MAX_WORKERS} workers per stage). `)
+      + (breaks.length ? L(`Com o crescimento projetado, o SLA deixa de ser atendido: ${breaks.join('; ')}.`,
+                           `With the projected growth, the SLA stops being met: ${breaks.join('; ')}.`)
+                       : L('O SLA é atendido nos 60 meses projetados.', 'The SLA is met for all 60 projected months.'));
 
     /* Decomposição de custos — agrupando o breakdown real do engine em 5 faixas visuais. */
     const b = month1Optimized.breakdown;
@@ -1862,7 +2008,10 @@ const STAGE_DEFAULTS = () => ([
 
   ['dailyVolume', 'momGrowth', 'retentionMonths', 'budgetMonthly'].forEach(id => $(id).addEventListener('input', scheduleUpdate));
   ['currencySelect', 'baselineStack', 'strategicGoal'].forEach(id => $(id).addEventListener('change', updateUI));
+  $('langSelect').value = LANG;
+  $('langSelect').addEventListener('change', e => { saveLang(e.target.value); updateUI(); });
 
+  saveLang(LANG);
   updateUI();
 })();
 

@@ -14,6 +14,7 @@ src = d / 'src'
 def build(shell_name, app_token, app_file, out_name):
     html = (src / shell_name).read_text(encoding='utf-8')
     for token, fname in (
+        ('/*__I18N__*/', 'i18n.js'),
         ('/*__PRICING__*/', 'pricing.js'),
         ('/*__CALIBRATION__*/', 'calibration.js'),
         ('/*__ENGINE__*/', 'engine.js'),

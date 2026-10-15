@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR" data-en-title="DataCost Architect — FinOps Data Architecture Simulator">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DataCost Architect — FinOps Data Architecture Simulator</title>
+<title>DataCost Architect — Simulador FinOps de Arquitetura de Dados</title>
 <style>
 :root{
   --bg:#f6f7f9; --panel:#ffffff; --ink:#14161a; --muted:#697084; --line:#e3e6ec;
@@ -290,54 +290,64 @@ tr.hl{background:#f4f6fd}
       <div class="brand-logo">DC</div>
       <div>
         <span class="brand-name">DataCost <span class="accent">Architect</span></span>
-        <span class="brand-badge">Visão Técnica · Engine</span>
+        <span class="brand-badge" data-en="Technical View · Engine">Visão Técnica · Engine</span>
       </div>
     </div>
     <div class="view-switch">
       <a class="view-btn on" href="index.html">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
-        <span>Visão Técnica (Engine)</span>
+        <span data-en="Technical View (Engine)">Visão Técnica (Engine)</span>
       </a>
       <a class="view-btn" href="executive.html">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-        <span>Visão Gerencial (CFO/Board)</span>
+        <span data-en="Executive View (CFO/Board)">Visão Gerencial (CFO/Board)</span>
       </a>
     </div>
   </div>
 </nav>
 <header>
   <div class="brand">
-    <p>FinOps Data Architecture Simulator · MVP mock v0.3 · pipeline por estágios · Go/No-Go</p>
+    <p data-en="FinOps Data Architecture Simulator · v0.4 · staged pipeline · Go/No-Go">Simulador FinOps de Arquitetura de Dados · v0.4 · pipeline por estágios · Go/No-Go</p>
   </div>
   <div class="sp"></div>
   <div>
-    <label for="currency">Currency</label>
+    <label for="lang" data-en="Language">Idioma</label>
+    <select id="lang">
+      <option value="pt">Português (BR)</option>
+      <option value="en">English</option>
+    </select>
+  </div>
+  <div>
+    <label for="currency" data-en="Currency">Moeda</label>
     <select id="currency">
       <option value="USD" selected>USD</option>
       <option value="BRL">BRL</option>
       <option value="EUR">EUR</option>
     </select>
   </div>
-  <label class="adv"><input type="checkbox" id="advToggle"> Advanced parameters</label>
-  <div id="priceInfo" class="pinfo" title="Data da última coleta de preços"></div>
-  <button id="refreshPrices" type="button" class="btn-alt">Atualizar preços</button>
+  <label class="adv"><input type="checkbox" id="advToggle"> <span data-en="Advanced parameters">Parâmetros avançados</span></label>
+  <div id="priceInfo" class="pinfo" title="Data da última coleta de preços" data-en-title="Date of the last price collection"></div>
+  <button id="refreshPrices" type="button" class="btn-alt" data-en="Refresh prices">Atualizar preços</button>
 </header>
 
 <main>
   <div class="summary"><div class="sgrid" id="summary"></div></div>
   <nav class="tabs">
-    <div class="tab on" data-tab="pipeline">Workload &amp; pipeline</div>
-    <div class="tab" data-tab="result">Result</div>
-    <div class="tab" data-tab="gate">Go / No-Go</div>
-    <div class="tab" data-tab="schedule">Schedule impact</div>
-    <div class="tab" data-tab="compare">Compare scenarios</div>
-    <div class="tab" data-tab="optimize">Optimization</div>
-    <div class="tab" data-tab="sensitivity">Sensitivity &amp; break-even</div>
-    <div class="tab" data-tab="assumptions">Assumptions</div>
+    <div class="tab on" data-tab="pipeline" data-en="Workload &amp; pipeline">Workload &amp; pipeline</div>
+    <div class="tab" data-tab="result" data-en="Result">Resultado</div>
+    <div class="tab" data-tab="gate" data-en="Go / No-Go">Go / No-Go</div>
+    <div class="tab" data-tab="schedule" data-en="Schedule impact">Impacto do schedule</div>
+    <div class="tab" data-tab="compare" data-en="Compare scenarios">Comparar cenários</div>
+    <div class="tab" data-tab="optimize" data-en="Optimization">Otimização</div>
+    <div class="tab" data-tab="sensitivity" data-en="Sensitivity &amp; break-even">Sensibilidade &amp; break-even</div>
+    <div class="tab" data-tab="assumptions" data-en="Assumptions">Premissas</div>
   </nav>
   <div id="tabBody"></div>
 </main>
 
+<script>
+/*__I18N__*/
+</script>
 <script>
 /*__PRICING__*/
 </script>
