@@ -68,7 +68,7 @@ confira as condições atuais antes de criar a conta.
 | Rota | Custo | O que calibra | Precisa de cartão? |
 |---|---|---|---|
 | **1. Snowflake trial** (30 dias, US$ 400 de uso) | grátis | throughput dos warehouses XS, S e M (`snowflake_wh`): carga no DW, ELT e a variante "ELT dentro do Snowflake" | não |
-| **2. Databricks Free Edition** | grátis | throughput do Databricks **serverless** (`databricks_sl`), como limite inferior | não |
+| **2. Databricks Free Edition** | grátis | throughput do Databricks **serverless** (`databricks_sl`), como limite inferior | a página de cadastro não diz; é uma edição gratuita, sem plano pago |
 | **3. Conta AWS nova com créditos** (US$ 100 na criação, até US$ 200) | grátis dentro dos créditos | Glue (`glue`, `glue6`), a engine padrão | **sim** |
 
 **Recomendação:** faça a rota 1, que é a mais barata e confiável. Faça a 2 se sobrar tempo. A 3 vale
